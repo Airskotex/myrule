@@ -1,14 +1,14 @@
-# name: Bilibili增强
-# desc: 拜托，没有广告的哔哩哔哩真的超酷的
+name: Bilibili增强  
+desc: 拜托，没有广告的哔哩哔哩真的超酷的
 
-# [Rule] 規則：攔截特定 API 請求
+# [Rule] 規則：攔截特定 API 請求  
 # 這些規則會直接拒絕與 Bilibili 廣告和追蹤相關的網域請求。
 rules:
   - DOMAIN,api.biliapi.com,REJECT
   - DOMAIN,app.biliapi.com,REJECT
   - DOMAIN,api.biliapi.net,REJECT
   - DOMAIN,app.biliapi.net,REJECT
-  - DOMAIN-SUFFIX,chat.bilibili.com,REJECT
+  - DOMAIN-SUFFIX,chat.bilibili.com,REJECT  
 
 # [Map Local] & [Script] http-request
 # 本地映射與請求腳本：偽造請求的響應或執行請求腳本。
