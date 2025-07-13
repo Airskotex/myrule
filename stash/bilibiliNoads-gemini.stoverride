@@ -1,0 +1,109 @@
+# name: Bilibili增强
+# desc: 拜托，没有广告的哔哩哔哩真的超酷的
+
+# [Rule] 規則：攔截特定 API 請求
+# 這些規則會直接拒絕與 Bilibili 廣告和追蹤相關的網域請求。
+rules:
+  - DOMAIN,api.biliapi.com,REJECT
+  - DOMAIN,app.biliapi.com,REJECT
+  - DOMAIN,api.biliapi.net,REJECT
+  - DOMAIN,app.biliapi.net,REJECT
+  - DOMAIN-SUFFIX,chat.bilibili.com,REJECT
+
+# [Map Local] & [Script] http-request
+# 本地映射與請求腳本：偽造請求的響應或執行請求腳本。
+http-request:
+  # [Map Local] 返回本地定義的響應，用於去除廣告和不必要的功能
+  - match: ^https:\/\/ap[ip]\.bilibili\.com\/x\/(resource\/(top\/activity|patch\/tab)|v2\/search\/square|vip\/ads\/materials)\?
+    type: echo-response
+    headers:
+      content-type: application/json
+    body: '{"code":-404,"message":"-404","ttl":1,"data":null}'
+  - match: ^https:\/\/api\.bilibili\.com\/pgc\/activity\/deliver\/material\/receive\?
+    type: echo-response
+    headers:
+      content-type: application/json
+    body: '{"code":0,"data":{"closeType":"close_win","container":[],"showTime":""},"message":"success"}'
+  - match: ^https:\/\/api\.live\.bilibili\.com\/xlive\/e-commerce-interface\/v1\/ecommerce-user\/get_shopping_info\?
+    type: echo-response
+    headers:
+      content-type: application/json
+    body: '{}'
+  - match: ^https:\/\/(grpc\.biliapi\.net|app\.bilibili\.com)\/bilibili\.app\.interface\.v1\.Teenagers\/ModeStatus$
+    type: echo-response
+    headers:
+      content-type: application/grpc
+    body: AAAAABMKEQgCEgl0ZWVuYWdlcnMgAioA
+  - match: ^https:\/\/(grpc\.biliapi\.net|app\.bilibili\.com)\/bilibili\.app\.interface\.v1\.Search\/DefaultWords$
+    type: echo-response
+    headers:
+      content-type: application/grpc
+    body: AAAAACkaHeaQnOe0ouinhumikeOAgeeVquWJp+aIlnVw5Li7IgAoAToAQgBKAA==
+  - match: ^https:\/\/(grpc\.biliapi\.net|app\.bilibili\.com)\/bilibili\.app\.view\.v1\.View\/TFInfo$
+    type: echo-response
+    headers:
+      content-type: application/grpc
+    body: AAAAAAIIAQ==
+  - match: ^https:\/\/line3-h5-mobile-api\.biligame\.com\/game\/live\/large_card_material\?
+    type: echo-response
+    headers:
+      content-type: application/json
+    body: '{"code":0,"message":"success"}'
+
+  # [Script] 空降助手：處理影片彈幕，實現時間戳跳轉
+  - match: ^https:\/\/(grpc\.biliapi\.net|app\.bilibili\.com)\/bilibili\.community\.service\.dm\.v1\.DM\/DmSegMobile$
+    type: script
+    binary-mode: true
+    script:
+      path: https://raw.githubusercontent.com/kokoryh/Sparkle/refs/heads/master/dist/bilibili.airborne.js
+      args:
+        logLevel: "info"
+
+# [Body Rewrite] & [Script] http-response
+# 響應體重寫與腳本：修改伺服器返回的數據。
+http-response:
+  # [Body Rewrite] 使用 jq 修改 JSON 響應，移除頁面上的廣告和不需要的模組
+  - match: ^https:\/\/api\.bilibili\.com\/pgc\/view\/v2\/app\/season\?
+    type: jq
+    body-jq: 'del(.data.payment)'
+  - match: ^https:\/\/api\.bilibili\.com\/pgc\/page\/(bangumi|cinema\/tab)\?
+    type: jq
+    body-jq: '.result.modules |= if . then map(if (.style | startswith("tip")) or (.module_id | IN(241, 1283, 1441, 1284)) then .items = [] elif .style | startswith("banner") then .items |= if . then map(select(.link | contains("play"))) else [] end elif .style | startswith("function") then .items |= if . then map(select(.blink | startswith("bilibili"))) else [] end end) end'
+  - match: ^https:\/\/api\.live\.bilibili\.com\/xlive\/(app-interface\/v2\/index\/feed|app-room\/v1\/index\/getInfoBy(Room|User))\?
+    type: jq
+    body-jq: '.data |= (del(.play_together_info, .play_together_info_v2, .activity_banner_info) | if .function_card then .function_card[] = null end | if .new_tab_info.outer_list then .new_tab_info.outer_list |= map(select(.biz_id != 33)) end | if .card_list then .card_list |= map(select(.card_type | IN("banner_v2", "activity_card_v1") | not)) end | reduce ([["show_reserve_status"], false], [["reserve_info", "show_reserve_status"], false], [["shopping_info", "is_show"], 0]) as [$path, $value] (.; if getpath($path) then setpath($path; $value) end))'
+
+  # [Script] 響應腳本
+  # 個性化皮膚處理
+  - match: ^https:\/\/app\.bilibili\.com\/x\/resource\/show\/skin\?
+    type: script
+    script:
+      path: https://raw.githubusercontent.com/kokoryh/Script/master/js/bili-suit-diy.js
+  # 處理 JSON 響應，根據參數隱藏"創作中心"
+  - match: ^https:\/\/app\.bilibili\.com\/x\/(resource\/show\/tab\/v2|v2\/(splash\/(list|show|event\/list2)|feed\/index(\/story)?|account\/(mine(\/ipad)?|myinfo)))\?
+    type: script
+    script:
+      path: https://raw.githubusercontent.com/kokoryh/Sparkle/refs/heads/master/dist/bilibili.json.js
+      args:
+        showCreatorHub: "0" # 隱藏創作中心
+  # 處理 Protobuf 響應，用於修改動態、評論區、影片播放頁等多種功能
+  - match: ^https:\/\/(grpc\.biliapi\.net|app\.bilibili\.com)\/bilibili\.(app\.(show\.v1\.Popular\/Index|dynamic\.v2\.Dynamic\/DynAll|view(unite)?\.v1\.View\/(View|ViewProgress|RelatesFeed)|playurl\.v1\.PlayURL\/PlayView|playerunite\.v1\.Player\/PlayViewUnite)|polymer\.app\.search\.v1\.Search\/SearchAll|community\.service\.dm\.v1\.DM\/(DmView|DmSegMobile)|main\.community\.reply\.v1\.Reply\/MainList|pgc\.gateway\.player\.v2\.PlayURL\/PlayView)$
+    type: script
+    binary-mode: true
+    script:
+      path: https://raw.githubusercontent.com/kokoryh/Sparkle/refs/heads/master/dist/bilibili.protobuf.js
+      args:
+        showUpList: "auto" # 動態最常訪問: 自動顯示
+        filterTopReplies: "1" # 過濾置頂評論廣告: 開啟
+        airborne: "bilibili.airborne" # 空降助手: 開啟
+        logLevel: "info"
+
+# [MITM] 中間人攻擊
+# 需要解密 HTTPS 流量的網域名稱列表
+mitm:
+  hostnames:
+    - grpc.biliapi.net
+    - app.bilibili.com
+    - api.bilibili.com
+    - api.live.bilibili.com
+    - line3-h5-mobile-api.biligame.com
