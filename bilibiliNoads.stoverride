@@ -1,0 +1,117 @@
+# Bilibili增强 - 拜托，没有广告的哔哩哔哩真的超酷的
+# 原模块参数：动态最常访问:auto,创作中心:0,过滤置顶评论广告:1,空降助手:bilibili.airborne,日志等级:info
+
+http:
+  # 中间人攻击域名配置
+  mitm:
+    - grpc.biliapi.net
+    - app.bilibili.com
+    - api.bilibili.com
+    - api.live.bilibili.com
+    - line3-h5-mobile-api.biligame.com
+
+  # Mock 响应（原 Map Local 部分）
+  mock:
+    - match: '^https:\/\/ap[ip]\.bilibili\.com\/x\/(resource\/(top\/activity|patch\/tab)|v2\/search\/square|vip\/ads\/materials)\?'
+      text: '{"code":-404,"message":"-404","ttl":1,"data":null}'
+      status-code: 200
+      headers:
+        Content-Type: application/json
+    
+    - match: '^https:\/\/api\.bilibili\.com\/pgc\/activity\/deliver\/material\/receive\?'
+      text: '{"code":0,"data":{"closeType":"close_win","container":[],"showTime":""},"message":"success"}'
+      status-code: 200
+      headers:
+        Content-Type: application/json
+    
+    - match: '^https:\/\/api\.live\.bilibili\.com\/xlive\/e-commerce-interface\/v1\/ecommerce-user\/get_shopping_info\?'
+      text: '{}'
+      status-code: 200
+      headers:
+        Content-Type: application/json
+    
+    - match: '^https:\/\/(grpc\.biliapi\.net|app\.bilibili\.com)\/bilibili\.app\.interface\.v1\.Teenagers\/ModeStatus$'
+      base64: 'AAAAABMKEQgCEgl0ZWVuYWdlcnMgAioA'
+      status-code: 200
+      headers:
+        Content-Type: application/grpc
+    
+    - match: '^https:\/\/(grpc\.biliapi\.net|app\.bilibili\.com)\/bilibili\.app\.interface\.v1\.Search\/DefaultWords$'
+      base64: 'AAAAACkaHeaQnOe0ouinhumikeOAgeeVquWJp+aIlnVw5Li7IgAoAToAQgBKAA=='
+      status-code: 200
+      headers:
+        Content-Type: application/grpc
+    
+    - match: '^https:\/\/(grpc\.biliapi\.net|app\.bilibili\.com)\/bilibili\.app\.view\.v1\.View\/TFInfo$'
+      base64: 'AAAAAAIIAQ=='
+      status-code: 200
+      headers:
+        Content-Type: application/grpc
+    
+    - match: '^https:\/\/line3-h5-mobile-api\.biligame\.com\/game\/live\/large_card_material\?'
+      text: '{"code":0,"message":"success"}'
+      status-code: 200
+      headers:
+        Content-Type: application/json
+
+# 脚本配置
+script:
+  # 空降助手
+  - match: '^https:\/\/(grpc\.biliapi\.net|app\.bilibili\.com)\/bilibili\.community\.service\.dm\.v1\.DM\/DmSegMobile$'
+    name: bilibili-airborne
+    type: request
+    require-body: true
+    binary-mode: true
+    max-size: -1
+    timeout: 10
+    argument: '{"logLevel":"info"}'
+  
+  # 皮肤配置
+  - match: '^https:\/\/app\.bilibili\.com\/x\/resource\/show\/skin\?'
+    name: bilibili-skin
+    type: response
+    require-body: true
+    max-size: -1
+    timeout: 10
+  
+  # JSON 响应处理
+  - match: '^https:\/\/app\.bilibili\.com\/x\/(resource\/show\/tab\/v2|v2\/(splash\/(list|show|event\/list2)|feed\/index(\/story)?|account\/(mine(\/ipad)?|myinfo)))\?'
+    name: bilibili-json
+    type: response
+    require-body: true
+    max-size: -1
+    timeout: 10
+    argument: '{"showCreatorHub":0}'
+  
+  # Protobuf 响应处理
+  - match: '^https:\/\/(grpc\.biliapi\.net|app\.bilibili\.com)\/bilibili\.(app\.(show\.v1\.Popular\/Index|dynamic\.v2\.Dynamic\/DynAll|view(unite)?\.v1\.View\/(View|ViewProgress|RelatesFeed)|playurl\.v1\.PlayURL\/PlayView|playerunite\.v1\.Player\/PlayViewUnite)|polymer\.app\.search\.v1\.Search\/SearchAll|community\.service\.dm\.v1\.DM\/(DmView|DmSegMobile)|main\.community\.reply\.v1\.Reply\/MainList|pgc\.gateway\.player\.v2\.PlayURL\/PlayView)$'
+    name: bilibili-protobuf
+    type: response
+    require-body: true
+    binary-mode: true
+    max-size: -1
+    timeout: 10
+    argument: '{"showUpList":"auto","filterTopReplies":1,"airborne":"bilibili.airborne","logLevel":"info"}'
+
+# 脚本提供商
+script-providers:
+  bilibili-airborne:
+    url: https://raw.githubusercontent.com/kokoryh/Sparkle/refs/heads/master/dist/bilibili.airborne.js
+    interval: 86400
+  bilibili-skin:
+    url: https://raw.githubusercontent.com/kokoryh/Script/master/js/bili-suit-diy.js
+    interval: 86400
+  bilibili-json:
+    url: https://raw.githubusercontent.com/kokoryh/Sparkle/refs/heads/master/dist/bilibili.json.js
+    interval: 86400
+  bilibili-protobuf:
+    url: https://raw.githubusercontent.com/kokoryh/Sparkle/refs/heads/master/dist/bilibili.protobuf.js
+    interval: 86400
+
+# 规则配置
+rules:
+  - DOMAIN,api.biliapi.com,REJECT
+  - DOMAIN,app.biliapi.com,REJECT
+  - DOMAIN,api.biliapi.net,REJECT
+  - DOMAIN,app.biliapi.net,REJECT
+  - DOMAIN-SUFFIX,chat.bilibili.com,REJECT
