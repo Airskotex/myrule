@@ -180,7 +180,7 @@ is_package_installed() {
     
     case "$PACKAGE_MANAGER" in
         apt)
-            dpkg -l 2>/dev/null | grep -q "^ii  $package " || dpkg -l 2>/dev/null | grep -q "^ii  $package:"
+            dpkg -l 2>/dev/null | grep -q "^ii  $package " || dpkg -l 2>/dev/null | grep -q "^ii  $package:"  
             ;;
         yum|dnf)
             rpm -q "$package" &> /dev/null
@@ -237,7 +237,7 @@ install_system_packages() {
     log_info "检查并安装必要的软件包..."
     
     # 定义需要的包
-    local generic_packages=("zsh" "git" "curl" "wget" "fonts-powerline" "fzf" "bat" "fontconfig")
+    local generic_packages=("zsh" "git" "curl" "wget" "fonts-powerline" "fzf" "batcat" "bat" "fontconfig")              
     local to_install=()
     
     # 检查每个包
