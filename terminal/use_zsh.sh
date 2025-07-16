@@ -426,11 +426,11 @@ install_plugin() {
     if [ ! -d "\$plugin_dir" ]; then
         echo -e "\${GREEN}[INFO]\${NC} 安装 \$plugin_name 插件..."
         git clone "\$plugin_url" "\$plugin_dir" || {
-            echo -e "\${YELLOW}[WARN]\${NC} \$plugin_name 插件安装失败"
+            echo -e "\${YELLOW}[WARN]\${NC} \$plugin_name 插件安装失败"  
             return 1
         }
     else
-        echo -e "\${YELLOW}[WARN]\${NC} \$plugin_name 插件已安装"
+        echo -e "\${YELLOW}[WARN]\${NC} \$plugin_name 插件已安装"  
     fi
 }
 
@@ -458,6 +458,9 @@ plugins=(
     fzf-tab
     zsh-autosuggestions
     zsh-syntax-highlighting
+    command-not-found
+    history-substring-search
+    colored-man-pages
 )
 
 # Source oh-my-zsh
