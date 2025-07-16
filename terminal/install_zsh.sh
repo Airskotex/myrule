@@ -73,7 +73,7 @@ log() {
     case "$level" in
         "INFO") color="$GREEN" ;;
         "WARN") color="$YELLOW" ;;
-        "ERROR") color="$RED" ;;
+        "ERROR") color="$RED" ;;  
         "DEBUG") color="$BLUE" ;;
     esac
     
@@ -107,7 +107,7 @@ error_handler() {
 detect_server_environment() {
     log_info "检测服务器环境..."
     
-    local is_internal=false
+    local is_internal=false  
     
     # 检测方法1：检查内网IP
     local ip_addresses=""
@@ -159,23 +159,21 @@ detect_server_environment() {
 }
 
 # 测试代理可用性
-/*
-test_proxy() {
-    local proxy_url="$1"
-    log_debug "测试代理: $proxy_url"
-    
-    # 构造代理URL
-    local test_url="${proxy_url}/ohmyzsh/ohmyzsh"
-    
-    if curl -fsS --connect-timeout 5 -o /dev/null "$test_url" 2>/dev/null; then
-        log_debug "代理可用: $proxy_url"
-        return 0
-    else
-        log_debug "代理不可用: $proxy_url"
-        return 1  
-    fi
-}
-*/
+#test_proxy() {
+#    local proxy_url="$1"  
+#    log_debug "测试代理: $proxy_url"
+#    
+#    # 构造代理URL
+#    local test_url="${proxy_url}/ohmyzsh/ohmyzsh"
+#    
+#    if curl -fsS --connect-timeout 5 -o /dev/null "$test_url" 2>/dev/null; then
+#        log_debug "代理可用: $proxy_url"
+#        return 0
+#    else
+#        log_debug "代理不可用: $proxy_url"
+#        return 1  
+#    fi
+#}
 test_proxy() {    
     local proxy_url="$1"
     local timeout="${2:-5}"  # Default 5 seconds timeout
