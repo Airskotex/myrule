@@ -38,7 +38,7 @@ fi
 
 # 2. 更新系统并安装必要软件包
 log_info "检查并安装必要的软件包..."
-packages=("zsh" "git" "curl" "wget" "fonts-powerline" "fzf")
+packages=("zsh" "git" "curl" "wget" "fonts-powerline" "fzf" "bat")        
 to_install=()
 
 for pkg in "${packages[@]}"; do
@@ -109,10 +109,10 @@ else
 fi
 
 # 8. 配置插件（检查避免重复）
-if ! grep -q "zsh-syntax-highlighting" "$HOME/.zshrc"; then
+if ! grep -q "zsh-syntax-highlighting" "$HOME/.zshrc"; then  
     log_info "配置插件..."
     # 查找 plugins=() 行并替换
-    sed -i '/^plugins=/c\plugins=(\n    git\n    fzf-tab\n    zsh-autosuggestions\n    zsh-syntax-highlighting\n)' "$HOME/.zshrc"
+    sed -i '/^plugins=/c\plugins=(\n    git\n    fzf-tab\n    zsh-autosuggestions\n    zsh-syntax-highlighting\n)' "$HOME/.zshrc"  
 else
     log_warn "插件已配置"
 fi
@@ -141,8 +141,11 @@ alias ..='cd ..'
 alias ...='cd ../..'
 alias ....='cd ../../..'
 
+# bat - 彩色 cat
+alias cat='batcat'
+
 # 其他实用别名
-alias cp='cp -i'
+alias cp='cp -i'  
 alias mv='mv -i'
 alias rm='rm -i'
 alias mkdir='mkdir -pv'
