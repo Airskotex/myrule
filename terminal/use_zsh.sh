@@ -11,7 +11,10 @@ trap 'error_handler $? $LINENO "$BASH_COMMAND"' ERR
 
 # 全局变量
 SCRIPT_VERSION="3.2"
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_DIR="$(pwd)"  # 管道执行时使用当前目录
+if [[ -n "${BASH_SOURCE[0]:-}" ]]; then  
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+fi    
 IS_ROOT=$([[ $EUID -eq 0 ]] && echo "true" || echo "false")
 LOG_FILE="$HOME/.zsh_install_$(date +%Y%m%d_%H%M%S).log"
 PACKAGE_MANAGER=""
@@ -19,7 +22,7 @@ OS_TYPE=""
 SKIP_USERS=("nobody" "systemd-network" "systemd-resolve" "daemon" "bin" "sys")
 
 # 颜色定义
-RED='\033[0;31m'
+RED='\033[0;31m'  
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
