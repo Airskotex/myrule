@@ -2,7 +2,7 @@
 
 # ================================================================
 # Zsh 环境自动配置脚本 v3.2 (修复版)
-# 支持：Debian/Ubuntu (apt)、RHEL/CentOS (yum/dnf)、macOS (brew)
+# 支持：Debian/Ubuntu (apt)、RHEL/CentOS (yum/dnf)、macOS (brew)  
 # ================================================================
 
 # 启用严格的错误处理
@@ -45,7 +45,7 @@ log() {
     
     # 使用 printf 避免日志格式问题
     printf "${color}[%s] [%s]${NC} %s\n" "$timestamp" "$level" "$message"
-    printf "[%s] [%s] %s\n" "$timestamp" "$level" "$message" >> "$LOG_FILE" 2>/dev/null || true
+    printf "[%s] [%s] %s\n" "$timestamp" "$level" "$message" >> "$LOG_FILE" 2>/dev/null || true  
 }
 
 log_info() { log "INFO" "$1"; }
@@ -576,8 +576,8 @@ mkdir -p "\$FONT_DIR"
 echo -e "\${GREEN}[INFO]\${NC} 安装 Nerd 字体..."
 fonts=(
     "https://github.com/romkatv/powerlevel10k-media/raw/master/MesloLGS%20NF%20Regular.ttf"
-    "https://github.com/romkatv/powerlevel10k-media/raw/master/MesloLGS%20NF%20Bold.ttf"
-    "https://github.com/romkatv/powerlevel10k-media/raw/master/MesloLGS%20NF%20Italic.ttf"  
+    "https://github.com/romkatv/powerlevel10k-media/raw/master/MesloLGS%20NF%20Bold.ttf"    
+    "https://github.com/romkatv/powerlevel10k-media/raw/master/MesloLGS%20NF%20Italic.ttf"
     "https://github.com/romkatv/powerlevel10k-media/raw/master/MesloLGS%20NF%20Bold%20Italic.ttf"
 )
 
