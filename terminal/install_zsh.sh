@@ -1,9 +1,9 @@
 #!/bin/bash
 
 # ================================================================
-# Zsh 环境自动配置脚本 v3.3 (国内代理增强版)
+# Zsh 环境自动配置脚本 v3.3 (代理增强版)
 # 支持：Debian/Ubuntu (apt)、RHEL/CentOS (yum/dnf)、macOS (brew)
-# 新增：国内服务器检测和GitHub代理支持
+# 新增：服务器内部代理检测功能
 # ================================================================
 
 # 启用严格的错误处理
@@ -19,21 +19,10 @@ PACKAGE_MANAGER=""
 OS_TYPE=""
 SKIP_USERS=("nobody" "systemd-network" "systemd-resolve" "daemon" "bin" "sys")
 
-# 新增：国内代理配置
-IS_CHINA_SERVER="false"
+# 代理设置
 GITHUB_PROXY=""
-GITHUB_RAW_PROXY=""
-
-# GitHub代理列表
-GITHUB_PROXIES=(
-    "https://github.airskotex.nyc.mn"
-    "https://github.proxies.ip-ddns.com"
-)
-
-GITHUB_RAW_PROXIES=(
-    "https://raw.airskotex.nyc.mn"
-    "https://raw.proxies.ip-ddns.com"
-)
+USE_PROXY=false
+PROXY_HOSTS=("https://github.airskotex.nyc.mn" "https://github.proxies.ip-ddns.com")
 
 # 颜色定义
 RED='\033[0;31m'  
@@ -42,162 +31,6 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 PURPLE='\033[0;35m'
 NC='\033[0m' # No Color
-
-# ================================================================
-# 新增：国内服务器检测和代理配置
-# ================================================================
-
-# 检测是否为国内服务器
-detect_china_server() {
-    log_info "检测服务器位置..."
-    
-    # 方法1：检查IP地址归属
-    local ip_info=""
-    if command_exists curl; then
-        # 尝试多个IP检测服务
-        local ip_services=(
-            "https://ipinfo.io/country"
-            "https://httpbin.org/ip"
-            "https://api.ipify.org"
-        )
-        
-        for service in "${ip_services[@]}"; do
-            if ip_info=$(curl -m 5 -s "$service" 2>/dev/null); then
-                if [[ "$ip_info" =~ "CN" ]] || [[ "$ip_info" =~ "China" ]]; then
-                    IS_CHINA_SERVER="true"
-                    log_info "检测到国内服务器环境"
-                    return 0
-                fi
-                break
-            fi
-        done
-    fi
-    
-    # 方法2：检查DNS解析时间（GitHub访问速度）
-    local github_ping_time=0
-    if command_exists ping; then
-        github_ping_time=$(ping -c 3 -W 2 github.com 2>/dev/null | grep "avg" | cut -d'/' -f5 | cut -d'.' -f1 || echo "999")
-    fi
-    
-    # 方法3：检查系统时区
-    local timezone=""
-    if [ -f /etc/timezone ]; then
-        timezone=$(cat /etc/timezone)
-    elif [ -L /etc/localtime ]; then
-        timezone=$(readlink /etc/localtime | sed 's/.*zoneinfo\///')
-    fi
-    
-    # 综合判断
-    if [[ "$timezone" =~ "Asia/Shanghai" ]] || [[ "$timezone" =~ "Asia/Chongqing" ]] || 
-       [[ "$github_ping_time" -gt 200 ]]; then
-        IS_CHINA_SERVER="true"
-        log_info "根据网络环境判断为国内服务器"
-    else
-        log_info "检测为海外服务器环境"
-    fi
-}
-
-# 测试并选择最快的代理
-select_best_proxy() {
-    log_info "测试GitHub代理速度..."
-    
-    local best_proxy=""
-    local best_raw_proxy=""
-    local best_time=999
-    
-    # 测试GitHub代理
-    for proxy in "${GITHUB_PROXIES[@]}"; do
-        log_debug "测试代理: $proxy"
-        local start_time=$(date +%s%N)
-        
-        if curl -m 5 -s -o /dev/null "$proxy" 2>/dev/null; then
-            local end_time=$(date +%s%N)
-            local response_time=$(( (end_time - start_time) / 1000000 ))
-            
-            log_debug "代理 $proxy 响应时间: ${response_time}ms"
-            
-            if [ "$response_time" -lt "$best_time" ]; then
-                best_time=$response_time
-                best_proxy=$proxy
-            fi
-        else
-            log_debug "代理 $proxy 不可用"
-        fi
-    done
-    
-    # 设置最佳代理
-    if [ -n "$best_proxy" ]; then
-        GITHUB_PROXY="$best_proxy"
-        log_info "选择GitHub代理: $GITHUB_PROXY (${best_time}ms)"
-        
-        # 设置对应的raw代理
-        case "$best_proxy" in
-            *"airskotex.nyc.mn"*)
-                GITHUB_RAW_PROXY="https://raw.airskotex.nyc.mn"
-                ;;
-            *"proxies.ip-ddns.com"*)
-                GITHUB_RAW_PROXY="https://raw.proxies.ip-ddns.com"
-                ;;
-        esac
-        
-        log_info "选择Raw代理: $GITHUB_RAW_PROXY"
-    else
-        log_warn "所有代理都不可用，将使用直连"
-        IS_CHINA_SERVER="false"
-    fi
-}
-
-# 配置代理环境
-setup_proxy_environment() {
-    detect_china_server
-    
-    if [[ "$IS_CHINA_SERVER" == "true" ]]; then
-        select_best_proxy
-    fi
-}
-
-# URL代理转换函数
-proxy_url() {
-    local url="$1"
-    
-    if [[ "$IS_CHINA_SERVER" == "true" && -n "$GITHUB_PROXY" ]]; then
-        # 替换GitHub URL
-        if [[ "$url" =~ ^https://github\.com/ ]]; then
-            url="${url/https:\/\/github.com/$GITHUB_PROXY}"
-            log_debug "GitHub URL代理: $url"
-        # 替换Raw URL
-        elif [[ "$url" =~ ^https://raw\.githubusercontent\.com/ ]]; then
-            url="${url/https:\/\/raw.githubusercontent.com/$GITHUB_RAW_PROXY}"
-            log_debug "Raw URL代理: $url"
-        fi
-    fi
-    
-    echo "$url"
-}
-
-# 代理模式的curl函数
-proxy_curl() {
-    local url="$1"
-    shift
-    local proxied_url=$(proxy_url "$url")
-    
-    curl "$@" "$proxied_url"
-}
-
-# 代理模式的git clone函数
-proxy_git_clone() {
-    local url="$1"
-    local dest="$2"
-    local extra_args="${3:-}"
-    
-    local proxied_url=$(proxy_url "$url")
-    
-    if [ -n "$extra_args" ]; then
-        git clone $extra_args "$proxied_url" "$dest"
-    else
-        git clone "$proxied_url" "$dest"
-    fi
-}
 
 # ================================================================
 # 日志和输出函数
@@ -239,9 +72,133 @@ error_handler() {
 }
 
 # ================================================================
+# 代理检测和设置函数
+# ================================================================
+
+# 检测是否在服务器内部环境
+detect_server_environment() {
+    log_info "检测服务器环境..."
+    
+    local is_internal=false
+    
+    # 检测方法1：检查内网IP
+    local ip_addresses=$(ip addr show 2>/dev/null | grep -E 'inet [0-9]' | awk '{print $2}' | cut -d/ -f1 2>/dev/null || \
+                        ifconfig 2>/dev/null | grep -E 'inet [0-9]' | awk '{print $2}' 2>/dev/null || \
+                        hostname -I 2>/dev/null | tr ' ' '\n' || echo "")
+    
+    while IFS= read -r ip; do
+        if [[ -n "$ip" ]]; then
+            # 检查是否是内网IP
+            if [[ "$ip" =~ ^10\. ]] || [[ "$ip" =~ ^192\.168\. ]] || [[ "$ip" =~ ^172\.(1[6-9]|2[0-9]|3[0-1])\. ]]; then
+                log_debug "检测到内网IP: $ip"
+                is_internal=true
+                break
+            fi
+        fi
+    done <<< "$ip_addresses"
+    
+    # 检测方法2：检查特定环境变量
+    if [[ -n "${SERVER_ENV:-}" ]] || [[ -n "${INTERNAL_NETWORK:-}" ]]; then
+        log_debug "检测到服务器环境变量"
+        is_internal=true
+    fi
+    
+    # 检测方法3：检查SSH连接
+    if [[ -n "${SSH_CLIENT:-}" ]] || [[ -n "${SSH_CONNECTION:-}" ]]; then
+        log_debug "检测到SSH连接"
+        is_internal=true
+    fi
+    
+    # 检测方法4：检查特定主机名模式
+    local hostname=$(hostname 2>/dev/null || echo "")
+    if [[ "$hostname" =~ (server|srv|node|cluster|internal) ]]; then
+        log_debug "检测到服务器主机名模式: $hostname"
+        is_internal=true
+    fi
+    
+    # 检测方法5：尝试直接连接GitHub测试
+    if ! curl -fsS --connect-timeout 3 -o /dev/null "https://github.com" 2>/dev/null; then
+        log_debug "无法直接连接GitHub，可能需要代理"
+        is_internal=true
+    fi
+    
+    return $([[ "$is_internal" == "true" ]] && echo 0 || echo 1)
+}
+
+# 测试代理可用性
+test_proxy() {
+    local proxy_url="$1"
+    log_debug "测试代理: $proxy_url"
+    
+    # 构造代理URL
+    local test_url="${proxy_url}/ohmyzsh/ohmyzsh"
+    
+    if curl -fsS --connect-timeout 5 -o /dev/null "$test_url" 2>/dev/null; then
+        log_debug "代理可用: $proxy_url"
+        return 0
+    else
+        log_debug "代理不可用: $proxy_url"
+        return 1
+    fi
+}
+
+# 设置GitHub代理
+setup_github_proxy() {
+    log_info "设置GitHub代理..."
+    
+    # 首先检测是否在服务器内部
+    if detect_server_environment; then
+        log_info "检测到服务器内部环境，尝试使用代理"
+        
+        # 测试可用的代理
+        for proxy in "${PROXY_HOSTS[@]}"; do
+            if test_proxy "$proxy"; then
+                GITHUB_PROXY="$proxy"
+                USE_PROXY=true
+                log_info "使用GitHub代理: $GITHUB_PROXY"
+                return 0
+            fi
+        done
+        
+        log_warn "所有代理均不可用，将尝试直接连接"
+        USE_PROXY=false
+    else
+        log_info "检测到公网环境，使用直接连接"
+        USE_PROXY=false
+    fi
+    
+    return 0
+}
+
+# 获取代理化的GitHub URL
+get_github_url() {
+    local original_url="$1"
+    
+    if [[ "$USE_PROXY" == "true" && -n "$GITHUB_PROXY" ]]; then
+        # 将 https://github.com 替换为代理地址
+        echo "$original_url" | sed "s|https://github.com|$GITHUB_PROXY|g"
+    else
+        echo "$original_url"
+    fi
+}
+
+# 获取代理化的raw.githubusercontent.com URL
+get_raw_github_url() {
+    local original_url="$1"
+    
+    if [[ "$USE_PROXY" == "true" && -n "$GITHUB_PROXY" ]]; then
+        # 将 https://raw.githubusercontent.com 替换为代理地址/raw
+        echo "$original_url" | sed "s|https://raw.githubusercontent.com|$GITHUB_PROXY/raw|g"
+    else
+        echo "$original_url"
+    fi
+}
+
+# ================================================================
 # 系统检测函数
 # ================================================================
 
+# 检测操作系统类型
 detect_os() {
     if [[ "$OSTYPE" == "darwin"* ]]; then
         OS_TYPE="macos"
@@ -256,6 +213,7 @@ detect_os() {
     fi
 }
 
+# 检测包管理器
 detect_package_manager() {
     log_info "检测包管理器..."
     
@@ -281,106 +239,225 @@ detect_package_manager() {
     log_info "使用包管理器: $PACKAGE_MANAGER"
 }
 
+# 检查命令是否存在
 command_exists() {
     command -v "$1" &> /dev/null
 }
 
 # ================================================================
-# 网络检测函数
+# 包管理器操作函数
 # ================================================================
 
-check_network() {
-    log_info "检查网络连接..."
+# 更新包索引
+update_package_index() {
+    log_info "更新包索引..."
     
-    local test_urls=(
-        "https://github.com"
-        "https://raw.githubusercontent.com"
-    )
+    case "$PACKAGE_MANAGER" in
+        apt)
+            if [ "$IS_ROOT" = "true" ]; then
+                apt update
+            else
+                sudo apt update
+            fi
+            ;;
+        yum|dnf)
+            # yum/dnf 通常不需要手动更新索引
+            :
+            ;;
+        brew)
+            brew update
+            ;;
+    esac
+}
+
+# 安装单个包
+install_package() {
+    local package="$1"
     
-    for url in "${test_urls[@]}"; do
-        local proxied_url=$(proxy_url "$url")
-        if curl -fsS --connect-timeout 10 -o /dev/null "$proxied_url" 2>/dev/null; then
-            log_info "网络连接正常: $proxied_url"
-            return 0
+    case "$PACKAGE_MANAGER" in
+        apt)
+            if [ "$IS_ROOT" = "true" ]; then
+                apt install -y "$package"
+            else
+                sudo apt install -y "$package"
+            fi
+            ;;
+        yum)
+            if [ "$IS_ROOT" = "true" ]; then
+                yum install -y "$package"
+            else
+                sudo yum install -y "$package"
+            fi
+            ;;
+        dnf)
+            if [ "$IS_ROOT" = "true" ]; then
+                dnf install -y "$package"
+            else
+                sudo dnf install -y "$package"
+            fi
+            ;;
+        brew)
+            brew install "$package"
+            ;;
+    esac
+}
+
+# 检查包是否已安装
+is_package_installed() {
+    local package="$1"
+    
+    case "$PACKAGE_MANAGER" in
+        apt)
+            dpkg -l 2>/dev/null | grep -q "^ii  $package " || dpkg -l 2>/dev/null | grep -q "^ii  $package:"
+            ;;
+        yum|dnf)
+            rpm -q "$package" &> /dev/null
+            ;;
+        brew)
+            brew list "$package" &> /dev/null
+            ;;
+    esac
+}
+
+# ================================================================
+# 安装函数
+# ================================================================
+
+# 获取包名称映射
+get_package_name() {
+    local generic_name="$1"
+    
+    case "$generic_name" in
+        "bat")
+            case "$PACKAGE_MANAGER" in
+                apt) echo "bat" ;;
+                yum|dnf) echo "bat" ;;
+                brew) echo "bat" ;;
+                *) echo "" ;;
+            esac
+            ;;
+        "fzf")
+            echo "fzf"
+            ;;
+        "fonts-powerline")
+            case "$PACKAGE_MANAGER" in
+                apt) echo "fonts-powerline" ;;
+                yum|dnf) echo "powerline-fonts" ;;
+                brew) echo "" ;;
+                *) echo "" ;;
+            esac
+            ;;
+        "fontconfig")
+            case "$PACKAGE_MANAGER" in
+                apt|yum|dnf) echo "fontconfig" ;;
+                brew) echo "" ;;
+                *) echo "" ;;
+            esac
+            ;;
+        *)
+            echo "$generic_name"
+            ;;
+    esac
+}
+
+# 安装必要的软件包
+install_system_packages() {
+    log_info "检查并安装必要的软件包..."
+    
+    local generic_packages=("zsh" "git" "curl" "wget" "fonts-powerline" "fzf" "bat" "fontconfig")
+    local to_install=()
+    
+    for generic_pkg in "${generic_packages[@]}"; do
+        local actual_pkg=$(get_package_name "$generic_pkg")
+        
+        if [ -n "$actual_pkg" ]; then
+            if ! is_package_installed "$actual_pkg" && ! command_exists "${generic_pkg%%-*}"; then
+                to_install+=("$actual_pkg")
+            else
+                log_debug "$actual_pkg 已安装"
+            fi
         fi
     done
     
-    log_error "无法连接到 GitHub"
-    return 1
-}
-
-# ================================================================
-# 系统包安装函数
-# ================================================================
-
-install_system_packages() {
-    log_info "安装系统包..."
-    
-    local packages=("zsh" "git" "curl" "wget" "fontconfig")
-    
-    case "$PACKAGE_MANAGER" in
-        "apt")
-            apt update
-            apt install -y "${packages[@]}"
-            ;;
-        "yum")
-            yum install -y "${packages[@]}"
-            ;;
-        "dnf")
-            dnf install -y "${packages[@]}"
-            ;;
-        "brew")
-            # macOS上通常已经有这些包
-            for pkg in "${packages[@]}"; do
-                if ! command_exists "$pkg"; then
-                    brew install "$pkg" || log_warn "无法安装 $pkg"
-                fi
-            done
-            ;;
-    esac
-    
-    log_info "系统包安装完成"
-}
-
-# ================================================================
-# 用户管理函数
-# ================================================================
-
-get_target_users() {
-    local users=()
-    
-    if [[ "$IS_ROOT" == "true" ]]; then
-        log_info "检测到 root 用户权限，将为所有用户配置"
+    if [ ${#to_install[@]} -gt 0 ]; then
+        log_info "需要安装的包: ${to_install[*]}"
+        update_package_index
         
-        # 获取所有普通用户
-        while IFS=':' read -r username _ uid _ _ home shell; do
-            # 跳过系统用户和特殊用户
-            if [[ "$uid" -ge 1000 ]] || [[ "$username" == "root" ]]; then
-                local skip=false
-                for skip_user in "${SKIP_USERS[@]}"; do
-                    if [[ "$username" == "$skip_user" ]]; then
-                        skip=true
-                        break
-                    fi
-                done
-                
-                if [[ "$skip" == "false" ]]; then
-                    users+=("$username:$home:$shell")
-                fi
+        for pkg in "${to_install[@]}"; do
+            log_info "安装 $pkg..."
+            if ! install_package "$pkg"; then
+                log_warn "无法安装 $pkg，继续..."
             fi
-        done < /etc/passwd
+        done
     else
-        # 非root用户，只为当前用户配置
-        users+=("$USER:$HOME:$SHELL")
+        log_info "所有必要软件包已安装"
     fi
-    
-    printf '%s\n' "${users[@]}"
 }
 
 # ================================================================
 # 用户安装函数
 # ================================================================
 
+# 获取所有需要配置的用户
+get_target_users() {
+    if [[ "$OS_TYPE" == "macos" ]]; then
+        echo "$USER:$HOME:$SHELL"
+    elif [ "$IS_ROOT" = "true" ]; then
+        echo "root:/root:/bin/bash"
+        
+        local min_uid=1000
+        local max_uid=60000
+        
+        awk -F: -v min=$min_uid -v max=$max_uid '
+            $3 >= min && $3 <= max && 
+            $6 != "" && 
+            $7 !~ /(false|nologin)$/ {
+                print $1":"$6":"$7
+            }
+        ' /etc/passwd | while read -r line; do
+            local username="${line%%:*}"
+            local skip=false
+            
+            for skip_user in nobody systemd-network systemd-resolve daemon bin sys; do
+                if [[ "$username" == "$skip_user" ]]; then
+                    skip=true
+                    break
+                fi
+            done
+            
+            [[ "$skip" == "false" ]] && echo "$line"
+        done
+    else
+        echo "$USER:$HOME:$SHELL"
+    fi
+}
+
+# 检查网络连接（支持代理）
+check_network() {
+    local test_urls=(
+        "https://github.com"
+        "https://raw.githubusercontent.com"
+        "https://api.github.com"
+    )
+    
+    # 如果使用代理，测试代理地址
+    if [[ "$USE_PROXY" == "true" && -n "$GITHUB_PROXY" ]]; then
+        if curl -fsS --connect-timeout 5 -o /dev/null "$GITHUB_PROXY" 2>/dev/null; then
+            return 0
+        fi
+    fi
+    
+    # 测试直接连接
+    for url in "${test_urls[@]}"; do
+        if curl -fsS --connect-timeout 5 -o /dev/null "$url" 2>/dev/null; then
+            return 0
+        fi
+    done
+    
+    return 1
+}
+
+# 为单个用户安装配置
 install_for_user() {
     local username="$1"
     local user_home="$2"
@@ -389,7 +466,7 @@ install_for_user() {
     log_info "========================================="
     log_info "为用户 $username 配置 Zsh 环境"
     log_info "主目录: $user_home"
-    log_info "使用代理: $([[ "$IS_CHINA_SERVER" == "true" ]] && echo "是" || echo "否")"
+    log_info "代理状态: $([[ "$USE_PROXY" == "true" ]] && echo "启用($GITHUB_PROXY)" || echo "禁用")"
     log_info "========================================="
     
     if [ ! -d "$user_home" ]; then
@@ -397,9 +474,9 @@ install_for_user() {
         return
     fi
     
+    # 创建用户安装脚本
     local temp_script="/tmp/zsh_install_${username}_$$.sh"
     
-    # 生成用户脚本
     cat > "$temp_script" << USERSCRIPT
 #!/bin/bash
 set -euo pipefail
@@ -407,12 +484,12 @@ set -euo pipefail
 # 用户级别的安装脚本
 USERNAME="$username"
 USER_HOME="$user_home"
-IS_CHINA_SERVER="$IS_CHINA_SERVER"
-GITHUB_PROXY="$GITHUB_PROXY"
-GITHUB_RAW_PROXY="$GITHUB_RAW_PROXY"
-
 export HOME="\$USER_HOME"
 cd "\$HOME"
+
+# 代理设置
+USE_PROXY=$USE_PROXY
+GITHUB_PROXY="$GITHUB_PROXY"
 
 # 颜色定义
 RED='\033[0;31m'
@@ -421,32 +498,42 @@ YELLOW='\033[1;33m'
 NC='\033[0m'
 
 echo -e "\${GREEN}[INFO]\${NC} 开始为用户 \${USERNAME} 安装..."
-if [[ "\$IS_CHINA_SERVER" == "true" ]]; then
-    echo -e "\${YELLOW}[INFO]\${NC} 使用国内代理加速下载"
-fi
 
-# 代理URL转换函数
-proxy_url() {
-    local url="\$1"
-    
-    if [[ "\$IS_CHINA_SERVER" == "true" && -n "\$GITHUB_PROXY" ]]; then
-        if [[ "\$url" =~ ^https://github\.com/ ]]; then
-            url="\${url/https:\/\/github.com/\$GITHUB_PROXY}"
-        elif [[ "\$url" =~ ^https://raw\.githubusercontent\.com/ ]]; then
-            url="\${url/https:\/\/raw.githubusercontent.com/\$GITHUB_RAW_PROXY}"
-        fi
+# 获取代理化的GitHub URL
+get_github_url() {
+    local original_url="\$1"
+    if [[ "\$USE_PROXY" == "true" && -n "\$GITHUB_PROXY" ]]; then
+        echo "\$original_url" | sed "s|https://github.com|\$GITHUB_PROXY|g"
+    else
+        echo "\$original_url"
     fi
-    
-    echo "\$url"
+}
+
+# 获取代理化的raw.githubusercontent.com URL
+get_raw_github_url() {
+    local original_url="\$1"
+    if [[ "\$USE_PROXY" == "true" && -n "\$GITHUB_PROXY" ]]; then
+        echo "\$original_url" | sed "s|https://raw.githubusercontent.com|\$GITHUB_PROXY/raw|g"
+    else
+        echo "\$original_url"
+    fi
 }
 
 # 检查网络连接
 check_network() {
-    local test_urls=("https://github.com" "https://raw.githubusercontent.com")
+    if [[ "\$USE_PROXY" == "true" && -n "\$GITHUB_PROXY" ]]; then
+        if curl -fsS --connect-timeout 5 -o /dev/null "\$GITHUB_PROXY" 2>/dev/null; then
+            return 0
+        fi
+    fi
+    
+    local test_urls=(
+        "https://github.com"
+        "https://raw.githubusercontent.com"
+    )
     
     for url in "\${test_urls[@]}"; do
-        local proxied_url=\$(proxy_url "\$url")
-        if curl -fsS --connect-timeout 5 -o /dev/null "\$proxied_url" 2>/dev/null; then
+        if curl -fsS --connect-timeout 5 -o /dev/null "\$url" 2>/dev/null; then
             return 0
         fi
     done
@@ -455,7 +542,7 @@ check_network() {
 }
 
 if ! check_network; then
-    echo -e "\${RED}[ERROR]\${NC} 无法连接到 GitHub（即使使用代理）"
+    echo -e "\${RED}[ERROR]\${NC} 无法连接到 GitHub"
     exit 1
 fi
 
@@ -465,8 +552,11 @@ if [ ! -d "\$HOME/.oh-my-zsh" ]; then
     export RUNZSH=no
     export CHSH=no
     
-    local ohmyzsh_url=\$(proxy_url "https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh")
-    sh -c "\$(curl -fsSL \$ohmyzsh_url)" "" --unattended || {
+    # 使用代理化的URL
+    local omz_url=\$(get_raw_github_url "https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh")
+    echo -e "\${GREEN}[INFO]\${NC} 使用URL: \$omz_url"
+    
+    sh -c "\$(curl -fsSL \$omz_url)" "" --unattended || {
         echo -e "\${RED}[ERROR]\${NC} Oh My Zsh 安装失败"
         exit 1
     }
@@ -478,7 +568,11 @@ fi
 P10K_DIR="\${ZSH_CUSTOM:-\$HOME/.oh-my-zsh/custom}/themes/powerlevel10k"
 if [ ! -d "\$P10K_DIR" ]; then
     echo -e "\${GREEN}[INFO]\${NC} 安装 Powerlevel10k..."
-    local p10k_url=\$(proxy_url "https://github.com/romkatv/powerlevel10k.git")
+    
+    # 使用代理化的URL
+    local p10k_url=\$(get_github_url "https://github.com/romkatv/powerlevel10k.git")
+    echo -e "\${GREEN}[INFO]\${NC} 使用URL: \$p10k_url"
+    
     git clone --depth=1 "\$p10k_url" "\$P10K_DIR" || {
         echo -e "\${RED}[ERROR]\${NC} Powerlevel10k 安装失败"
         exit 1
@@ -495,7 +589,11 @@ install_plugin() {
     
     if [ ! -d "\$plugin_dir" ]; then
         echo -e "\${GREEN}[INFO]\${NC} 安装 \$plugin_name 插件..."
-        local proxied_url=\$(proxy_url "\$plugin_url")
+        
+        # 使用代理化的URL
+        local proxied_url=\$(get_github_url "\$plugin_url")
+        echo -e "\${GREEN}[INFO]\${NC} 使用URL: \$proxied_url"
+        
         git clone "\$proxied_url" "\$plugin_dir" || {
             echo -e "\${YELLOW}[WARN]\${NC} \$plugin_name 插件安装失败"
             return 1
@@ -510,39 +608,18 @@ install_plugin "zsh-syntax-highlighting" "https://github.com/zsh-users/zsh-synta
 install_plugin "zsh-autosuggestions" "https://github.com/zsh-users/zsh-autosuggestions"
 install_plugin "fzf-tab" "https://github.com/Aloxaf/fzf-tab"
 
-# 备份原配置
+# 备份并创建新的 .zshrc
 if [ -f "\$HOME/.zshrc" ]; then
     cp "\$HOME/.zshrc" "\$HOME/.zshrc.backup.\$(date +%Y%m%d_%H%M%S)"
 fi
 
-# 创建新的 .zshrc 配置
+# 创建配置文件
 cat > "\$HOME/.zshrc" << 'EOF'
-# Enable Powerlevel10k instant prompt. Should stay close to the top of ~/.zshrc.
-if [[ -r "\${XDG_CACHE_HOME:-\$HOME/.cache}/p10k-instant-prompt-\${(%):-%n}.zsh" ]]; then
-  source "\${XDG_CACHE_HOME:-\$HOME/.cache}/p10k-instant-prompt-\${(%):-%n}.zsh"
-fi
-
 # Path to oh-my-zsh installation
 export ZSH="\$HOME/.oh-my-zsh"
 
 # Set theme
 ZSH_THEME="powerlevel10k/powerlevel10k"
-
-# Uncomment the following line to use case-sensitive completion.
-# CASE_SENSITIVE="true"
-
-# Uncomment the following line to use hyphen-insensitive completion.
-# Case-sensitive completion must be off. _ and - will be interchangeable.
-HYPHEN_INSENSITIVE="true"
-
-# Uncomment the following line to disable auto-setting terminal title.
-# DISABLE_AUTO_TITLE="true"
-
-# Uncomment the following line to enable command auto-correction.
-ENABLE_CORRECTION="true"
-
-# Uncomment the following line to display red dots whilst waiting for completion.
-COMPLETION_WAITING_DOTS="true"
 
 # Plugins
 plugins=(
@@ -557,121 +634,102 @@ source \$ZSH/oh-my-zsh.sh
 
 # === CUSTOM CONFIGURATION ===
 
-# Set language environment
-export LANG=en_US.UTF-8
-
-# Preferred editor for local and remote sessions
-if [[ -n \$SSH_CONNECTION ]]; then
-    export EDITOR='vim'
-else
-    export EDITOR='nvim'
+# Enable Powerlevel10k instant prompt
+if [[ -r "\${XDG_CACHE_HOME:-\$HOME/.cache}/p10k-instant-prompt-\${(%):-%n}.zsh" ]]; then
+  source "\${XDG_CACHE_HOME:-\$HOME/.cache}/p10k-instant-prompt-\${(%):-%n}.zsh"
 fi
 
-# Compilation flags
-export ARCHFLAGS="-arch x86_64"
+# fzf-tab configuration
+zstyle ':completion:*:git-checkout:*' sort false
+zstyle ':completion:*:descriptions' format '[%d]'
+zstyle ':completion:*' list-colors \${(s.:.)LS_COLORS}
+zstyle ':fzf-tab:complete:cd:*' fzf-preview 'ls -1 --color=always \$realpath 2>/dev/null || echo "No preview"'
+zstyle ':fzf-tab:complete:kill:argument-rest' fzf-preview 'ps aux | grep \$word'
 
-# === ALIASES ===
-alias ll='ls -alF'
-alias la='ls -A'
-alias l='ls -CF'
+# History configuration
+HISTFILE=~/.zsh_history
+HISTSIZE=10000
+SAVEHIST=10000
+setopt EXTENDED_HISTORY
+setopt HIST_EXPIRE_DUPS_FIRST
+setopt HIST_IGNORE_DUPS
+setopt HIST_IGNORE_SPACE
+setopt HIST_VERIFY
+setopt SHARE_HISTORY
+
+# Aliases
+alias ls='ls --color=auto'
+alias ll='ls -lh'
+alias la='ls -lah'
 alias grep='grep --color=auto'
-alias fgrep='fgrep --color=auto'
-alias egrep='egrep --color=auto'
+alias diff='diff --color=auto'
 
-# Git aliases
-alias gs='git status'
-alias ga='git add'
-alias gc='git commit'
-alias gp='git push'
-alias gl='git log --oneline --graph --all'
-alias gd='git diff'
-alias gb='git branch'
-alias gco='git checkout'
-
-# System aliases
+# Directory navigation
 alias ..='cd ..'
 alias ...='cd ../..'
 alias ....='cd ../../..'
-alias ~='cd ~'
-alias h='history'
-alias j='jobs -l'
+
+# Safety aliases
+alias cp='cp -i'
+alias mv='mv -i'
+alias rm='rm -i'
+alias ln='ln -i'
+
+# Utility aliases
+alias mkdir='mkdir -pv'
 alias df='df -h'
 alias du='du -h'
 alias free='free -h'
+alias ps='ps auxf'
 
-# === FUNCTIONS ===
+# bat 配置
+if command -v batcat &> /dev/null; then
+    alias cat='batcat'
+    alias bat='batcat'
+    export BAT_THEME="TwoDark"
+elif command -v bat &> /dev/null; then
+    alias cat='bat'
+    export BAT_THEME="TwoDark"
+fi
 
-# Create directory and cd into it
-mkcd() {
-    mkdir -p "\$1" && cd "\$1"
-}
+# Custom functions
+mkcd() { mkdir -p "\$@" && cd "\$_"; }
 
-# Extract various archive formats
 extract() {
     if [ -f "\$1" ]; then
         case "\$1" in
-            *.tar.bz2)  tar xjf "\$1"    ;;
-            *.tar.gz)   tar xzf "\$1"    ;;
-            *.bz2)      bunzip2 "\$1"    ;;
-            *.rar)      unrar x "\$1"    ;;
-            *.gz)       gunzip "\$1"     ;;
-            *.tar)      tar xf "\$1"     ;;
-            *.tbz2)     tar xjf "\$1"    ;;
-            *.tgz)      tar xzf "\$1"    ;;
-            *.zip)      unzip "\$1"      ;;
-            *.Z)        uncompress "\$1" ;;
-            *.7z)       7z x "\$1"       ;;
-            *)          echo "'\$1' cannot be extracted via extract()" ;;
+            *.tar.bz2)   tar xjf "\$1"     ;;
+            *.tar.gz)    tar xzf "\$1"     ;;
+            *.bz2)       bunzip2 "\$1"     ;;
+            *.rar)       unrar e "\$1"     ;;
+            *.gz)        gunzip "\$1"      ;;
+            *.tar)       tar xf "\$1"      ;;
+            *.tbz2)      tar xjf "\$1"     ;;
+            *.tgz)       tar xzf "\$1"     ;;
+            *.zip)       unzip "\$1"       ;;
+            *.Z)         uncompress "\$1"  ;;
+            *.7z)        7z x "\$1"        ;;
+            *)           echo "'\$1' cannot be extracted" ;;
         esac
     else
         echo "'\$1' is not a valid file"
     fi
 }
 
-# === POWERLEVEL10K CONFIG ===
-# To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
+# 快速查找文件
+ff() {
+    find . -type f -iname "*\$1*" 2>/dev/null
+}
+
+# 快速查找目录
+fd() {
+    find . -type d -iname "*\$1*" 2>/dev/null
+}
+
+# Load Powerlevel10k configuration
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
 
-# === CUSTOM PATHS ===
-# Add custom paths here
-# export PATH="\$PATH:/custom/path"
-
-# === PLUGIN CONFIGURATIONS ===
-
-# fzf-tab configuration
-zstyle ':fzf-tab:complete:cd:*' fzf-preview 'ls --color=always \$realpath'
-zstyle ':fzf-tab:complete:ls:*' fzf-preview 'ls --color=always \$realpath'
-
-# zsh-autosuggestions configuration
-ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE="fg=#666666,underline"
-ZSH_AUTOSUGGEST_STRATEGY=(history completion)
-
-# === HISTORY CONFIGURATION ===
-HISTSIZE=50000
-SAVEHIST=50000
-setopt EXTENDED_HISTORY
-setopt SHARE_HISTORY
-setopt APPEND_HISTORY
-setopt INC_APPEND_HISTORY
-setopt HIST_EXPIRE_DUPS_FIRST
-setopt HIST_IGNORE_DUPS
-setopt HIST_IGNORE_ALL_DUPS
-setopt HIST_FIND_NO_DUPS
-setopt HIST_IGNORE_SPACE
-setopt HIST_SAVE_NO_DUPS
-setopt HIST_REDUCE_BLANKS
-setopt HIST_VERIFY
-
-# === COMPLETION CONFIGURATION ===
-# Case insensitive completion
-zstyle ':completion:*' matcher-list 'm:{a-z}={A-Z}'
-# Menu selection
-zstyle ':completion:*' menu select
-
-# === WELCOME MESSAGE ===
-echo "🎉 Zsh 环境配置完成！"
-echo "💡 运行 'p10k configure' 来配置 Powerlevel10k 主题"
-echo "📚 查看 ~/.zshrc 来自定义更多配置"
+# === END CUSTOM CONFIGURATION ===
 EOF
 
 # 安装字体
@@ -689,39 +747,44 @@ fonts=(
 for font_url in "\${fonts[@]}"; do
     font_name=\$(basename "\$font_url" | sed 's/%20/ /g')
     if [ ! -f "\$FONT_DIR/\$font_name" ]; then
-        echo -e "\${GREEN}[INFO]\${NC} 下载字体: \$font_name"
-        local proxied_font_url=\$(proxy_url "\$font_url")
+        # 使用代理化的URL
+        local proxied_font_url=\$(get_github_url "\$font_url")
+        echo -e "\${GREEN}[INFO]\${NC} 下载字体: \$font_name (URL: \$proxied_font_url)"
+        
         curl -fsSL "\$proxied_font_url" -o "\$FONT_DIR/\$font_name" || echo -e "\${YELLOW}[WARN]\${NC} 无法下载 \$font_name"
     fi
 done
 
 # 更新字体缓存
 if command -v fc-cache &> /dev/null; then
-    echo -e "\${GREEN}[INFO]\${NC} 更新字体缓存..."
     fc-cache -f "\$FONT_DIR" 2>/dev/null || true
 fi
 
-echo -e "\${GREEN}[INFO]\${NC} 用户 \${USERNAME} 的 Zsh 环境配置完成！"
-echo -e "\${YELLOW}[提示]\${NC} 请重启终端或运行 'source ~/.zshrc' 来应用配置"
-echo -e "\${YELLOW}[提示]\${NC} 运行 'p10k configure' 来配置 Powerlevel10k 主题"
+echo -e "\${GREEN}[INFO]\${NC} 用户 \${USERNAME} 的配置完成！"
 USERSCRIPT
 
-    # 设置脚本权限并运行
+    # 设置脚本权限
     chmod +x "$temp_script"
     
+    # 运行脚本
     if [ "$username" == "$USER" ] || ([ "$username" == "root" ] && [ "$IS_ROOT" == "true" ]); then
         bash "$temp_script"
     else
         su - "$username" -c "bash $temp_script"
     fi
     
+    # 清理
     rm -f "$temp_script"
     
-    # 设置默认shell
+    # 更改默认 shell
     if [[ "$user_shell" != */zsh ]]; then
         log_info "为用户 $username 设置默认 shell 为 zsh"
         
-        local zsh_path=$(command -v zsh)
+        local zsh_path=""
+        if command_exists zsh; then
+            zsh_path=$(command -v zsh)
+        fi
+        
         if [ -n "$zsh_path" ]; then
             if [[ "$OS_TYPE" == "macos" ]]; then
                 if [ "$username" == "$USER" ]; then
@@ -739,81 +802,79 @@ USERSCRIPT
 }
 
 # ================================================================
-# 展示横幅
+# 新用户模板配置
 # ================================================================
 
-show_banner() {
-    echo -e "${PURPLE}"
-    echo "================================================================"
-    echo "  ______ _____ _   _   _____ _   _  _____ _______       _      "
-    echo " |___  // ____| | | | |_   _| \ | |/ ____|__   __|/\   | |     "
-    echo "    / /| (___ | |_| |   | | |  \| | (___    | |  /  \  | |     "
-    echo "   / /  \___ \|  _  |   | | | . \` |\___ \   | | / /\ \ | |     "
-    echo "  / /__ ____) | | | |  _| |_| |\  |____) |  | |/ ____ \| |____ "
-    echo " /_____|_____/|_| |_| |_____|_| \_|_____/   |_/_/    \_\______|"
-    echo "                                                               "
-    echo "================================================================"
-    echo -e "${NC}"
-    echo -e "${GREEN}Zsh 环境自动配置脚本 v${SCRIPT_VERSION}${NC}"
-    echo -e "${GREEN}支持: Debian/Ubuntu/CentOS/RHEL/macOS${NC}"
-    echo -e "${GREEN}新增: 国内服务器检测和GitHub代理支持${NC}"
-    echo -e "${YELLOW}作者: AI Assistant${NC}"
-    echo "================================================================"
-}
-
-# ================================================================
-# 显示总结
-# ================================================================
-
-show_summary() {
-    echo -e "${GREEN}"
-    echo "================================================================"
-    echo "                    安装完成总结"
-    echo "================================================================"
-    echo -e "${NC}"
+setup_skel() {
+    if [[ "$OS_TYPE" == "macos" ]] || [ "$IS_ROOT" != "true" ]; then
+        return
+    fi
     
-    echo -e "${GREEN}✅ 系统检测${NC}"
-    echo -e "   操作系统: $OS_TYPE"
-    echo -e "   包管理器: $PACKAGE_MANAGER"
-    echo -e "   服务器位置: $([[ "$IS_CHINA_SERVER" == "true" ]] && echo "国内" || echo "海外")"
-    echo -e "   GitHub代理: $([[ -n "$GITHUB_PROXY" ]] && echo "$GITHUB_PROXY" || echo "未使用")"
-    echo
+    log_info "配置新用户默认模板..."
     
-    echo -e "${GREEN}✅ 已安装组件${NC}"
-    echo -e "   • Zsh Shell"
-    echo -e "   • Oh My Zsh"
-    echo -e "   • Powerlevel10k 主题"
-    echo -e "   • zsh-syntax-highlighting 插件"
-    echo -e "   • zsh-autosuggestions 插件"
-    echo -e "   • fzf-tab 插件"
-    echo -e "   • MesloLGS NF 字体"
-    echo
+    cat > /usr/local/bin/auto-setup-zsh << 'EOF'
+#!/bin/bash
+if [ ! -d "$HOME/.oh-my-zsh" ] && [ -x /usr/bin/zsh ]; then
+    echo "正在为您自动配置 Zsh 环境..."
+    curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh | sh -s -- --unattended
+    echo "配置完成！请重新登录以使用 Zsh。"
+fi
+EOF
     
-    echo -e "${GREEN}✅ 配置位置${NC}"
-    echo -e "   • 配置文件: ~/.zshrc"
-    echo -e "   • 主题配置: ~/.p10k.zsh"
-    echo -e "   • 字体目录: ~/.local/share/fonts"
-    echo -e "   • 安装日志: $LOG_FILE"
-    echo
+    chmod +x /usr/local/bin/auto-setup-zsh
     
-    echo -e "${YELLOW}🔧 下一步操作${NC}"
-    echo -e "   1. 重启终端或运行: source ~/.zshrc"
-    echo -e "   2. 运行 'p10k configure' 配置主题"
-    echo -e "   3. 在终端应用中选择 MesloLGS NF 字体"
-    echo
-    
-    echo -e "${GREEN}📖 更多信息${NC}"
-    echo -e "   • Powerlevel10k: https://github.com/romkatv/powerlevel10k"
-    echo -e "   • Oh My Zsh: https://ohmyz.sh"
-    echo -e "   • 配置教程: https://github.com/ohmyzsh/ohmyzsh/wiki"
-    echo
-    
-    echo -e "${GREEN}================================================================${NC}"
+    if [ -f /etc/skel/.bashrc ] && ! grep -q "auto-setup-zsh" /etc/skel/.bashrc 2>/dev/null; then
+        echo -e "\n# Auto setup zsh for new users\n[ -x /usr/local/bin/auto-setup-zsh ] && /usr/local/bin/auto-setup-zsh" >> /etc/skel/.bashrc
+    fi
 }
 
 # ================================================================
 # 主函数
 # ================================================================
+
+show_banner() {
+    echo -e "${PURPLE}"
+    echo "╔══════════════════════════════════════════════╗"
+    echo "║     Zsh 环境自动配置脚本 v$SCRIPT_VERSION              ║"
+    echo "║     Enhanced with Oh My Zsh & Powerlevel10k ║"
+    echo "║     支持服务器代理检测功能                    ║"
+    echo "╚══════════════════════════════════════════════╝"
+    echo -e "${NC}"
+}
+
+show_summary() {
+    echo -e "\n${GREEN}╔══════════════════════════════════════════════╗${NC}"
+    echo -e "${GREEN}║              安装完成！                      ║${NC}"
+    echo -e "${GREEN}╚══════════════════════════════════════════════╝${NC}"
+    
+    echo -e "\n${YELLOW}系统信息：${NC}"
+    echo "  • 操作系统: $OS_TYPE"
+    echo "  • 包管理器: $PACKAGE_MANAGER"
+    echo "  • 安装模式: $([ "$IS_ROOT" = "true" ] && echo "所有用户" || echo "当前用户")"
+    echo "  • 代理状态: $([[ "$USE_PROXY" == "true" ]] && echo "启用 ($GITHUB_PROXY)" || echo "禁用")"
+    
+    echo -e "\n${YELLOW}已安装组件：${NC}"
+    echo "  ✓ Zsh Shell"
+    echo "  ✓ Oh My Zsh 框架"
+    echo "  ✓ Powerlevel10k 主题"
+    echo "  ✓ 语法高亮插件"
+    echo "  ✓ 自动建议插件"
+    echo "  ✓ FZF Tab 补全"
+    echo "  ✓ MesloLGS NF 字体"
+    if command_exists batcat || command_exists bat; then
+        echo "  ✓ bat (彩色 cat)"
+    fi
+    
+    echo -e "\n${YELLOW}后续步骤：${NC}"
+    echo -e "1. 重启终端或运行: ${GREEN}exec zsh${NC}"
+    echo -e "2. 首次使用 zsh 时会运行 Powerlevel10k 配置向导"
+    echo -e "3. 在终端设置中将字体改为: ${GREEN}MesloLGS NF${NC}"
+    
+    echo -e "\n${YELLOW}实用命令：${NC}"
+    echo -e "• 重新配置主题: ${GREEN}p10k configure${NC}"
+    echo -e "• 更新 Oh My Zsh: ${GREEN}omz update${NC}"
+    echo -e "• 查看安装日志: ${GREEN}cat $LOG_FILE${NC}"
+}
 
 main() {
     show_banner
@@ -827,14 +888,14 @@ main() {
     detect_os
     detect_package_manager
     
-    # 代理环境配置
-    log_info "=== 代理环境配置 ==="
-    setup_proxy_environment
+    # 代理检测和设置
+    log_info "=== 代理检测 ==="
+    setup_github_proxy
     
     # 检查网络连接
     log_info "=== 网络检测 ==="
     if ! check_network; then
-        log_error "无法连接到 GitHub，请检查网络连接"
+        log_error "无法连接到 GitHub，请检查网络连接和代理设置"
         exit 1
     fi
     log_info "网络连接正常"
@@ -843,49 +904,82 @@ main() {
     log_info "=== 安装系统包 ==="
     install_system_packages
     
-    # 获取目标用户
+    # 获取目标用户列表
     log_info "=== 用户配置 ==="
-    local users=($(get_target_users))
-    log_info "找到 ${#users[@]} 个用户需要配置"
+    
+    local users_temp_file="/tmp/zsh_users_$$"
+    get_target_users > "$users_temp_file" 2>/dev/null
+    
+    local user_count=0
+    if [ -f "$users_temp_file" ] && [ -s "$users_temp_file" ]; then
+        user_count=$(wc -l < "$users_temp_file")
+    fi
+    
+    if [ "$user_count" -eq 0 ]; then
+        log_error "无法获取用户列表"
+        rm -f "$users_temp_file"
+        exit 1
+    fi
+    
+    log_info "将为 $user_count 个用户进行配置"
     
     # 为每个用户安装
-    for user_info in "${users[@]}"; do
-        IFS=':' read -r username user_home user_shell <<< "$user_info"
-        install_for_user "$username" "$user_home" "$user_shell"
-    done
+    while IFS= read -r user_info; do
+        if [[ -n "$user_info" ]]; then
+            IFS=: read -r username home shell <<< "$user_info"
+            
+            if [[ -n "$username" && -n "$home" && -n "$shell" ]]; then
+                log_debug "处理用户: $username"
+                install_for_user "$username" "$home" "$shell"
+            else
+                log_warn "跳过无效的用户信息: $user_info"
+            fi
+        fi
+    done < "$users_temp_file"
     
-    # 显示总结
+    rm -f "$users_temp_file"
+    
+    if [ "$IS_ROOT" = "true" ] && [[ "$OS_TYPE" == "linux" ]]; then
+        setup_skel
+    fi
+    
     show_summary
-    
-    log_info "所有用户的 Zsh 环境配置完成！"
+    log_info "所有操作完成！"
 }
 
-# 帮助信息
-show_help() {
-    echo "使用方法: $0 [选项]"
-    echo
-    echo "选项:"
-    echo "  -h, --help     显示帮助信息"
-    echo "  -v, --version  显示版本信息"
-    echo
-    echo "示例:"
-    echo "  $0              # 运行安装"
-    echo "  sudo $0         # 以root权限运行，为所有用户安装"
-    echo
-}
+# ================================================================
+# 脚本入口
+# ================================================================
 
-# 处理命令行参数
-case "${1:-}" in
-    -h|--help)
-        show_help
-        exit 0
-        ;;
-    -v|--version)
-        echo "Zsh 环境配置脚本 v$SCRIPT_VERSION"
-        exit 0
-        ;;
-    *)
-        # 执行主函数
-        main "$@"
-        ;;
-esac
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --help|-h)
+            echo "用法: $0 [选项]"
+            echo ""
+            echo "自动检测用户身份和服务器环境："
+            echo "  • root用户：为所有用户安装"
+            echo "  • 普通用户：仅为当前用户安装"
+            echo "  • 服务器环境：自动使用GitHub代理"
+            echo ""
+            echo "支持的系统："
+            echo "  • Debian/Ubuntu (apt)"
+            echo "  • RHEL/CentOS/Fedora (yum/dnf)"
+            echo "  • macOS (brew)"
+            echo ""
+            echo "GitHub代理："
+            echo "  • https://github.airskotex.nyc.mn"
+            echo "  • https://github.proxies.ip-ddns.com"
+            echo ""
+            echo "选项:"
+            echo "  --help, -h      显示此帮助"
+            exit 0
+            ;;
+        *)
+            log_error "未知选项: $1"
+            exit 1
+            ;;
+    esac
+    shift
+done
+
+main
