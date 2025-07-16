@@ -1,9 +1,10 @@
 #!/bin/bash
 
 # ================================================================
-# Zsh 环境自动配置脚本 v3.3 (代理增强版)
+# Zsh 环境自动配置脚本 v3.3 (代理增强版-修复版)
 # 支持：Debian/Ubuntu (apt)、RHEL/CentOS (yum/dnf)、macOS (brew)
 # 新增：服务器内部代理检测功能
+# 修复：BASH_SOURCE未定义变量错误
 # ================================================================
 
 # 启用严格的错误处理
@@ -12,7 +13,34 @@ trap 'error_handler $? $LINENO "$BASH_COMMAND"' ERR
 
 # 全局变量
 SCRIPT_VERSION="3.3"
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"  
+
+# 安全获取脚本目录
+get_script_dir() {
+    local source_path=""
+    
+    # 方法1: 使用BASH_SOURCE (如果可用)
+    if [[ -n "${BASH_SOURCE:-}" ]] && [[ "${#BASH_SOURCE[@]}" -gt 0 ]]; then
+        source_path="${BASH_SOURCE[0]}"
+    # 方法2: 使用$0作为回退
+    elif [[ -n "${0:-}" ]]; then
+        source_path="$0"
+    # 方法3: 使用当前目录作为最后回退
+    else
+        echo "$(pwd)"
+        return 0
+    fi
+    
+    # 获取绝对路径
+    if [[ "$source_path" == /* ]]; then
+        # 已经是绝对路径
+        dirname "$source_path"
+    else
+        # 相对路径，转换为绝对路径
+        (cd "$(dirname "$source_path")" && pwd)
+    fi
+}
+
+SCRIPT_DIR="$(get_script_dir)"
 IS_ROOT=$([[ $EUID -eq 0 ]] && echo "true" || echo "false")
 LOG_FILE="$HOME/.zsh_install_$(date +%Y%m%d_%H%M%S).log"
 PACKAGE_MANAGER=""
@@ -61,8 +89,8 @@ log_debug() { log "DEBUG" "$1"; }
 # 错误处理
 error_handler() {
     local exit_code=$1
-    local line_no=$2
-    local bash_command=$3
+    local line_no=${2:-"unknown"}
+    local bash_command=${3:-"unknown"}
     
     log_error "命令失败 (退出码: $exit_code)"
     log_error "错误位置: 第 $line_no 行"
@@ -82,9 +110,14 @@ detect_server_environment() {
     local is_internal=false
     
     # 检测方法1：检查内网IP
-    local ip_addresses=$(ip addr show 2>/dev/null | grep -E 'inet [0-9]' | awk '{print $2}' | cut -d/ -f1 2>/dev/null || \
-                        ifconfig 2>/dev/null | grep -E 'inet [0-9]' | awk '{print $2}' 2>/dev/null || \
-                        hostname -I 2>/dev/null | tr ' ' '\n' || echo "")
+    local ip_addresses=""
+    if command -v ip &> /dev/null; then
+        ip_addresses=$(ip addr show 2>/dev/null | grep -E 'inet [0-9]' | awk '{print $2}' | cut -d/ -f1 2>/dev/null || echo "")
+    elif command -v ifconfig &> /dev/null; then
+        ip_addresses=$(ifconfig 2>/dev/null | grep -E 'inet [0-9]' | awk '{print $2}' 2>/dev/null || echo "")
+    elif command -v hostname &> /dev/null; then
+        ip_addresses=$(hostname -I 2>/dev/null | tr ' ' '\n' || echo "")
+    fi
     
     while IFS= read -r ip; do
         if [[ -n "$ip" ]]; then
@@ -126,6 +159,7 @@ detect_server_environment() {
 }
 
 # 测试代理可用性
+/*
 test_proxy() {
     local proxy_url="$1"
     log_debug "测试代理: $proxy_url"
@@ -138,9 +172,40 @@ test_proxy() {
         return 0
     else
         log_debug "代理不可用: $proxy_url"
-        return 1
+        return 1  
     fi
 }
+*/
+test_proxy() {    
+    local proxy_url="$1"
+    local timeout="${2:-5}"  # Default 5 seconds timeout
+    
+    log_debug "Testing GitHub proxy: $proxy_url"
+    
+    # Test URLs to try
+    local test_urls=(
+        "${proxy_url}/ohmyzsh/ohmyzsh"
+        "${proxy_url}/https://github.com/ohmyzsh/ohmyzsh"
+        "${proxy_url}/github.com/ohmyzsh/ohmyzsh"
+    )
+    
+    for test_url in "${test_urls[@]}"; do
+        if curl -fsS --connect-timeout "$timeout" \
+               --max-time $((timeout * 2)) \
+               -o /dev/null \
+               -w "%{http_code}" \
+               "$test_url" 2>/dev/null | grep -q "^[23]"; then
+            log_debug "Proxy available: $proxy_url (via $test_url)"
+            return 0
+        fi
+    done
+    
+    log_debug "Proxy unavailable: $proxy_url"
+    return 1
+}
+
+
+
 
 # 设置GitHub代理
 setup_github_proxy() {
@@ -200,13 +265,13 @@ get_raw_github_url() {
 
 # 检测操作系统类型
 detect_os() {
-    if [[ "$OSTYPE" == "darwin"* ]]; then
+    if [[ "${OSTYPE:-}" == "darwin"* ]]; then
         OS_TYPE="macos"
         log_info "检测到系统: macOS"
     elif [ -f /etc/os-release ]; then
         . /etc/os-release
         OS_TYPE="linux"
-        log_info "检测到系统: $NAME $VERSION"
+        log_info "检测到系统: ${NAME:-Linux} ${VERSION:-}"
     else
         log_error "无法识别的操作系统"
         exit 1
@@ -401,7 +466,7 @@ install_system_packages() {
 # 获取所有需要配置的用户
 get_target_users() {
     if [[ "$OS_TYPE" == "macos" ]]; then
-        echo "$USER:$HOME:$SHELL"
+        echo "${USER:-$(whoami)}:${HOME}:${SHELL:-/bin/bash}"
     elif [ "$IS_ROOT" = "true" ]; then
         echo "root:/root:/bin/bash"
         
@@ -428,7 +493,7 @@ get_target_users() {
             [[ "$skip" == "false" ]] && echo "$line"
         done
     else
-        echo "$USER:$HOME:$SHELL"
+        echo "${USER:-$(whoami)}:${HOME}:${SHELL:-/bin/bash}"
     fi
 }
 
@@ -767,7 +832,7 @@ USERSCRIPT
     chmod +x "$temp_script"
     
     # 运行脚本
-    if [ "$username" == "$USER" ] || ([ "$username" == "root" ] && [ "$IS_ROOT" == "true" ]); then
+    if [ "$username" == "${USER:-$(whoami)}" ] || ([ "$username" == "root" ] && [ "$IS_ROOT" == "true" ]); then
         bash "$temp_script"
     else
         su - "$username" -c "bash $temp_script"
@@ -787,13 +852,13 @@ USERSCRIPT
         
         if [ -n "$zsh_path" ]; then
             if [[ "$OS_TYPE" == "macos" ]]; then
-                if [ "$username" == "$USER" ]; then
+                if [ "$username" == "${USER:-$(whoami)}" ]; then
                     chsh -s "$zsh_path"
                 fi
             elif [ "$IS_ROOT" = "true" ]; then
                 usermod -s "$zsh_path" "$username"
             else
-                if [ "$username" == "$USER" ]; then
+                if [ "$username" == "${USER:-$(whoami)}" ]; then
                     chsh -s "$zsh_path"
                 fi
             fi
