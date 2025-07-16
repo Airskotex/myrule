@@ -7,7 +7,7 @@
 
 # 启用严格的错误处理
 set -euo pipefail
-trap 'error_handler $? $LINENO "$BASH_COMMAND"' ERR
+trap 'error_handler $? $LINENO "$BASH_COMMAND"' ERR  
 
 # 全局变量
 SCRIPT_VERSION="3.2"
@@ -576,13 +576,13 @@ mkdir -p "\$FONT_DIR"
 echo -e "\${GREEN}[INFO]\${NC} 安装 Nerd 字体..."
 fonts=(
     "https://github.com/romkatv/powerlevel10k-media/raw/master/MesloLGS%20NF%20Regular.ttf"
-    "https://github.com/romkatv/powerlevel10k-media/raw/master/MesloLGS%20NF%20Bold.ttf"    
+    "https://github.com/romkatv/powerlevel10k-media/raw/master/MesloLGS%20NF%20Bold.ttf"
     "https://github.com/romkatv/powerlevel10k-media/raw/master/MesloLGS%20NF%20Italic.ttf"
-    "https://github.com/romkatv/powerlevel10k-media/raw/master/MesloLGS%20NF%20Bold%20Italic.ttf"
+    "https://github.com/romkatv/powerlevel10k-media/raw/master/MesloLGS%20NF%20Bold%20Italic.ttf"  
 )
 
 for font_url in "\${fonts[@]}"; do
-    font_name=\$(basename "\$font_url" | sed 's/%20/ /g')
+    font_name=\$(basename "\$font_url" | sed 's/%20/ /g')    
     if [ ! -f "\$FONT_DIR/\$font_name" ]; then
         curl -fsSL "\$font_url" -o "\$FONT_DIR/\$font_name" || echo -e "\${YELLOW}[WARN]\${NC} 无法下载 \$font_name"
     fi
