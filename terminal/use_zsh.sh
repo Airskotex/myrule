@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ================================================================
-# Zsh 环境自动配置脚本 v3.1
+# Zsh 环境自动配置脚本 v3.2 (修复版)
 # 支持：Debian/Ubuntu (apt)、RHEL/CentOS (yum/dnf)、macOS (brew)
 # ================================================================
 
@@ -10,7 +10,7 @@ set -euo pipefail
 trap 'error_handler $? $LINENO "$BASH_COMMAND"' ERR
 
 # 全局变量
-SCRIPT_VERSION="3.1"
+SCRIPT_VERSION="3.2"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 IS_ROOT=$([[ $EUID -eq 0 ]] && echo "true" || echo "false")
 LOG_FILE="$HOME/.zsh_install_$(date +%Y%m%d_%H%M%S).log"
@@ -43,8 +43,9 @@ log() {
         "DEBUG") color="$BLUE" ;;
     esac
     
-    echo -e "${color}[$timestamp] [$level]${NC} $message"
-    echo "[$timestamp] [$level] $message" >> "$LOG_FILE" 2>/dev/null || true
+    # 使用 printf 避免日志格式问题
+    printf "${color}[%s] [%s]${NC} %s\n" "$timestamp" "$level" "$message"
+    printf "[%s] [%s] %s\n" "$timestamp" "$level" "$message" >> "$LOG_FILE" 2>/dev/null || true
 }
 
 log_info() { log "INFO" "$1"; }
@@ -269,7 +270,7 @@ install_system_packages() {
 }
 
 # ================================================================
-# 用户安装函数
+# 用户安装函数（修复版）
 # ================================================================
 
 # 获取所有需要配置的用户
@@ -278,37 +279,36 @@ get_target_users() {
         # macOS：只为当前用户安装
         echo "$USER:$HOME:$SHELL"
     elif [ "$IS_ROOT" = "true" ]; then
-        # Linux Root用户：获取所有用户
-        log_info "以root身份运行，将为所有用户安装"
+        # 先输出 root 用户
+        echo "root:/root:/bin/bash"
         
-        local users=()
+        # 然后输出普通用户
         local min_uid=1000
         local max_uid=60000
         
-        # 获取普通用户
-        while IFS=: read -r username _ uid _ _ home shell; do
-            if [[ $uid -ge $min_uid && $uid -le $max_uid ]]; then
-                local skip=false
-                for skip_user in "${SKIP_USERS[@]}"; do
-                    if [[ "$username" == "$skip_user" ]]; then
-                        skip=true
-                        break
-                    fi
-                done
-                
-                if [[ "$skip" == "false" && -d "$home" && "$shell" != "/bin/false" && "$shell" != "/usr/sbin/nologin" ]]; then
-                    users+=("$username:$home:$shell")
+        # 使用 awk 更可靠地解析 /etc/passwd
+        awk -F: -v min=$min_uid -v max=$max_uid '
+            $3 >= min && $3 <= max && 
+            $6 != "" && 
+            $7 !~ /(false|nologin)$/ {
+                print $1":"$6":"$7
+            }
+        ' /etc/passwd | while read -r line; do
+            local username="${line%%:*}"
+            local skip=false
+            
+            # 检查是否在跳过列表中
+            for skip_user in nobody systemd-network systemd-resolve daemon bin sys; do
+                if [[ "$username" == "$skip_user" ]]; then
+                    skip=true
+                    break
                 fi
-            fi
-        done < /etc/passwd
-        
-        # 添加root用户自己
-        users+=("root:/root:/bin/bash")
-        
-        printf '%s\n' "${users[@]}"
+            done
+            
+            [[ "$skip" == "false" ]] && echo "$line"
+        done
     else
         # Linux 普通用户：只返回当前用户
-        log_info "以普通用户身份运行，只为当前用户安装"
         echo "$USER:$HOME:$SHELL"
     fi
 }
@@ -331,7 +331,7 @@ check_network() {
     return 1
 }
 
-# 为单个用户安装配置
+# 为单个用户安装配置（修复版）
 install_for_user() {
     local username="$1"
     local user_home="$2"
@@ -348,16 +348,20 @@ install_for_user() {
         return
     fi
     
-    # 创建用户安装脚本
+    # 创建用户安装脚本，正确传递变量
     local temp_script="/tmp/zsh_install_${username}_$$.sh"
     
-    cat > "$temp_script" << 'USERSCRIPT'
+    # 使用 printf 而不是 echo，并正确转义变量
+    cat > "$temp_script" << USERSCRIPT
 #!/bin/bash
 set -euo pipefail
 
 # 用户级别的安装脚本
-export HOME="${USER_HOME}"
-cd "$HOME"
+# 设置变量
+USERNAME="$username"
+USER_HOME="$user_home"
+export HOME="\$USER_HOME"
+cd "\$HOME"
 
 # 颜色定义
 RED='\033[0;31m'
@@ -365,7 +369,7 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m'
 
-echo -e "${GREEN}[INFO]${NC} 开始为用户 ${USERNAME} 安装..."
+echo -e "\${GREEN}[INFO]\${NC} 开始为用户 \${USERNAME} 安装..."
 
 # 检查网络连接
 check_network() {
@@ -374,8 +378,8 @@ check_network() {
         "https://raw.githubusercontent.com"
     )
     
-    for url in "${test_urls[@]}"; do
-        if curl -fsS --connect-timeout 5 -o /dev/null "$url" 2>/dev/null; then
+    for url in "\${test_urls[@]}"; do
+        if curl -fsS --connect-timeout 5 -o /dev/null "\$url" 2>/dev/null; then
             return 0
         fi
     done
@@ -384,49 +388,49 @@ check_network() {
 }
 
 if ! check_network; then
-    echo -e "${RED}[ERROR]${NC} 无法连接到 GitHub"
+    echo -e "\${RED}[ERROR]\${NC} 无法连接到 GitHub"
     exit 1
 fi
 
 # 安装 Oh My Zsh
-if [ ! -d "$HOME/.oh-my-zsh" ]; then
-    echo -e "${GREEN}[INFO]${NC} 安装 Oh My Zsh..."
+if [ ! -d "\$HOME/.oh-my-zsh" ]; then
+    echo -e "\${GREEN}[INFO]\${NC} 安装 Oh My Zsh..."
     export RUNZSH=no
     export CHSH=no
-    sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended || {
-        echo -e "${RED}[ERROR]${NC} Oh My Zsh 安装失败"
+    sh -c "\$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended || {
+        echo -e "\${RED}[ERROR]\${NC} Oh My Zsh 安装失败"
         exit 1
     }
 else
-    echo -e "${YELLOW}[WARN]${NC} Oh My Zsh 已安装"
+    echo -e "\${YELLOW}[WARN]\${NC} Oh My Zsh 已安装"
 fi
 
 # 安装 Powerlevel10k
-P10K_DIR="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/themes/powerlevel10k"
-if [ ! -d "$P10K_DIR" ]; then
-    echo -e "${GREEN}[INFO]${NC} 安装 Powerlevel10k..."
-    git clone --depth=1 https://github.com/romkatv/powerlevel10k.git "$P10K_DIR" || {
-        echo -e "${RED}[ERROR]${NC} Powerlevel10k 安装失败"
+P10K_DIR="\${ZSH_CUSTOM:-\$HOME/.oh-my-zsh/custom}/themes/powerlevel10k"
+if [ ! -d "\$P10K_DIR" ]; then
+    echo -e "\${GREEN}[INFO]\${NC} 安装 Powerlevel10k..."
+    git clone --depth=1 https://github.com/romkatv/powerlevel10k.git "\$P10K_DIR" || {
+        echo -e "\${RED}[ERROR]\${NC} Powerlevel10k 安装失败"
         exit 1
     }
 else
-    echo -e "${YELLOW}[WARN]${NC} Powerlevel10k 已安装"
+    echo -e "\${YELLOW}[WARN]\${NC} Powerlevel10k 已安装"
 fi
 
 # 安装插件函数
 install_plugin() {
-    local plugin_name="$1"
-    local plugin_url="$2"
-    local plugin_dir="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/$plugin_name"
+    local plugin_name="\$1"
+    local plugin_url="\$2"
+    local plugin_dir="\${ZSH_CUSTOM:-\$HOME/.oh-my-zsh/custom}/plugins/\$plugin_name"
     
-    if [ ! -d "$plugin_dir" ]; then
-        echo -e "${GREEN}[INFO]${NC} 安装 $plugin_name 插件..."
-        git clone "$plugin_url" "$plugin_dir" || {
-            echo -e "${YELLOW}[WARN]${NC} $plugin_name 插件安装失败"
+    if [ ! -d "\$plugin_dir" ]; then
+        echo -e "\${GREEN}[INFO]\${NC} 安装 \$plugin_name 插件..."
+        git clone "\$plugin_url" "\$plugin_dir" || {
+            echo -e "\${YELLOW}[WARN]\${NC} \$plugin_name 插件安装失败"
             return 1
         }
     else
-        echo -e "${YELLOW}[WARN]${NC} $plugin_name 插件已安装"
+        echo -e "\${YELLOW}[WARN]\${NC} \$plugin_name 插件已安装"
     fi
 }
 
@@ -436,14 +440,14 @@ install_plugin "zsh-autosuggestions" "https://github.com/zsh-users/zsh-autosugge
 install_plugin "fzf-tab" "https://github.com/Aloxaf/fzf-tab"
 
 # 备份并创建新的 .zshrc
-if [ -f "$HOME/.zshrc" ]; then
-    cp "$HOME/.zshrc" "$HOME/.zshrc.backup.$(date +%Y%m%d_%H%M%S)"
+if [ -f "\$HOME/.zshrc" ]; then
+    cp "\$HOME/.zshrc" "\$HOME/.zshrc.backup.\$(date +%Y%m%d_%H%M%S)"
 fi
 
 # 创建配置文件
-cat > "$HOME/.zshrc" << 'EOF'
+cat > "\$HOME/.zshrc" << 'EOF'
 # Path to oh-my-zsh installation
-export ZSH="$HOME/.oh-my-zsh"
+export ZSH="\$HOME/.oh-my-zsh"
 
 # Set theme
 ZSH_THEME="powerlevel10k/powerlevel10k"
@@ -457,21 +461,21 @@ plugins=(
 )
 
 # Source oh-my-zsh
-source $ZSH/oh-my-zsh.sh
+source \$ZSH/oh-my-zsh.sh
 
 # === CUSTOM CONFIGURATION ===
 
 # Enable Powerlevel10k instant prompt
-if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
-  source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
+if [[ -r "\${XDG_CACHE_HOME:-\$HOME/.cache}/p10k-instant-prompt-\${(%):-%n}.zsh" ]]; then
+  source "\${XDG_CACHE_HOME:-\$HOME/.cache}/p10k-instant-prompt-\${(%):-%n}.zsh"
 fi
 
 # fzf-tab configuration
 zstyle ':completion:*:git-checkout:*' sort false
 zstyle ':completion:*:descriptions' format '[%d]'
-zstyle ':completion:*' list-colors ${(s.:.)LS_COLORS}
-zstyle ':fzf-tab:complete:cd:*' fzf-preview 'ls -1 --color=always $realpath 2>/dev/null || echo "No preview"'
-zstyle ':fzf-tab:complete:kill:argument-rest' fzf-preview 'ps aux | grep $word'
+zstyle ':completion:*' list-colors \${(s.:.)LS_COLORS}
+zstyle ':fzf-tab:complete:cd:*' fzf-preview 'ls -1 --color=always \$realpath 2>/dev/null || echo "No preview"'
+zstyle ':fzf-tab:complete:kill:argument-rest' fzf-preview 'ps aux | grep \$word'
 
 # History configuration
 HISTFILE=~/.zsh_history
@@ -521,37 +525,37 @@ elif command -v bat &> /dev/null; then
 fi
 
 # Custom functions
-mkcd() { mkdir -p "$@" && cd "$_"; }
+mkcd() { mkdir -p "\$@" && cd "\$_"; }
 
 extract() {
-    if [ -f "$1" ]; then
-        case "$1" in
-            *.tar.bz2)   tar xjf "$1"     ;;
-            *.tar.gz)    tar xzf "$1"     ;;
-            *.bz2)       bunzip2 "$1"     ;;
-            *.rar)       unrar e "$1"     ;;
-            *.gz)        gunzip "$1"      ;;
-            *.tar)       tar xf "$1"      ;;
-            *.tbz2)      tar xjf "$1"     ;;
-            *.tgz)       tar xzf "$1"     ;;
-            *.zip)       unzip "$1"       ;;
-            *.Z)         uncompress "$1"  ;;
-            *.7z)        7z x "$1"        ;;
-            *)           echo "'$1' cannot be extracted" ;;
+    if [ -f "\$1" ]; then
+        case "\$1" in
+            *.tar.bz2)   tar xjf "\$1"     ;;
+            *.tar.gz)    tar xzf "\$1"     ;;
+            *.bz2)       bunzip2 "\$1"     ;;
+            *.rar)       unrar e "\$1"     ;;
+            *.gz)        gunzip "\$1"      ;;
+            *.tar)       tar xf "\$1"      ;;
+            *.tbz2)      tar xjf "\$1"     ;;
+            *.tgz)       tar xzf "\$1"     ;;
+            *.zip)       unzip "\$1"       ;;
+            *.Z)         uncompress "\$1"  ;;
+            *.7z)        7z x "\$1"        ;;
+            *)           echo "'\$1' cannot be extracted" ;;
         esac
     else
-        echo "'$1' is not a valid file"
+        echo "'\$1' is not a valid file"
     fi
 }
 
 # 快速查找文件
 ff() {
-    find . -type f -iname "*$1*" 2>/dev/null
+    find . -type f -iname "*\$1*" 2>/dev/null
 }
 
 # 快速查找目录
 fd() {
-    find . -type d -iname "*$1*" 2>/dev/null
+    find . -type d -iname "*\$1*" 2>/dev/null
 }
 
 # Load Powerlevel10k configuration
@@ -561,10 +565,10 @@ fd() {
 EOF
 
 # 安装字体
-FONT_DIR="$HOME/.local/share/fonts"
-mkdir -p "$FONT_DIR"
+FONT_DIR="\$HOME/.local/share/fonts"
+mkdir -p "\$FONT_DIR"
 
-echo -e "${GREEN}[INFO]${NC} 安装 Nerd 字体..."
+echo -e "\${GREEN}[INFO]\${NC} 安装 Nerd 字体..."
 fonts=(
     "https://github.com/romkatv/powerlevel10k-media/raw/master/MesloLGS%20NF%20Regular.ttf"
     "https://github.com/romkatv/powerlevel10k-media/raw/master/MesloLGS%20NF%20Bold.ttf"
@@ -572,25 +576,21 @@ fonts=(
     "https://github.com/romkatv/powerlevel10k-media/raw/master/MesloLGS%20NF%20Bold%20Italic.ttf"
 )
 
-for font_url in "${fonts[@]}"; do
-    font_name=$(basename "$font_url" | sed 's/%20/ /g')
-    if [ ! -f "$FONT_DIR/$font_name" ]; then
-        curl -fsSL "$font_url" -o "$FONT_DIR/$font_name" || echo -e "${YELLOW}[WARN]${NC} 无法下载 $font_name"
+for font_url in "\${fonts[@]}"; do
+    font_name=\$(basename "\$font_url" | sed 's/%20/ /g')
+    if [ ! -f "\$FONT_DIR/\$font_name" ]; then
+        curl -fsSL "\$font_url" -o "\$FONT_DIR/\$font_name" || echo -e "\${YELLOW}[WARN]\${NC} 无法下载 \$font_name"
     fi
 done
 
 # 更新字体缓存
 if command -v fc-cache &> /dev/null; then
-    fc-cache -f "$FONT_DIR" 2>/dev/null || true
+    fc-cache -f "\$FONT_DIR" 2>/dev/null || true
 fi
 
-echo -e "${GREEN}[INFO]${NC} 用户 ${USERNAME} 的配置完成！"
+echo -e "\${GREEN}[INFO]\${NC} 用户 \${USERNAME} 的配置完成！"
 USERSCRIPT
 
-    # 设置环境变量
-    export USERNAME="$username"
-    export USER_HOME="$user_home"
-    
     # 设置脚本权限
     chmod +x "$temp_script"
     
@@ -704,31 +704,31 @@ show_summary() {
     echo -e "\n${YELLOW}后续步骤：${NC}"
     
     if [[ "$OS_TYPE" == "macos" ]]; then
-        echo "1. 重启终端或运行: ${GREEN}exec zsh${NC}"
-        echo "2. 首次使用 zsh 时会运行 Powerlevel10k 配置向导"
-        echo "3. 在终端偏好设置中将字体改为: ${GREEN}MesloLGS NF${NC}"
+        echo -e "1. 重启终端或运行: ${GREEN}exec zsh${NC}"
+        echo -e "2. 首次使用 zsh 时会运行 Powerlevel10k 配置向导"
+        echo -e "3. 在终端偏好设置中将字体改为: ${GREEN}MesloLGS NF${NC}"
     elif [ "$IS_ROOT" = "true" ]; then
-        echo "1. 通知用户重新登录或运行: ${GREEN}exec zsh${NC}"
-        echo "2. 首次使用 zsh 时会运行 Powerlevel10k 配置向导"
-        echo "3. 提醒用户在终端中设置字体为: ${GREEN}MesloLGS NF${NC}"
+        echo -e "1. 通知用户重新登录或运行: ${GREEN}exec zsh${NC}"
+        echo -e "2. 首次使用 zsh 时会运行 Powerlevel10k 配置向导"
+        echo -e "3. 提醒用户在终端中设置字体为: ${GREEN}MesloLGS NF${NC}"
     else
-        echo "1. 重启终端或运行: ${GREEN}exec zsh${NC}"
-        echo "2. 首次启动会运行 Powerlevel10k 配置向导"
-        echo "3. 在终端设置中将字体改为: ${GREEN}MesloLGS NF${NC}"
+        echo -e "1. 重启终端或运行: ${GREEN}exec zsh${NC}"
+        echo -e "2. 首次启动会运行 Powerlevel10k 配置向导"
+        echo -e "3. 在终端设置中将字体改为: ${GREEN}MesloLGS NF${NC}"
     fi
     
     echo -e "\n${YELLOW}实用命令：${NC}"
-    echo "• 重新配置主题: ${GREEN}p10k configure${NC}"
-    echo "• 更新 Oh My Zsh: ${GREEN}omz update${NC}"
+    echo -e "• 重新配置主题: ${GREEN}p10k configure${NC}"
+    echo -e "• 更新 Oh My Zsh: ${GREEN}omz update${NC}"
     
     # 特别提示 bat/batcat
     if command_exists batcat; then
-        echo "• 彩色查看文件: ${GREEN}cat <file>${NC} 或 ${GREEN}batcat <file>${NC}"
+        echo -e "• 彩色查看文件: ${GREEN}cat <file>${NC} 或 ${GREEN}batcat <file>${NC}"
     elif command_exists bat; then
-        echo "• 彩色查看文件: ${GREEN}cat <file>${NC} 或 ${GREEN}bat <file>${NC}"
+        echo -e "• 彩色查看文件: ${GREEN}cat <file>${NC} 或 ${GREEN}bat <file>${NC}"
     fi
     
-    echo "• 查看安装日志: ${GREEN}cat $LOG_FILE${NC}"
+    echo -e "• 查看安装日志: ${GREEN}cat $LOG_FILE${NC}"
 }
 
 main() {
@@ -759,15 +759,46 @@ main() {
     
     # 获取目标用户列表
     log_info "=== 用户配置 ==="
-    readarray -t users < <(get_target_users)
     
-    log_info "将为 ${#users[@]} 个用户进行配置"
+    # 调试：显示当前状态
+    log_debug "IS_ROOT=$IS_ROOT, OS_TYPE=$OS_TYPE"
+    
+    # 获取用户列表（不使用 readarray）
+    local users_temp_file="/tmp/zsh_users_$$"
+    get_target_users > "$users_temp_file" 2>/dev/null
+    
+    # 计算用户数量
+    local user_count=0
+    if [ -f "$users_temp_file" ] && [ -s "$users_temp_file" ]; then
+        user_count=$(wc -l < "$users_temp_file")
+    fi
+    
+    if [ "$user_count" -eq 0 ]; then
+        log_error "无法获取用户列表"
+        rm -f "$users_temp_file"
+        exit 1
+    fi
+    
+    log_info "将为 $user_count 个用户进行配置"
     
     # 为每个用户安装
-    for user_info in "${users[@]}"; do
-        IFS=: read -r username home shell <<< "$user_info"
-        install_for_user "$username" "$home" "$shell"
-    done
+    while IFS= read -r user_info; do
+        if [[ -n "$user_info" ]]; then
+            # 解析用户信息
+            IFS=: read -r username home shell <<< "$user_info"
+            
+            # 验证信息完整性
+            if [[ -n "$username" && -n "$home" && -n "$shell" ]]; then
+                log_debug "处理用户: $username"
+                install_for_user "$username" "$home" "$shell"
+            else
+                log_warn "跳过无效的用户信息: $user_info"
+            fi
+        fi
+    done < "$users_temp_file"
+    
+    # 清理临时文件
+    rm -f "$users_temp_file"
     
     # 如果是Linux root，设置新用户模板
     if [ "$IS_ROOT" = "true" ] && [[ "$OS_TYPE" == "linux" ]]; then
