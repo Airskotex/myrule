@@ -20,7 +20,7 @@ SKIP_USERS=("nobody" "systemd-network" "systemd-resolve" "daemon" "bin" "sys")
 
 # 颜色定义
 RED='\033[0;31m'  
-GREEN='\033[0;32m'
+GREEN='\033[0;32m'  
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 PURPLE='\033[0;35m'
@@ -452,7 +452,7 @@ export ZSH="\$HOME/.oh-my-zsh"
 # Set theme
 ZSH_THEME="powerlevel10k/powerlevel10k"
 
-# Plugins
+# Plugins  
 plugins=(
     git
     fzf-tab
@@ -461,6 +461,8 @@ plugins=(
     command-not-found
     history-substring-search
     colored-man-pages
+    extract
+    sudo
 )
 
 # Source oh-my-zsh
@@ -575,7 +577,7 @@ echo -e "\${GREEN}[INFO]\${NC} 安装 Nerd 字体..."
 fonts=(
     "https://github.com/romkatv/powerlevel10k-media/raw/master/MesloLGS%20NF%20Regular.ttf"
     "https://github.com/romkatv/powerlevel10k-media/raw/master/MesloLGS%20NF%20Bold.ttf"
-    "https://github.com/romkatv/powerlevel10k-media/raw/master/MesloLGS%20NF%20Italic.ttf"
+    "https://github.com/romkatv/powerlevel10k-media/raw/master/MesloLGS%20NF%20Italic.ttf"  
     "https://github.com/romkatv/powerlevel10k-media/raw/master/MesloLGS%20NF%20Bold%20Italic.ttf"
 )
 
