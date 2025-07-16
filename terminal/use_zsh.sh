@@ -11,10 +11,7 @@ trap 'error_handler $? $LINENO "$BASH_COMMAND"' ERR
 
 # 全局变量
 SCRIPT_VERSION="3.2"
-SCRIPT_DIR="$(pwd)"  # 管道执行时使用当前目录
-if [[ -n "${BASH_SOURCE[0]:-}" ]]; then  
-    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-fi    
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"  
 IS_ROOT=$([[ $EUID -eq 0 ]] && echo "true" || echo "false")
 LOG_FILE="$HOME/.zsh_install_$(date +%Y%m%d_%H%M%S).log"
 PACKAGE_MANAGER=""
