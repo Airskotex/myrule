@@ -1,9 +1,8 @@
 #!/bin/bash
 
 # ================================================================
-# Zsh 环境自动配置脚本 v3.0
-# 自动检测：root用户为所有用户安装，普通用户仅为自己安装
-# 支持多种Linux发行版和包管理器
+# Zsh 环境自动配置脚本 v3.1
+# 支持：Debian/Ubuntu (apt)、RHEL/CentOS (yum/dnf)、macOS (brew)
 # ================================================================
 
 # 启用严格的错误处理
@@ -11,13 +10,12 @@ set -euo pipefail
 trap 'error_handler $? $LINENO "$BASH_COMMAND"' ERR
 
 # 全局变量
-SCRIPT_VERSION="3.0"
+SCRIPT_VERSION="3.1"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 IS_ROOT=$([[ $EUID -eq 0 ]] && echo "true" || echo "false")
 LOG_FILE="$HOME/.zsh_install_$(date +%Y%m%d_%H%M%S).log"
-ROLLBACK_DIR="$HOME/.zsh_install_rollback"
 PACKAGE_MANAGER=""
-DISTRO=""
+OS_TYPE=""
 SKIP_USERS=("nobody" "systemd-network" "systemd-resolve" "daemon" "bin" "sys")
 
 # 颜色定义
@@ -71,20 +69,17 @@ error_handler() {
 # 系统检测函数
 # ================================================================
 
-# 检测Linux发行版
-detect_distro() {
-    if [ -f /etc/os-release ]; then
+# 检测操作系统类型
+detect_os() {
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        OS_TYPE="macos"
+        log_info "检测到系统: macOS"
+    elif [ -f /etc/os-release ]; then
         . /etc/os-release
-        DISTRO=$ID
+        OS_TYPE="linux"
         log_info "检测到系统: $NAME $VERSION"
-    elif [ -f /etc/redhat-release ]; then
-        DISTRO="rhel"
-        log_info "检测到系统: Red Hat 系列"
-    elif [ -f /etc/debian_version ]; then
-        DISTRO="debian"
-        log_info "检测到系统: Debian 系列"
     else
-        log_error "无法识别的Linux发行版"
+        log_error "无法识别的操作系统"
         exit 1
     fi
 }
@@ -93,20 +88,22 @@ detect_distro() {
 detect_package_manager() {
     log_info "检测包管理器..."
     
-    if command -v apt &> /dev/null; then
+    if [[ "$OS_TYPE" == "macos" ]]; then
+        if command -v brew &> /dev/null; then
+            PACKAGE_MANAGER="brew"
+        else
+            log_error "macOS 系统需要先安装 Homebrew"
+            log_info "请访问 https://brew.sh 安装 Homebrew"
+            exit 1
+        fi
+    elif command -v apt &> /dev/null; then
         PACKAGE_MANAGER="apt"
-    elif command -v yum &> /dev/null; then
-        PACKAGE_MANAGER="yum"
     elif command -v dnf &> /dev/null; then
         PACKAGE_MANAGER="dnf"
-    elif command -v zypper &> /dev/null; then
-        PACKAGE_MANAGER="zypper"
-    elif command -v pacman &> /dev/null; then
-        PACKAGE_MANAGER="pacman"
-    elif command -v apk &> /dev/null; then
-        PACKAGE_MANAGER="apk"
+    elif command -v yum &> /dev/null; then
+        PACKAGE_MANAGER="yum"
     else
-        log_error "未找到支持的包管理器"
+        log_error "未找到支持的包管理器 (apt/yum/dnf/brew)"
         exit 1
     fi
     
@@ -136,27 +133,10 @@ update_package_index() {
             ;;
         yum|dnf)
             # yum/dnf 通常不需要手动更新索引
+            :
             ;;
-        zypper)
-            if [ "$IS_ROOT" = "true" ]; then
-                zypper refresh
-            else
-                sudo zypper refresh
-            fi
-            ;;
-        pacman)
-            if [ "$IS_ROOT" = "true" ]; then
-                pacman -Sy
-            else
-                sudo pacman -Sy
-            fi
-            ;;
-        apk)
-            if [ "$IS_ROOT" = "true" ]; then
-                apk update
-            else
-                sudo apk update
-            fi
+        brew)
+            brew update
             ;;
     esac
 }
@@ -187,26 +167,8 @@ install_package() {
                 sudo dnf install -y "$package"
             fi
             ;;
-        zypper)
-            if [ "$IS_ROOT" = "true" ]; then
-                zypper install -y "$package"
-            else
-                sudo zypper install -y "$package"
-            fi
-            ;;
-        pacman)
-            if [ "$IS_ROOT" = "true" ]; then
-                pacman -S --noconfirm "$package"
-            else
-                sudo pacman -S --noconfirm "$package"
-            fi
-            ;;
-        apk)
-            if [ "$IS_ROOT" = "true" ]; then
-                apk add "$package"
-            else
-                sudo apk add "$package"
-            fi
+        brew)
+            brew install "$package"
             ;;
     esac
 }
@@ -217,19 +179,13 @@ is_package_installed() {
     
     case "$PACKAGE_MANAGER" in
         apt)
-            dpkg -l | grep -q "^ii  $package "
+            dpkg -l 2>/dev/null | grep -q "^ii  $package " || dpkg -l 2>/dev/null | grep -q "^ii  $package:"
             ;;
         yum|dnf)
             rpm -q "$package" &> /dev/null
             ;;
-        zypper)
-            zypper se -i "$package" &> /dev/null
-            ;;
-        pacman)
-            pacman -Q "$package" &> /dev/null
-            ;;
-        apk)
-            apk info -e "$package" &> /dev/null
+        brew)
+            brew list "$package" &> /dev/null
             ;;
     esac
 }
@@ -247,19 +203,25 @@ get_package_name() {
             case "$PACKAGE_MANAGER" in
                 apt) echo "bat" ;;
                 yum|dnf) echo "bat" ;;
-                pacman) echo "bat" ;;
-                *) echo "" ;;  # 某些系统可能没有bat包
+                brew) echo "bat" ;;
+                *) echo "" ;;
             esac
             ;;
         "fzf")
-            echo "fzf"  # 大多数发行版都使用相同名称
+            echo "fzf"  # 所有支持的包管理器都使用相同名称
             ;;
         "fonts-powerline")
             case "$PACKAGE_MANAGER" in
                 apt) echo "fonts-powerline" ;;
                 yum|dnf) echo "powerline-fonts" ;;
-                pacman) echo "powerline-fonts" ;;
-                zypper) echo "powerline-fonts" ;;
+                brew) echo "" ;;  # macOS 通过其他方式安装字体
+                *) echo "" ;;
+            esac
+            ;;
+        "fontconfig")
+            case "$PACKAGE_MANAGER" in
+                apt|yum|dnf) echo "fontconfig" ;;
+                brew) echo "" ;;  # macOS 不需要
                 *) echo "" ;;
             esac
             ;;
@@ -274,16 +236,8 @@ install_system_packages() {
     log_info "检查并安装必要的软件包..."
     
     # 定义需要的包
-    local generic_packages=("zsh" "git" "curl" "wget" "fonts-powerline" "fzf" "bat")
+    local generic_packages=("zsh" "git" "curl" "wget" "fonts-powerline" "fzf" "bat" "fontconfig")
     local to_install=()
-    
-    # 添加 fc-cache 所需的包
-    case "$PACKAGE_MANAGER" in
-        apt) to_install+=("fontconfig") ;;
-        yum|dnf) to_install+=("fontconfig") ;;
-        pacman) to_install+=("fontconfig") ;;
-        zypper) to_install+=("fontconfig") ;;
-    esac
     
     # 检查每个包
     for generic_pkg in "${generic_packages[@]}"; do
@@ -305,7 +259,9 @@ install_system_packages() {
         
         for pkg in "${to_install[@]}"; do
             log_info "安装 $pkg..."
-            install_package "$pkg" || log_warn "无法安装 $pkg，继续..."
+            if ! install_package "$pkg"; then
+                log_warn "无法安装 $pkg，继续..."
+            fi
         done
     else
         log_info "所有必要软件包已安装"
@@ -318,8 +274,11 @@ install_system_packages() {
 
 # 获取所有需要配置的用户
 get_target_users() {
-    if [ "$IS_ROOT" = "true" ]; then
-        # Root用户：获取所有用户
+    if [[ "$OS_TYPE" == "macos" ]]; then
+        # macOS：只为当前用户安装
+        echo "$USER:$HOME:$SHELL"
+    elif [ "$IS_ROOT" = "true" ]; then
+        # Linux Root用户：获取所有用户
         log_info "以root身份运行，将为所有用户安装"
         
         local users=()
@@ -348,10 +307,28 @@ get_target_users() {
         
         printf '%s\n' "${users[@]}"
     else
-        # 普通用户：只返回当前用户
+        # Linux 普通用户：只返回当前用户
         log_info "以普通用户身份运行，只为当前用户安装"
         echo "$USER:$HOME:$SHELL"
     fi
+}
+
+# 检查网络连接（优化版）
+check_network() {
+    # 尝试多个地址以提高可靠性
+    local test_urls=(
+        "https://github.com"
+        "https://raw.githubusercontent.com"
+        "https://api.github.com"
+    )
+    
+    for url in "${test_urls[@]}"; do
+        if curl -fsS --connect-timeout 5 -o /dev/null "$url" 2>/dev/null; then
+            return 0
+        fi
+    done
+    
+    return 1
 }
 
 # 为单个用户安装配置
@@ -391,7 +368,22 @@ NC='\033[0m'
 echo -e "${GREEN}[INFO]${NC} 开始为用户 ${USERNAME} 安装..."
 
 # 检查网络连接
-if ! ping -c 1 -W 3 github.com &> /dev/null; then
+check_network() {
+    local test_urls=(
+        "https://github.com"
+        "https://raw.githubusercontent.com"
+    )
+    
+    for url in "${test_urls[@]}"; do
+        if curl -fsS --connect-timeout 5 -o /dev/null "$url" 2>/dev/null; then
+            return 0
+        fi
+    done
+    
+    return 1
+}
+
+if ! check_network; then
     echo -e "${RED}[ERROR]${NC} 无法连接到 GitHub"
     exit 1
 fi
@@ -583,7 +575,7 @@ fonts=(
 for font_url in "${fonts[@]}"; do
     font_name=$(basename "$font_url" | sed 's/%20/ /g')
     if [ ! -f "$FONT_DIR/$font_name" ]; then
-        wget -q "$font_url" -O "$FONT_DIR/$font_name" || echo -e "${YELLOW}[WARN]${NC} 无法下载 $font_name"
+        curl -fsSL "$font_url" -o "$FONT_DIR/$font_name" || echo -e "${YELLOW}[WARN]${NC} 无法下载 $font_name"
     fi
 done
 
@@ -603,7 +595,7 @@ USERSCRIPT
     chmod +x "$temp_script"
     
     # 运行脚本
-    if [ "$username" == "$USER" ] || [ "$username" == "root" -a "$IS_ROOT" == "true" ]; then
+    if [ "$username" == "$USER" ] || ([ "$username" == "root" ] && [ "$IS_ROOT" == "true" ]); then
         # 当前用户直接运行
         bash "$temp_script"
     else
@@ -624,7 +616,12 @@ USERSCRIPT
         fi
         
         if [ -n "$zsh_path" ]; then
-            if [ "$IS_ROOT" = "true" ]; then
+            if [[ "$OS_TYPE" == "macos" ]]; then
+                # macOS 使用 chsh
+                if [ "$username" == "$USER" ]; then
+                    chsh -s "$zsh_path"
+                fi
+            elif [ "$IS_ROOT" = "true" ]; then
                 usermod -s "$zsh_path" "$username"
             else
                 if [ "$username" == "$USER" ]; then
@@ -636,12 +633,11 @@ USERSCRIPT
 }
 
 # ================================================================
-# 新用户模板配置
+# 新用户模板配置（仅限Linux）
 # ================================================================
 
 setup_skel() {
-    if [ "$IS_ROOT" != "true" ]; then
-        log_warn "设置新用户模板需要 root 权限，跳过"
+    if [[ "$OS_TYPE" == "macos" ]] || [ "$IS_ROOT" != "true" ]; then
         return
     fi
     
@@ -658,7 +654,6 @@ if [ ! -d "$HOME/.oh-my-zsh" ] && [ -x /usr/bin/zsh ]; then
     # 运行用户配置
     curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh | sh -s -- --unattended
     
-    # 其他配置...
     echo "配置完成！请重新登录以使用 Zsh。"
 fi
 EOF
@@ -666,7 +661,7 @@ EOF
     chmod +x /usr/local/bin/auto-setup-zsh
     
     # 在 /etc/skel/.bashrc 中添加自动运行
-    if ! grep -q "auto-setup-zsh" /etc/skel/.bashrc 2>/dev/null; then
+    if [ -f /etc/skel/.bashrc ] && ! grep -q "auto-setup-zsh" /etc/skel/.bashrc 2>/dev/null; then
         echo -e "\n# Auto setup zsh for new users\n[ -x /usr/local/bin/auto-setup-zsh ] && /usr/local/bin/auto-setup-zsh" >> /etc/skel/.bashrc
     fi
 }
@@ -690,7 +685,7 @@ show_summary() {
     echo -e "${GREEN}╚══════════════════════════════════════════════╝${NC}"
     
     echo -e "\n${YELLOW}系统信息：${NC}"
-    echo "  • 发行版: $DISTRO"
+    echo "  • 操作系统: $OS_TYPE"
     echo "  • 包管理器: $PACKAGE_MANAGER"
     echo "  • 安装模式: $([ "$IS_ROOT" = "true" ] && echo "所有用户" || echo "当前用户")"
     
@@ -708,7 +703,11 @@ show_summary() {
     
     echo -e "\n${YELLOW}后续步骤：${NC}"
     
-    if [ "$IS_ROOT" = "true" ]; then
+    if [[ "$OS_TYPE" == "macos" ]]; then
+        echo "1. 重启终端或运行: ${GREEN}exec zsh${NC}"
+        echo "2. 首次使用 zsh 时会运行 Powerlevel10k 配置向导"
+        echo "3. 在终端偏好设置中将字体改为: ${GREEN}MesloLGS NF${NC}"
+    elif [ "$IS_ROOT" = "true" ]; then
         echo "1. 通知用户重新登录或运行: ${GREEN}exec zsh${NC}"
         echo "2. 首次使用 zsh 时会运行 Powerlevel10k 配置向导"
         echo "3. 提醒用户在终端中设置字体为: ${GREEN}MesloLGS NF${NC}"
@@ -743,8 +742,16 @@ main() {
     
     # 系统检测
     log_info "=== 系统检测 ==="
-    detect_distro
+    detect_os
     detect_package_manager
+    
+    # 检查网络连接
+    log_info "=== 网络检测 ==="
+    if ! check_network; then
+        log_error "无法连接到 GitHub，请检查网络连接"
+        exit 1
+    fi
+    log_info "网络连接正常"
     
     # 安装系统包
     log_info "=== 安装系统包 ==="
@@ -762,8 +769,8 @@ main() {
         install_for_user "$username" "$home" "$shell"
     done
     
-    # 如果是root，设置新用户模板
-    if [ "$IS_ROOT" = "true" ]; then
+    # 如果是Linux root，设置新用户模板
+    if [ "$IS_ROOT" = "true" ] && [[ "$OS_TYPE" == "linux" ]]; then
         setup_skel
     fi
     
@@ -787,6 +794,11 @@ while [[ $# -gt 0 ]]; do
             echo "  • root用户：为所有用户安装"
             echo "  • 普通用户：仅为当前用户安装"
             echo ""
+            echo "支持的系统："
+            echo "  • Debian/Ubuntu (apt)"
+            echo "  • RHEL/CentOS/Fedora (yum/dnf)"
+            echo "  • macOS (brew)"
+            echo ""
             echo "选项:"
             echo "  --help, -h      显示此帮助"
             exit 0
@@ -796,6 +808,7 @@ while [[ $# -gt 0 ]]; do
             exit 1
             ;;
     esac
+    shift
 done
 
 # 执行主函数
