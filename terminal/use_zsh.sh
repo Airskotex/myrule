@@ -237,7 +237,7 @@ install_system_packages() {
     log_info "检查并安装必要的软件包..."
     
     # 定义需要的包
-    local generic_packages=("zsh" "git" "curl" "wget" "fonts-powerline" "fzf" "bat" "fontconfig")        
+    local generic_packages=("zsh" "git" "curl" "wget" "fonts-powerline" "fzf" "bat" "fontconfig")
     local to_install=()
     
     # 检查每个包
