@@ -2,7 +2,7 @@
 
 # ================================================================
 # Zsh 环境自动配置脚本 v0.5
-# 支持：Debian/Ubuntu (apt)、RHEL/CentOS (yum/dnf)、macOS (brew)  
+# 支持：Debian/Ubuntu (apt)、RHEL/CentOS (yum/dnf)、macOS (brew)    
 # ================================================================
 
 # 启用严格的错误处理
@@ -480,7 +480,7 @@ plugins=(
     zsh-syntax-highlighting
     command-not-found
     history-substring-search
-    colored-man-pages
+    colored-man-pages  
     extract
     sudo
     catimg
