@@ -440,14 +440,29 @@ install_plugin "zsh-autosuggestions" "https://github.com/zsh-users/zsh-autosugge
 install_plugin "fzf-tab" "https://github.com/Aloxaf/fzf-tab"
 
 # 备份并创建新的 .zshrc
+#if [ -f "\$HOME/.zshrc" ]; then
+#    # 检查是否存在旧备份并删除
+#    if ls "$HOME"/.zshrc.backup.* 1> /dev/null 2>&1; then
+#        rm -f "$HOME"/.zshrc.backup.*
+#    fi
+#    # 创建新的备份
+#    cp "\$HOME/.zshrc" "\$HOME/.zshrc.backup.\$(date +%Y%m%d_%H%M%S)"
+#fi
+
+
 if [ -f "\$HOME/.zshrc" ]; then
-    # 检查是否存在旧备份并删除
-    if ls "$HOME"/.zshrc.backup.* 1> /dev/null 2>&1; then
-        rm -f "$HOME"/.zshrc.backup.*
-    fi
-    # 创建新的备份
+    echo -e "\${GREEN}[INFO]\${NC} 发现已存在的 .zshrc，开始备份..."
+    # 清理旧的备份，只保留最新的一个。
+    ls -t "\$HOME"/.zshrc.backup.* 2>/dev/null | tail -n +2 | xargs -r rm -f --
+    
+    # 创建新的时间戳备份
     cp "\$HOME/.zshrc" "\$HOME/.zshrc.backup.\$(date +%Y%m%d_%H%M%S)"
 fi
+
+
+
+
+
 
 # 创建配置文件
 cat > "\$HOME/.zshrc" << 'EOF'
@@ -468,11 +483,11 @@ plugins=(
     colored-man-pages
     extract
     sudo
-	catimg
-	copybuffer
-	copyfile
-	copypath
-	cp
+    catimg
+    copybuffer
+    copyfile
+    copypath
+    cp
 )
 
 # Source oh-my-zsh
@@ -753,6 +768,8 @@ main() {
     # 显示横幅
     show_banner
     
+	log_info "正在清理旧的日志文件..."
+    ls -t "$HOME"/.zsh_install_*.log 2>/dev/null | tail -n +3 | xargs -r rm -f --
     # 记录开始
     log_info "开始安装 (版本: $SCRIPT_VERSION)"
     log_info "运行用户: $(whoami) (UID: $EUID)"
