@@ -440,24 +440,13 @@ install_plugin "zsh-autosuggestions" "https://github.com/zsh-users/zsh-autosugge
 install_plugin "fzf-tab" "https://github.com/Aloxaf/fzf-tab"
 
 # 备份并创建新的 .zshrc
-#if [ -f "\$HOME/.zshrc" ]; then
-#    # 检查是否存在旧备份并删除
-#    if ls "$HOME"/.zshrc.backup.* 1> /dev/null 2>&1; then
-#        rm -f "$HOME"/.zshrc.backup.*
-#    fi
-#    # 创建新的备份
-#    cp "\$HOME/.zshrc" "\$HOME/.zshrc.backup.\$(date +%Y%m%d_%H%M%S)"
-#fi
-
-# 处理 .zshrc 备份
-if [ -f "$HOME/.zshrc" ]; then
-    # 删除除最新备份外的所有备份（不使用变量）
-    ls -1t "$HOME"/.zshrc.backup.* 2>/dev/null | tail -n +2 | xargs -r rm -f
-	# 删除除最新日志外的所有日志（不使用变量）
-    ls -1t "$HOME"/.zsh_install_*.log 2>/dev/null | tail -n +2 | xargs -r rm -f
-    
-    # 创建新备份
-    cp "$HOME/.zshrc" "$HOME/.zshrc.backup.$(date +%Y%m%d_%H%M%S)"
+if [ -f "\$HOME/.zshrc" ]; then
+    # 检查是否存在旧备份并删除
+    if ls "$HOME"/.zshrc.backup.* 1> /dev/null 2>&1; then
+        rm -f "$HOME"/.zshrc.backup.*
+    fi
+    # 创建新的备份
+    cp "\$HOME/.zshrc" "\$HOME/.zshrc.backup.\$(date +%Y%m%d_%H%M%S)"
 fi
 
 # 创建配置文件
