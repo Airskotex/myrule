@@ -10,7 +10,7 @@ set -euo pipefail
 trap 'error_handler $? $LINENO "$BASH_COMMAND"' ERR
 
 # 全局变量
-SCRIPT_VERSION="3.2"
+SCRIPT_VERSION="3.3"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 IS_ROOT=$([[ $EUID -eq 0 ]] && echo "true" || echo "false")
 LOG_FILE="$HOME/.zsh_install_$(date +%Y%m%d_%H%M%S).log"
@@ -463,11 +463,11 @@ plugins=(
     colored-man-pages
     extract
     sudo
-	catimg
-	copybuffer
-	copyfile
-	copypath
-	cp
+    catimg  
+    copybuffer
+    copyfile
+    copypath
+    cp
 )
 
 # Source oh-my-zsh
