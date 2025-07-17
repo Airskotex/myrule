@@ -450,27 +450,16 @@ install_plugin "fzf-tab" "https://github.com/Aloxaf/fzf-tab"
 #fi
 
 # 处理 .zshrc 备份
-if [ -f "\$HOME/.zshrc" ]; then
-    # 获取最新的备份文件
-    latest_backup=\$(ls -1t "\$HOME"/.zshrc.backup.* 2>/dev/null | head -n 1)    
-    # 删除除最新备份外的所有备份
-    for backup in "\$HOME"/.zshrc.backup.*; do
-        if [ -f "\$backup" ] && [ "\$backup" != "\$latest_backup" ]; then
-            rm -f "\$backup"
-        fi
-    done
+if [ -f "$HOME/.zshrc" ]; then
+    # 删除除最新备份外的所有备份（不使用变量）
+    ls -1t "$HOME"/.zshrc.backup.* 2>/dev/null | tail -n +2 | xargs -r rm -f
+    
     # 创建新备份
-    cp "\$HOME/.zshrc" "\$HOME/.zshrc.backup.\$(date +%Y%m%d_%H%M%S)"
+    cp "$HOME/.zshrc" "$HOME/.zshrc.backup.$(date +%Y%m%d_%H%M%S)"
 fi
 
-# 获取最新的日志文件
-latest_log=\$(ls -1t "\$HOME"/.zsh_install_*.log 2>/dev/null | head -n 1)
-# 删除除最新日志外的所有日志
-for log in "\$HOME"/.zsh_install_*.log; do
-    if [ -f "\$log" ] && [ "\$log" != "\$latest_log" ]; then
-        rm -f "\$log"
-    fi
-done
+# 删除除最新日志外的所有日志（不使用变量）
+ls -1t "$HOME"/.zsh_install_*.log 2>/dev/null | tail -n +2 | xargs -r rm -f
 
 # 创建配置文件
 cat > "\$HOME/.zshrc" << 'EOF'
