@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # ================================================================
-# Zsh 环境自动配置脚本 v0.4
-# 支持：Debian/Ubuntu (apt)、RHEL/CentOS (yum/dnf)、macOS (brew)    
+# Zsh 环境自动配置脚本 v0.5
+# 支持：Debian/Ubuntu (apt)、RHEL/CentOS (yum/dnf)、macOS (brew)  
 # ================================================================
 
 # 启用严格的错误处理
@@ -10,7 +10,7 @@ set -euo pipefail
 trap 'error_handler $? $LINENO "$BASH_COMMAND"' ERR
 
 # 全局变量
-SCRIPT_VERSION="0.4"
+SCRIPT_VERSION="0.5"
 #SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 IS_ROOT=$([[ $EUID -eq 0 ]] && echo "true" || echo "false")
 LOG_FILE="$HOME/.zsh_install_$(date +%Y%m%d_%H%M%S).log"
@@ -435,19 +435,42 @@ install_plugin() {
 }
 
 # 安装插件
-install_plugin "zsh-syntax-highlighting" "https://github.com/zsh-users/zsh-syntax-highlighting.git"  
+install_plugin "zsh-syntax-highlighting" "https://github.com/zsh-users/zsh-syntax-highlighting.git"
 install_plugin "zsh-autosuggestions" "https://github.com/zsh-users/zsh-autosuggestions"
 install_plugin "fzf-tab" "https://github.com/Aloxaf/fzf-tab"
 
 # 备份并创建新的 .zshrc
-if [ -f "\$HOME/.zshrc" ]; then
-    # 检查是否存在旧备份并删除
-    if ls "$HOME"/.zshrc.backup.* 1> /dev/null 2>&1; then
-        rm -f "$HOME"/.zshrc.backup.*
-    fi
-    # 创建新的备份
-    cp "\$HOME/.zshrc" "\$HOME/.zshrc.backup.\$(date +%Y%m%d_%H%M%S)"
+#if [ -f "\$HOME/.zshrc" ]; then
+#    # 检查是否存在旧备份并删除
+#    if ls "$HOME"/.zshrc.backup.* 1> /dev/null 2>&1; then
+#        rm -f "$HOME"/.zshrc.backup.*
+#    fi
+#    # 创建新的备份
+#    cp "\$HOME/.zshrc" "\$HOME/.zshrc.backup.\$(date +%Y%m%d_%H%M%S)"
+#fi
+
+# 处理 .zshrc 备份
+if [ -f "$HOME/.zshrc" ]; then
+    # 获取最新的备份文件
+    latest_backup=$(ls -1t "$HOME"/.zshrc.backup.* 2>/dev/null | head -n 1)    
+    # 删除除最新备份外的所有备份
+    for backup in "$HOME"/.zshrc.backup.*; do
+        if [ -f "$backup" ] && [ "$backup" != "$latest_backup" ]; then
+            rm -f "$backup"
+        fi
+    done
+    # 创建新备份
+    cp "$HOME/.zshrc" "$HOME/.zshrc.backup.$(date +%Y%m%d_%H%M%S)"
 fi
+
+# 获取最新的日志文件
+latest_log=$(ls -1t "$HOME"/.zsh_install_*.log 2>/dev/null | head -n 1)
+# 删除除最新日志外的所有日志
+for log in "$HOME"/.zsh_install_*.log; do
+    if [ -f "$log" ] && [ "$log" != "$latest_log" ]; then
+        rm -f "$log"
+    fi
+done
 
 # 创建配置文件
 cat > "\$HOME/.zshrc" << 'EOF'
@@ -722,17 +745,17 @@ show_summary() {
         echo -e "1. 重启终端或运行: ${GREEN}exec zsh${NC}"
         echo -e "2. 首次使用 zsh 时会运行 Powerlevel10k 配置向导"
         echo -e "3. 在终端偏好设置中将字体改为: ${GREEN}MesloLGS NF${NC}"
-	echo "更多插件前往https://github.com/ohmyzsh/ohmyzsh查看"
-    elif [ "$IS_ROOT" = "true" ]; then
+		echo "更多插件前往https://github.com/ohmyzsh/ohmyzsh查看"
+	elif [ "$IS_ROOT" = "true" ]; then
         echo -e "1. 通知用户重新登录或运行: ${GREEN}exec zsh${NC}"
         echo -e "2. 首次使用 zsh 时会运行 Powerlevel10k 配置向导"
         echo -e "3. 提醒用户在终端中设置字体为: ${GREEN}MesloLGS NF${NC}"
-	echo "更多插件前往https://github.com/ohmyzsh/ohmyzsh查看"
+		echo "更多插件前往https://github.com/ohmyzsh/ohmyzsh查看"
     else
         echo -e "1. 重启终端或运行: ${GREEN}exec zsh${NC}"
         echo -e "2. 首次启动会运行 Powerlevel10k 配置向导"
         echo -e "3. 在终端设置中将字体改为: ${GREEN}MesloLGS NF${NC}"
-	echo "更多插件前往https://github.com/ohmyzsh/ohmyzsh查看"
+		echo "更多插件前往https://github.com/ohmyzsh/ohmyzsh查看"
     fi
     
     echo -e "\n${YELLOW}实用命令：${NC}"
