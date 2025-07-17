@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ================================================================
-# Zsh 环境自动配置脚本 v3.2 (修复版)
+# Zsh 环境自动配置脚本 v3.3
 # 支持：Debian/Ubuntu (apt)、RHEL/CentOS (yum/dnf)、macOS (brew)  
 # ================================================================
 
@@ -438,6 +438,7 @@ install_plugin() {
 install_plugin "zsh-syntax-highlighting" "https://github.com/zsh-users/zsh-syntax-highlighting.git"
 install_plugin "zsh-autosuggestions" "https://github.com/zsh-users/zsh-autosuggestions"
 install_plugin "fzf-tab" "https://github.com/Aloxaf/fzf-tab"
+install_plugin "zsh-history-substring-search" "https://github.com/zsh-users/zsh-history-substring-search"
 
 # 备份并创建新的 .zshrc
 if [ -f "\$HOME/.zshrc" ]; then
@@ -453,16 +454,23 @@ export ZSH="\$HOME/.oh-my-zsh"
 ZSH_THEME="powerlevel10k/powerlevel10k"
 
 # Plugins 
+#common-aliases  
 plugins=(
     git
     fzf-tab
     zsh-autosuggestions
     zsh-syntax-highlighting
+	zsh-history-substring-search
     command-not-found
     history-substring-search
     colored-man-pages
     extract
     sudo
+	catimg
+	copybuffer
+	copyfile
+	copypath
+	cp
 )
 
 # Source oh-my-zsh
@@ -528,6 +536,24 @@ elif command -v bat &> /dev/null; then
     alias cat='bat'
     export BAT_THEME="TwoDark"
 fi
+
+#配置zsh-history-substring-search
+# 绑定上下箭头
+bindkey '^[[A' history-substring-search-up
+bindkey '^[[B' history-substring-search-down
+# 或者使用 terminfo（更通用）
+bindkey "$terminfo[kcuu1]" history-substring-search-up
+bindkey "$terminfo[kcud1]" history-substring-search-down
+# EMACS 模式下的 Ctrl+P/N
+bindkey -M emacs '^P' history-substring-search-up
+bindkey -M emacs '^N' history-substring-search-down
+# VI 模式下的 k/j
+bindkey -M vicmd 'k' history-substring-search-up
+bindkey -M vicmd 'j' history-substring-search-down
+# 确保搜索结果唯一（去重）
+HISTORY_SUBSTRING_SEARCH_ENSURE_UNIQUE=1
+# 启用模糊搜索
+HISTORY_SUBSTRING_SEARCH_FUZZY=1
 
 # Custom functions
 mkcd() { mkdir -p "\$@" && cd "\$_"; }
