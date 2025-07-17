@@ -717,14 +717,17 @@ show_summary() {
         echo -e "1. 重启终端或运行: ${GREEN}exec zsh${NC}"
         echo -e "2. 首次使用 zsh 时会运行 Powerlevel10k 配置向导"
         echo -e "3. 在终端偏好设置中将字体改为: ${GREEN}MesloLGS NF${NC}"
+	echo "更多插件前往https://github.com/ohmyzsh/ohmyzsh查看"
     elif [ "$IS_ROOT" = "true" ]; then
         echo -e "1. 通知用户重新登录或运行: ${GREEN}exec zsh${NC}"
         echo -e "2. 首次使用 zsh 时会运行 Powerlevel10k 配置向导"
         echo -e "3. 提醒用户在终端中设置字体为: ${GREEN}MesloLGS NF${NC}"
+	echo "更多插件前往https://github.com/ohmyzsh/ohmyzsh查看"
     else
         echo -e "1. 重启终端或运行: ${GREEN}exec zsh${NC}"
         echo -e "2. 首次启动会运行 Powerlevel10k 配置向导"
         echo -e "3. 在终端设置中将字体改为: ${GREEN}MesloLGS NF${NC}"
+	echo "更多插件前往https://github.com/ohmyzsh/ohmyzsh查看"
     fi
     
     echo -e "\n${YELLOW}实用命令：${NC}"
