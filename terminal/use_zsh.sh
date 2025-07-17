@@ -2,7 +2,7 @@
 
 # ================================================================
 # Zsh 环境自动配置脚本 v0.4
-# 支持：Debian/Ubuntu (apt)、RHEL/CentOS (yum/dnf)、macOS (brew)  
+# 支持：Debian/Ubuntu (apt)、RHEL/CentOS (yum/dnf)、macOS (brew)    
 # ================================================================
 
 # 启用严格的错误处理
@@ -435,12 +435,17 @@ install_plugin() {
 }
 
 # 安装插件
-install_plugin "zsh-syntax-highlighting" "https://github.com/zsh-users/zsh-syntax-highlighting.git"
+install_plugin "zsh-syntax-highlighting" "https://github.com/zsh-users/zsh-syntax-highlighting.git"  
 install_plugin "zsh-autosuggestions" "https://github.com/zsh-users/zsh-autosuggestions"
 install_plugin "fzf-tab" "https://github.com/Aloxaf/fzf-tab"
 
 # 备份并创建新的 .zshrc
 if [ -f "\$HOME/.zshrc" ]; then
+    # 检查是否存在旧备份并删除
+    if ls "$HOME"/.zshrc.backup.* 1> /dev/null 2>&1; then
+        rm -f "$HOME"/.zshrc.backup.*
+    fi
+    # 创建新的备份
     cp "\$HOME/.zshrc" "\$HOME/.zshrc.backup.\$(date +%Y%m%d_%H%M%S)"
 fi
 
