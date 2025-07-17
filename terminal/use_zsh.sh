@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ================================================================
-# Zsh 环境自动配置脚本 v3.2 (修复版)
+# Zsh 环境自动配置脚本 v3.3
 # 支持：Debian/Ubuntu (apt)、RHEL/CentOS (yum/dnf)、macOS (brew)  
 # ================================================================
 
@@ -237,7 +237,7 @@ install_system_packages() {
     log_info "检查并安装必要的软件包..."
     
     # 定义需要的包
-    local generic_packages=("zsh" "git" "curl" "wget" "fonts-powerline" "fzf" "batcat" "bat" "fontconfig")
+    local generic_packages=("zsh" "git" "curl" "wget" "fonts-powerline" "fzf" "bat" "fontconfig")        
     local to_install=()
     
     # 检查每个包
@@ -397,7 +397,7 @@ if [ ! -d "\$HOME/.oh-my-zsh" ]; then
     echo -e "\${GREEN}[INFO]\${NC} 安装 Oh My Zsh..."
     export RUNZSH=no
     export CHSH=no
-    sh -c "\$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended || {
+    sh -c "\$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended || {  
         echo -e "\${RED}[ERROR]\${NC} Oh My Zsh 安装失败"
         exit 1
     }
