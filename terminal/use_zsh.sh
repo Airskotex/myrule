@@ -440,16 +440,6 @@ install_plugin "zsh-autosuggestions" "https://github.com/zsh-users/zsh-autosugge
 install_plugin "fzf-tab" "https://github.com/Aloxaf/fzf-tab"
 
 # 备份并创建新的 .zshrc
-#if [ -f "\$HOME/.zshrc" ]; then
-#    # 检查是否存在旧备份并删除
-#    if ls "$HOME"/.zshrc.backup.* 1> /dev/null 2>&1; then
-#        rm -f "$HOME"/.zshrc.backup.*
-#    fi
-#    # 创建新的备份
-#    cp "\$HOME/.zshrc" "\$HOME/.zshrc.backup.\$(date +%Y%m%d_%H%M%S)"
-#fi
-
-
 if [ -f "\$HOME/.zshrc" ]; then
     echo -e "\${GREEN}[INFO]\${NC} 发现已存在的 .zshrc，开始备份..."
     # 清理旧的备份，只保留最新的一个。
@@ -458,11 +448,6 @@ if [ -f "\$HOME/.zshrc" ]; then
     # 创建新的时间戳备份
     cp "\$HOME/.zshrc" "\$HOME/.zshrc.backup.\$(date +%Y%m%d_%H%M%S)"
 fi
-
-
-
-
-
 
 # 创建配置文件
 cat > "\$HOME/.zshrc" << 'EOF'
@@ -703,8 +688,8 @@ EOF
 show_banner() {
     echo -e "${PURPLE}"
     echo "╔══════════════════════════════════════════════╗"
-    echo "║     Zsh 环境自动配置脚本 v$SCRIPT_VERSION              ║"
-    echo "║     Enhanced with Oh My Zsh & Powerlevel10k ║"
+    echo "║     Zsh 环境自动配置脚本 v$SCRIPT_VERSION                ║"
+    echo "║     Enhanced with Oh My Zsh & Powerlevel10k  ║"    
     echo "╚══════════════════════════════════════════════╝"
     echo -e "${NC}"
 }
