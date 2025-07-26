@@ -13,10 +13,11 @@ const CONSTANTS = {
 // 正则表达式预编译，'|' = 或
 const REGEX = {
     exclude: new RegExp("^(?!.*(下载|测试)$).*$", "u"),
-    home: /家宽/i,
-    down: /WHM|clawcloud-7/i,
+    home: /原生|Native|Premium|专线|砖线|家宽/i,
+    daily: /^(?!.*x15)(?!.*x20).*(原生|Native|Premium|专线|砖线|家宽).*$/i,
+    down: /WHM|大流量|下载|down|clawcloud-7/i,
     spotify: /oracle/i,
-    video: /AWS|aliyun/i
+    video: /AWS|aliyun|流媒体|Netflix|Disney/i
 };
 
 // 规则提供者的默认配置
@@ -214,6 +215,7 @@ function main(config) {
         
         const allProxies = config.proxies.map((e) => e.name);
         const homeProxies = ((filtered) => filtered.length > 0 ? filtered : allProxies)(allProxies.filter(proxy => REGEX.home.test(proxy)));
+        const dailyProxies = ((filtered) => filtered.length > 0 ? filtered : allProxies)(allProxies.filter(proxy => REGEX.daily.test(proxy)));
         const downProxies = ((filtered) => filtered.length > 0 ? filtered : allProxies)(allProxies.filter(proxy => REGEX.down.test(proxy)));
         const spotifyProxies = ((filtered) => filtered.length > 0 ? filtered : allProxies)(allProxies.filter(proxy => REGEX.spotify.test(proxy)));
         const videoProxies = ((filtered) => filtered.length > 0 ? filtered : allProxies)(allProxies.filter(proxy => REGEX.video.test(proxy)));
@@ -221,17 +223,25 @@ function main(config) {
         // 设置代理组
         config["proxy-groups"] = [
             {
-                name: "日常节点",
+                name: "纯净节点",
                 type: "url-test",
-                proxies: allProxies,
+                proxies: homeProxies,
                 url: CONSTANTS.CONNECTIVITY_TEST_URL,
                 interval: CONSTANTS.DEFAULT_TEST_INTERVAL,
                 tolerance: CONSTANTS.DEFAULT_TOLERANCE
             },
             {
-                name: "纯净节点",
+                name: "纯净日常节点",
                 type: "url-test",
-                proxies: homeProxies,
+                proxies: dailyProxies,
+                url: CONSTANTS.CONNECTIVITY_TEST_URL,
+                interval: CONSTANTS.DEFAULT_TEST_INTERVAL,
+                tolerance: CONSTANTS.DEFAULT_TOLERANCE
+            },
+            {
+                name: "日常节点",
+                type: "fallback",
+                proxies: dailyProxies.length > 0 ? dailyProxies : allProxies,
                 url: CONSTANTS.CONNECTIVITY_TEST_URL,
                 interval: CONSTANTS.DEFAULT_TEST_INTERVAL,
                 tolerance: CONSTANTS.DEFAULT_TOLERANCE
@@ -322,7 +332,7 @@ function main(config) {
             // 直连规则
             "GEOIP,CN,DIRECT",
             "DOMAIN-SUFFIX,sub-page.proxys.ip-ddns.com,DIRECT",
-            "DOMAIN-SUFFIX,canva.cn,DIRECT"，  
+            "DOMAIN-SUFFIX,canva.cn,DIRECT",
             "DOMAIN-SUFFIX,warhut.cn,DIRECT",
             "DOMAIN-SUFFIX,linux.do,DIRECT",
             "DOMAIN-SUFFIX,aicnn.cn,DIRECT",
