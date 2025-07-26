@@ -63,7 +63,7 @@ external-controller-cors:
     #proxy-providers:
   #all-nodes:
   #type: http
-  #url: https://store.proxies.ip-ddns.com/s-u-b-s-t-o-r-e/download/collection/ALL?target=Stash
+  #url: https://store.proxies.ip-ddns.com/s-u-b-s-t-o-r-e/download/collection/ALL?target=Stash  
   #interval: 3600
   #health-check:
   #url: http://www.google-analytics.com/generate_204
@@ -73,7 +73,7 @@ proxy-providers:
   # 第一个订阅，同时作为模板
   all-nodes: &template
     type: http
-    url: https://store.proxies.ip-ddns.com/s-u-b-s-t-o-r-e/download/collection/ALL?target=Stash
+    url: https://store.proxies.ip-ddns.com/s-u-b-s-t-o-r-e/download/collection/ALL?target=Stash  
     interval: 3600
     health-check:
       url: http://www.google-analytics.com/generate_204
@@ -118,11 +118,11 @@ proxy-groups:
     url: http://www.google.com/generate_204
     interval: 300
     tolerance: 50
-    icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Bot.png
+    icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Bot.png  
     # 纯净节点组
   - name: 纯净日常节点
     type: url-test
-    filter: '(?i)^(?!.*(?:x15|x20)).*(?:原生|Native|Premium|专线|家宽)'
+    filter: '(?i)^(?!.*(?:x8|x15|x20)).*(?:原生|Native|Premium|专线|家宽)'
     use:
       - all-nodes
     url: http://www.google.com/generate_204
@@ -146,8 +146,8 @@ proxy-groups:
     type: url-test
     use:
       - all-nodes
-    filter: '(?i)AWS|aliyun|流媒体|Netflix|Disney'
-    url: http://www.google.com/generate_204
+    filter: '(?i)AWS|Ali|流媒体|Netflix|Disney'  
+    url: http://www.google.com/generate_204  
     interval: 300
     tolerance: 50
     icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/YouTube.png
@@ -156,7 +156,7 @@ proxy-groups:
     type: url-test
     use:
       - all-nodes
-    filter: '(?i)WHM|大流量|下载'
+    filter: '(?i)WHM|大流量|下载|Ali'
     url: http://www.google.com/generate_204
     interval: 300
     tolerance: 50
