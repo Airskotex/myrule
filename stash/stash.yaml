@@ -1,0 +1,479 @@
+mode: rule
+tproxy-port: 7896
+mixed-port: 20150
+allow-lan: false
+log-level: info
+ipv6: true
+external-controller: 127.0.0.1:20160
+secret: "Clashverge"
+unified-delay: true
+# DNS 配置优化
+dns:
+  enable: true
+  enhanced-mode: fake-ip
+  listen: 0.0.0.0:1053
+  default-nameserver:
+    - 223.5.5.5
+    - 119.29.29.29
+    - 114.114.114.114
+  nameserver:
+    - https://dns.alidns.com/dns-query
+    - https://doh.pub/dns-query
+    - tls://8.8.8.8:853
+  fake-ip-filter:
+    - '*.lan'
+    - localhost.ptlogin2.qq.com
+    - +.srv.nintendo.net
+    - +.stun.playstation.net
+    - +.msftconnecttest.com
+    - +.msftncsi.com
+    - +.xboxlive.com
+    - xbox.*.microsoft.com
+    - '*.battlenet.com.cn'
+    - '*.battlenet.com'
+    - '*.blzstatic.cn'
+    - '*.battle.net'
+  fake-ip-range: 198.18.0.1/16
+# TUN 模式配置
+tun:
+  enable: true
+  stack: gvisor
+  device: clash-verge
+  auto-detect-interface: true
+  auto-route: true
+  strict-route: false
+  mtu: 1500
+  dns-hijack:
+    - any:53
+    - tcp://any:53
+    - udp://any:53
+# 配置文件设置
+profile:
+  store-selected: true
+# CORS 设置
+external-controller-cors:
+  allow-private-network: true
+  allow-origins:
+    - tauri://localhost
+    - http://tauri.localhost
+    - https://yacd.metacubex.one
+    - https://metacubex.github.io
+    - https://board.zash.run.place
+    # 订阅节点配置
+    #proxy-providers:
+  #all-nodes:
+  #type: http
+  #url: https://store.proxies.ip-ddns.com/s-u-b-s-t-o-r-e/download/collection/ALL?target=Stash
+  #interval: 3600
+  #health-check:
+  #url: http://www.google-analytics.com/generate_204
+  #interval: 600
+  #benchmark-url: http://www.google-analytics.com/generate_204
+proxy-providers:
+  # 第一个订阅，同时作为模板
+  all-nodes: &template
+    type: http
+    url: https://store.proxies.ip-ddns.com/s-u-b-s-t-o-r-e/download/collection/ALL?target=Stash
+    interval: 3600
+    health-check:
+      url: http://www.google-analytics.com/generate_204
+      interval: 600
+    benchmark-url: http://www.google-analytics.com/generate_204
+  # 第二个订阅，继承模板设置
+  okgg-nodes:
+    !!merge <<: *template
+    url: https://store.proxies.ip-ddns.com/s-u-b-s-t-o-r-e/download/OKGG?target=Stash
+# 代理组配置
+proxy-groups:
+  # 全局手动选择
+  - name: 手动选择
+    type: select
+    proxies:
+      - 日常节点 # 默认选项
+      - 纯净节点
+      - 视频节点
+      - 下载节点
+      - 所有节点
+      - DIRECT
+      - REJECT
+    use:
+      - all-nodes
+      - okgg-nodes
+    icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Rocket.png
+  # 日常节点组
+  - name: 所有节点
+    type: url-test
+    use:
+      - all-nodes
+    url: http://www.google.com/generate_204
+    interval: 300
+    tolerance: 50
+    icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Global.png
+  # 纯净节点组
+  - name: 纯净节点
+    type: url-test
+    filter: '(?i)原生|Native|Premium|专线|家宽'
+    use:
+      - all-nodes
+    url: http://www.google.com/generate_204
+    interval: 300
+    tolerance: 50
+    icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Bot.png
+    # 纯净节点组
+  - name: 纯净日常节点
+    type: url-test
+    filter: '(?i)^(?!.*(?:x15|x20)).*(?:原生|Native|Premium|专线|家宽)'
+    use:
+      - all-nodes
+    url: http://www.google.com/generate_204
+    interval: 300
+    tolerance: 50
+    #hidden: true
+
+    hidden: true
+    icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Bot.png
+  #家宽优先的日常节点组
+  - name: 日常节点
+    type: fallback
+    proxies:
+      - 纯净日常节点
+      - 所有节点
+    url: http://www.google.com/generate_204
+    interval: 300
+    icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Proxy.png
+  # 视频节点组
+  - name: 视频节点
+    type: url-test
+    use:
+      - all-nodes
+    filter: '(?i)AWS|aliyun|流媒体|Netflix|Disney'
+    url: http://www.google.com/generate_204
+    interval: 300
+    tolerance: 50
+    icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/YouTube.png
+  # 下载节点组
+  - name: 下载节点
+    type: url-test
+    use:
+      - all-nodes
+    filter: '(?i)WHM|大流量|下载'
+    url: http://www.google.com/generate_204
+    interval: 300
+    tolerance: 50
+    icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Download.png
+  # Spotify 专用组
+  - name: Spotify
+    type: url-test
+    use:
+      - all-nodes
+    filter: '(?i)Oracle'
+    url: http://www.google.com/generate_204
+    interval: 300
+    tolerance: 50
+    icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Spotify.png
+    # -- 为兼容覆写文件而创建的别名组 (在UI中隐藏) --
+  - name: PROXY
+    type: url-test
+    proxies:
+      - 日常节点
+    hidden: true # <-- 添加这一行即可隐藏
+# 规则集提供商
+rule-providers:
+  Ipv6:
+    type: http
+    format: yaml
+    interval: 86400
+    behavior: classical
+    url: https://raw.githubusercontent.com/tnnevol/ACL4SSR/refs/heads/master/ClashVerge/dist/clash-rules/acl4ssr-online-full/Ipv6.txt
+    path: ./ruleset/tnnevol/Ipv6.yaml
+  LocalAreaNetwork:
+    type: http
+    format: yaml
+    interval: 86400
+    behavior: classical
+    url: https://raw.githubusercontent.com/tnnevol/ACL4SSR/refs/heads/master/ClashVerge/dist/clash-rules/acl4ssr-online-full/LocalAreaNetwork.txt
+    path: ./ruleset/tnnevol/LocalAreaNetwork.yaml
+  BanAD:
+    type: http
+    format: yaml
+    interval: 86400
+    behavior: classical
+    url: https://raw.githubusercontent.com/tnnevol/ACL4SSR/refs/heads/master/ClashVerge/dist/clash-rules/acl4ssr-online-full/BanAD.txt
+    path: ./ruleset/tnnevol/BanAD.yaml
+  BanProgramAD:
+    type: http
+    format: yaml
+    interval: 86400
+    behavior: classical
+    url: https://raw.githubusercontent.com/tnnevol/ACL4SSR/refs/heads/master/ClashVerge/dist/clash-rules/acl4ssr-online-full/BanProgramAD.txt
+    path: ./ruleset/tnnevol/BanProgramAD.yaml
+  GoogleFCM:
+    type: http
+    format: yaml
+    interval: 86400
+    behavior: classical
+    url: https://raw.githubusercontent.com/tnnevol/ACL4SSR/refs/heads/master/ClashVerge/dist/clash-rules/acl4ssr-online-full/GoogleFCM.txt
+    path: ./ruleset/tnnevol/GoogleFCM.yaml
+  Bing:
+    type: http
+    format: yaml
+    interval: 86400
+    behavior: classical
+    url: https://raw.githubusercontent.com/tnnevol/ACL4SSR/refs/heads/master/ClashVerge/dist/clash-rules/acl4ssr-online-full/Bing.txt
+    path: ./ruleset/tnnevol/Bing.yaml
+  OneDrive:
+    type: http
+    format: yaml
+    interval: 86400
+    behavior: classical
+    url: https://raw.githubusercontent.com/tnnevol/ACL4SSR/refs/heads/master/ClashVerge/dist/clash-rules/acl4ssr-online-full/OneDrive.txt
+    path: ./ruleset/tnnevol/OneDrive.yaml
+  Microsoft:
+    type: http
+    format: yaml
+    interval: 86400
+    behavior: classical
+    url: https://raw.githubusercontent.com/tnnevol/ACL4SSR/refs/heads/master/ClashVerge/dist/clash-rules/acl4ssr-online-full/Microsoft.txt
+    path: ./ruleset/tnnevol/Microsoft.yaml
+  Apple:
+    type: http
+    format: yaml
+    interval: 86400
+    behavior: classical
+    url: https://raw.githubusercontent.com/tnnevol/ACL4SSR/refs/heads/master/ClashVerge/dist/clash-rules/acl4ssr-online-full/Apple.txt
+    path: ./ruleset/tnnevol/Apple.yaml
+  Telegram:
+    type: http
+    format: yaml
+    interval: 86400
+    behavior: classical
+    url: https://cdn.jsdelivr.net/gh/blackmatrix7/ios_rule_script@master/rule/Clash/Telegram/Telegram.yaml
+    path: ./ruleset/tnnevol/Telegram.yaml
+  GoogleDrive:
+    type: http
+    format: yaml
+    interval: 86400
+    behavior: classical
+    url: https://cdn.jsdelivr.net/gh/blackmatrix7/ios_rule_script@master/rule/Clash/GoogleDrive/GoogleDrive.yaml
+    path: ./ruleset/tnnevol/GoogleDrive.yaml
+  Claude:
+    type: http
+    format: yaml
+    interval: 86400
+    behavior: classical
+    url: https://cdn.jsdelivr.net/gh/blackmatrix7/ios_rule_script@master/rule/Clash/Claude/Claude.yaml
+    path: ./ruleset/tnnevol/Claude.yaml
+  Gemini:
+    type: http
+    format: yaml
+    interval: 86400
+    behavior: classical
+    url: https://cdn.jsdelivr.net/gh/blackmatrix7/ios_rule_script@master/rule/Clash/Gemini/Gemini.yaml
+    path: ./ruleset/tnnevol/Gemini.yaml
+  OpenAi:
+    type: http
+    format: yaml
+    interval: 86400
+    behavior: classical
+    url: https://raw.githubusercontent.com/tnnevol/ACL4SSR/refs/heads/master/ClashVerge/dist/clash-rules/acl4ssr-online-full/OpenAi.txt
+    path: ./ruleset/tnnevol/OpenAi.yaml
+  Spotify:
+    type: http
+    format: yaml
+    interval: 86400
+    behavior: classical
+    url: https://cdn.jsdelivr.net/gh/blackmatrix7/ios_rule_script@master/rule/Clash/Spotify/Spotify.yaml
+    path: ./ruleset/tnnevol/Spotify.yaml
+  YouTube:
+    type: http
+    format: yaml
+    interval: 86400
+    behavior: classical
+    url: https://raw.githubusercontent.com/tnnevol/ACL4SSR/refs/heads/master/ClashVerge/dist/clash-rules/acl4ssr-online-full/YouTube.txt
+    path: ./ruleset/tnnevol/YouTube.yaml
+  ProxyGFWlist:
+    type: http
+    format: yaml
+    interval: 86400
+    behavior: classical
+    url: https://raw.githubusercontent.com/tnnevol/ACL4SSR/refs/heads/master/ClashVerge/dist/clash-rules/acl4ssr-online-full/ProxyGFWlist.txt
+    path: ./ruleset/tnnevol/ProxyGFWlist.yaml
+  AdvertisingLite_Classical:
+    type: http
+    format: yaml
+    interval: 86400
+    behavior: classical
+    url: https://cdn.jsdelivr.net/gh/blackmatrix7/ios_rule_script@master/rule/Clash/AdvertisingLite/AdvertisingLite_Classical.yaml
+    path: ./ruleset/tnnevol/AdvertisingLite_Classical.yaml
+  Download:
+    type: http
+    format: yaml
+    interval: 86400
+    behavior: classical
+    url: https://cdn.jsdelivr.net/gh/blackmatrix7/ios_rule_script@master/rule/Clash/Download/Download.yaml
+    path: ./ruleset/tnnevol/Download.yaml
+  DouYin:
+    type: http
+    format: yaml
+    interval: 86400
+    behavior: classical
+    url: https://cdn.jsdelivr.net/gh/blackmatrix7/ios_rule_script@master/rule/Clash/DouYin/DouYin.yaml
+    path: ./ruleset/tnnevol/DouYin.yaml
+# 规则配置
+# 规则匹配顺序: 从上至下，匹配即停止。
+# 最佳实践顺序: 强制直连/拒绝 -> 自定义分流 -> 区域规则 -> 通用规则 -> 最终匹配
+rules:
+  # ---------------------(1. 强制直连/拒绝 - 最高优先级)---------------------
+  # -- 广告拦截规则 (REJECT) --
+  # 设计思路: 尽早拦截广告请求，减少不必要的流量和代理判断。
+  #- DOMAIN-KEYWORD,admarvel,REJECT
+  #- DOMAIN-KEYWORD,admaster,REJECT
+  #- DOMAIN-KEYWORD,adsage,REJECT
+  #- DOMAIN-KEYWORD,adsmogo,REJECT
+  #- DOMAIN-KEYWORD,adsrvmedia,REJECT
+  #- DOMAIN-KEYWORD,adwords,REJECT
+  #- DOMAIN-KEYWORD,adservice,REJECT
+  #- DOMAIN-SUFFIX,appsflyer.com,REJECT
+  #- DOMAIN-KEYWORD,domob,REJECT
+  #- DOMAIN-SUFFIX,doubleclick.net,REJECT
+  #- DOMAIN-KEYWORD,duomeng,REJECT
+  #- DOMAIN-KEYWORD,dwtrack,REJECT
+  #- DOMAIN-KEYWORD,guanggao,REJECT
+  - DOMAIN-KEYWORD,lianmeng,REJECT
+  #- DOMAIN-SUFFIX,mmstat.com,REJECT
+  - DOMAIN-KEYWORD,mopub,REJECT
+  #- DOMAIN-KEYWORD,omgmta,REJECT
+  #- DOMAIN-KEYWORD,openx,REJECT
+  #- DOMAIN-KEYWORD,partnerad,REJECT
+  #- DOMAIN-KEYWORD,pingfore,REJECT
+  #- DOMAIN-KEYWORD,supersonicads,REJECT
+  - DOMAIN-KEYWORD,uedas,REJECT
+  #- DOMAIN-KEYWORD,umeng,REJECT
+  - DOMAIN-KEYWORD,usage,REJECT
+  #- DOMAIN-SUFFIX,vungle.com,REJECT
+  #- DOMAIN-KEYWORD,wlmonitor,REJECT
+  #- DOMAIN-KEYWORD,zjtoolbar,REJECT
+  - RULE-SET,BanAD,REJECT
+  - RULE-SET,BanProgramAD,REJECT
+  - RULE-SET,AdvertisingLite_Classical,REJECT
+  # -- 局域网、回环地址和系统服务 (DIRECT) --
+  # 设计思路: 确保本地网络和Apple等系统服务绝对直连，避免出现网络问题。
+  - IP-CIDR,17.0.0.0/8,DIRECT,no-resolve
+  - RULE-SET,LocalAreaNetwork,DIRECT
+  - RULE-SET,Apple,DIRECT
+  - RULE-SET,DouYin,DIRECT
+  # -- 自定义直连规则 (DIRECT) --
+  # 设计思路: 您个人希望强制直连的域名，优先级高于所有代理规则。
+  - DOMAIN-SUFFIX,macpaw.com,DIRECT
+  - DOMAIN-SUFFIX,sub-page.proxys.ip-ddns.com,DIRECT
+  - DOMAIN-SUFFIX,canva.cn,DIRECT
+  - DOMAIN-SUFFIX,warhut.cn,DIRECT
+  - DOMAIN-SUFFIX,linux.do,DIRECT
+  - DOMAIN-SUFFIX,aicnn.cn,DIRECT
+  - DOMAIN-SUFFIX,login.bce.baidu.com,DIRECT
+  - DOMAIN-SUFFIX,boju.cc,DIRECT
+  - DOMAIN-SUFFIX,riskbird.com,DIRECT
+  - DOMAIN-SUFFIX,rewards.bing.com,DIRECT
+  - DOMAIN-SUFFIX,cn.bing.com,DIRECT
+  - DOMAIN-SUFFIX,cpuid.com,DIRECT
+  - DOMAIN-SUFFIX,deepl.com,DIRECT
+  - DOMAIN-SUFFIX,netcup.com,DIRECT
+  - DOMAIN-SUFFIX,customercontrolpanel.de,DIRECT
+  - DOMAIN-SUFFIX,love.52pokemon.cc,DIRECT
+  - DOMAIN,injections.adguard.org,DIRECT
+  - DOMAIN,local.adguard.org,DIRECT
+  - DOMAIN-SUFFIX,local,DIRECT
+  # ---------------------(2. 按需分流 - 自定义代理)---------------------
+  # 设计思路: 针对特定应用/服务使用特定节点组，保证体验。这些是您的核心分流策略。
+  # -- 下载服务规则 --
+  - RULE-SET,Download,下载节点
+  - PROCESS-NAME,iMe,下载节点
+  - PROCESS-NAME,Infuse,下载节点
+  - PROCESS-NAME,VidHub,下载节点
+  - PROCESS-NAME,SenPlayer,下载节点
+  - PROCESS-NAME,NeatDownloadManager,下载节点
+  - PROCESS-NAME,Motrix,下载节点
+  - PROCESS-NAME,Mountain Duck,下载节点
+  # - 'PROCESS-NAME,Google Drive,下载节点' # 此行已注释
+  - RULE-SET,GoogleDrive,下载节点
+  - DOMAIN-SUFFIX,dl.delivery.mp.microsoft.com,下载节点
+  - IP-CIDR,34.82.68.179/32,下载节点,no-resolve
+  - PROCESS-NAME,AdsPower Global,下载节点
+  # -- AI 服务规则 --
+  - PROCESS-NAME,Dia,纯净节点
+  - RULE-SET,OpenAi,纯净节点
+  - RULE-SET,Claude,纯净节点
+  - RULE-SET,Gemini,纯净节点
+  - DOMAIN-SUFFIX,account.diabrowser.engineering,纯净节点
+  - DOMAIN-SUFFIX,perplexity.ai,纯净节点
+  - DOMAIN-SUFFIX,genspark.ai,纯净节点
+  - DOMAIN-SUFFIX,you.com,纯净节点
+  - DOMAIN-SUFFIX,x.ai,纯净节点
+  - DOMAIN-SUFFIX,grok.com,纯净节点
+  - DOMAIN-SUFFIX,dify.ai,纯净节点
+  - DOMAIN-SUFFIX,hancat.work,纯净节点
+  - DOMAIN-SUFFIX,cloudns.net,纯净节点
+  - DOMAIN-SUFFIX,ping0.cc,纯净节点
+  - DOMAIN-SUFFIX,ipdata.co,纯净节点
+  - DOMAIN-SUFFIX,digitalplat.org,纯净节点
+  - DOMAIN-SUFFIX,mail.google.com,纯净节点
+  - DOMAIN-SUFFIX,dataonline.vn,纯净节点
+  - DOMAIN-SUFFIX,nodeseek.com,纯净节点
+  # -- 流媒体服务规则 --
+  - RULE-SET,YouTube,视频节点
+  - RULE-SET,Spotify,Spotify
+  - RULE-SET,Telegram,视频节点 # Telegram 归类于需要稳定连接的社交媒体，使用视频节点也合理
+  - DOMAIN-SUFFIX,manus.im,视频节点
+  - DOMAIN-SUFFIX,jsdelivr.net,视频节点
+  - DOMAIN-SUFFIX,tencentcloud.com,视频节点
+  # -- 微软及其他服务规则 --
+  - RULE-SET,GoogleFCM,日常节点
+  - RULE-SET,Bing,日常节点
+  - RULE-SET,OneDrive,日常节点
+  - RULE-SET,Microsoft,日常节点
+  # -- 其他需要代理的精确规则 --
+  # 设计思路: 放置一些无法归入以上类别但需要精确匹配的规则。
+  - IP-CIDR,91.108.4.0/22,日常节点,no-resolve
+  - IP-CIDR,91.108.8.0/21,日常节点,no-resolve
+  - IP-CIDR,91.108.16.0/22,日常节点,no-resolve
+  - IP-CIDR,91.108.56.0/22,日常节点,no-resolve
+  - IP-CIDR6,2001:b28:f23d::/48,日常节点,no-resolve
+  - IP-CIDR,120.232.181.162/32,日常节点,no-resolve
+  - IP-CIDR,120.241.147.226/32,日常节点,no-resolve
+  - IP-CIDR,120.253.253.226/32,日常节点,no-resolve
+  - IP-CIDR,120.253.255.162/32,日常节点,no-resolve
+  - IP-CIDR,120.253.255.34/32,日常节点,no-resolve
+  - IP-CIDR,120.253.255.98/32,日常节点,no-resolve
+  - IP-CIDR,180.163.150.162/32,日常节点,no-resolve
+  - IP-CIDR,180.163.150.34/32,日常节点,no-resolve
+  - IP-CIDR,180.163.151.162/32,日常节点,no-resolve
+  - IP-CIDR,180.163.151.34/32,日常节点,no-resolve
+  - IP-CIDR,203.208.39.0/24,日常节点,no-resolve
+  - IP-CIDR,203.208.40.0/24,日常节点,no-resolve
+  - IP-CIDR,203.208.41.0/24,日常节点,no-resolve
+  - IP-CIDR,203.208.43.0/24,日常节点,no-resolve
+  - IP-CIDR,203.208.50.0/24,日常节点,no-resolve
+  - IP-CIDR,220.181.174.162/32,日常节点,no-resolve
+  - IP-CIDR,220.181.174.226/32,日常节点,no-resolve
+  - IP-CIDR,220.181.174.34/32,日常节点,no-resolve
+  # ---------------------(3. 通用代理规则 - GFW & 其他)---------------------
+  # 设计思路: 使用通用规则集处理需要代理的流量，这是代理的主力。
+  - RULE-SET,ProxyGFWlist,日常节点
+  - DOMAIN-SUFFIX,browserleaks.com,日常节点
+  - DOMAIN-SUFFIX,claw.cloud,日常节点
+  - DOMAIN-SUFFIX,sub.contaction.me,日常节点
+  - DOMAIN-SUFFIX,cursor.com,日常节点
+  - DOMAIN-SUFFIX,thunderbird.net,日常节点
+  - DOMAIN-SUFFIX,please-recruit.me,日常节点
+  - DOMAIN-SUFFIX,serv00.com,日常节点
+  - DOMAIN-SUFFIX,sublink.proxys.ip-ddns.com,日常节点
+  - DOMAIN-SUFFIX,app.warp.dev,日常节点
+  # ---------------------(4. 区域规则 - 中国大陆直连)---------------------
+  # 设计思路: 宽泛地直连国内域名和IP，提高访问速度。放在自定义分流之后，以防需要代理的国内服务被误伤。
+  - DOMAIN-SUFFIX,cn,DIRECT
+  - DOMAIN-KEYWORD,-cn,DIRECT
+  - GEOIP,CN,DIRECT
+  # ---------------------(5. 最终匹配 - 最低优先级)---------------------
+  # 设计思路: 所有未被以上任何规则匹配的流量，都将通过此规则处理。这是保证网络连通性的最后一道防线。
+  - MATCH,日常节点
+subscribe-url: https://store.proxies.ip-ddns.com/s-u-b-s-t-o-r-e/download/collection/ALL
