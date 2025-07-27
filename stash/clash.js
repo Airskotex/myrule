@@ -13,11 +13,11 @@ const CONSTANTS = {
 // 正则表达式预编译，'|' = 或
 const REGEX = {
     exclude: new RegExp("^(?!.*(下载|测试)$).*$", "u"),
-    home: /原生|Native|Premium|专线|砖线|家宽/i,
-    daily: /^(?!.*x15)(?!.*x20).*(原生|Native|Premium|专线|砖线|家宽).*$/i,
-    down: /WHM|大流量|下载|down|clawcloud-7/i,
+    home: /(原生|Native|Premium|专线|砖线|家宽).*x([4-9]|[1-9]\d+)/i,
+    daily: /(原生|Native|Premium|专线|砖线|家宽)(?!.*x([4-9]|[1-9]\d+))/i,
+    down: /WHM|大流量|下载|down|claw/i,
     spotify: /oracle/i,
-    video: /AWS|aliyun|流媒体|Netflix|Disney/i
+    video: /AWS|Ali|流媒体|Netflix|Disney/i
 };
 
 // 规则提供者的默认配置
@@ -223,7 +223,15 @@ function main(config) {
         // 设置代理组
         config["proxy-groups"] = [
             {
-                name: "纯净节点",
+                name: "所有节点",
+                type: "url-test",
+                proxies: allProxies,
+                url: CONSTANTS.CONNECTIVITY_TEST_URL,
+                interval: CONSTANTS.DEFAULT_TEST_INTERVAL,
+                tolerance: CONSTANTS.DEFAULT_TOLERANCE
+            },
+            {
+                name: "高倍纯净节点",
                 type: "url-test",
                 proxies: homeProxies,
                 url: CONSTANTS.CONNECTIVITY_TEST_URL,
@@ -231,7 +239,7 @@ function main(config) {
                 tolerance: CONSTANTS.DEFAULT_TOLERANCE
             },
             {
-                name: "纯净日常节点",
+                name: "日常纯净节点",
                 type: "url-test",
                 proxies: dailyProxies,
                 url: CONSTANTS.CONNECTIVITY_TEST_URL,
@@ -241,7 +249,8 @@ function main(config) {
             {
                 name: "日常节点",
                 type: "fallback",
-                proxies: dailyProxies.length > 0 ? dailyProxies : allProxies,
+                //proxies: dailyProxies.length > 0 ? dailyProxies : allProxies,
+                proxies: ["日常纯净节点", "所有节点"],
                 url: CONSTANTS.CONNECTIVITY_TEST_URL,
                 interval: CONSTANTS.DEFAULT_TEST_INTERVAL,
                 tolerance: CONSTANTS.DEFAULT_TOLERANCE
@@ -281,26 +290,26 @@ function main(config) {
         // 设置规则
         config["rules"] = [
             // AI服务规则
-            ...AI_SERVICES.map(service => `RULE-SET,${service},纯净节点`),
+            ...AI_SERVICES.map(service => `RULE-SET,${service},高倍纯净节点`),
 
             // AI相关域名规则
-            "DOMAIN-SUFFIX,gemini.google.com,纯净节点",
-            "DOMAIN-SUFFIX,perplexity.ai,纯净节点",
-            "DOMAIN-SUFFIX,signaler-pa.clients6.google.com,纯净节点",
-            "DOMAIN-SUFFIX,genspark.ai,纯净节点",
-            "DOMAIN-SUFFIX,you.com,纯净节点",
-            "DOMAIN-SUFFIX,x.ai,纯净节点",
-            "DOMAIN-SUFFIX,grok.com,纯净节点",
-            "DOMAIN-SUFFIX,dify.ai,纯净节点",
-            "DOMAIN-SUFFIX,hancat.work,纯净节点",
-            "DOMAIN-SUFFIX,cloudns.net,纯净节点",
-            "DOMAIN-SUFFIX,ping0.cc,纯净节点",
-            "DOMAIN-SUFFIX,ipdata.co,纯净节点",
-            "DOMAIN-SUFFIX,digitalplat.org,纯净节点",
-            "DOMAIN-SUFFIX,mail.google.com,纯净节点",
-            "DOMAIN-SUFFIX,dataonline.vn,纯净节点",
-            "DOMAIN-SUFFIX,nodeseek.com,纯净节点",
-            "DOMAIN-SUFFIX,ipinfo.io,纯净节点",
+            "DOMAIN-SUFFIX,gemini.google.com,高倍纯净节点",
+            "DOMAIN-SUFFIX,perplexity.ai,高倍纯净节点",
+            "DOMAIN-SUFFIX,signaler-pa.clients6.google.com,高倍纯净节点",
+            "DOMAIN-SUFFIX,genspark.ai,高倍纯净节点",
+            "DOMAIN-SUFFIX,you.com,高倍纯净节点",
+            "DOMAIN-SUFFIX,x.ai,高倍纯净节点",
+            "DOMAIN-SUFFIX,grok.com,高倍纯净节点",
+            "DOMAIN-SUFFIX,dify.ai,高倍纯净节点",
+            "DOMAIN-SUFFIX,hancat.work,高倍纯净节点",
+            "DOMAIN-SUFFIX,cloudns.net,高倍纯净节点",
+            "DOMAIN-SUFFIX,ping0.cc,高倍纯净节点",
+            "DOMAIN-SUFFIX,ipdata.co,高倍纯净节点",
+            "DOMAIN-SUFFIX,digitalplat.org,高倍纯净节点",
+            "DOMAIN-SUFFIX,mail.google.com,高倍纯净节点",
+            "DOMAIN-SUFFIX,dataonline.vn,高倍纯净节点",
+            "DOMAIN-SUFFIX,nodeseek.com,高倍纯净节点",
+            "DOMAIN-SUFFIX,ipinfo.io,高倍纯净节点",
 
             // 视频服务规则
             ...VIDEO_SERVICES.map(service => `RULE-SET,${service},视频节点`),
@@ -317,6 +326,7 @@ function main(config) {
             ...SPOTIFY_SERVICES.map(service => `RULE-SET,${service},Spotify`),
 
             // 代理规则
+            "RULE-SET,Bing,日常节点",
             "RULE-SET,ProxyGFWlist,日常节点",
             "DOMAIN-SUFFIX,browserleaks.com,日常节点",
             "DOMAIN-SUFFIX,claw.cloud,日常节点",
