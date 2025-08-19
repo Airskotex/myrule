@@ -13,7 +13,7 @@ log-level: info
 external-controller: :9090
 proxy-providers:
   Airport01:
-    type: http
+    type: https
     url: https://store.proxies.ip-ddns.com/s-u-b-s-t-o-r-e/download/collection/ALL
     #更改为自己订阅机场的地址
     interval: 86400
