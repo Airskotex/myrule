@@ -60,20 +60,11 @@ external-controller-cors:
     - https://metacubex.github.io
     - https://board.zash.run.place
     # 订阅节点配置
-    #proxy-providers:
-  #all-nodes:
-  #type: http
-  #url: https://store.proxies.ip-ddns.com/s-u-b-s-t-o-r-e/download/collection/ALL?target=Stash
-  #interval: 3600
-  #health-check:
-  #url: http://www.google-analytics.com/generate_204
-  #interval: 600
-  #benchmark-url: http://www.google-analytics.com/generate_204
 proxy-providers:
   # 第一个订阅，同时作为模板
   all-nodes: &template
     type: http
-    url: https://store.proxies.ip-ddns.com/s-u-b-s-t-o-r-e/download/collection/ALL?target=Stash
+    url: 订阅链接
     interval: 3600
     health-check:
       url: http://www.google-analytics.com/generate_204
@@ -82,7 +73,7 @@ proxy-providers:
   # 第二个订阅，继承模板设置
   okgg-nodes:
     !!merge <<: *template
-    url: https://store.proxies.ip-ddns.com/s-u-b-s-t-o-r-e/download/OKGG?target=Stash
+    url: 订阅链接2
 # 代理组配置
 proxy-groups:
   # 全局手动选择
@@ -469,4 +460,4 @@ rules:
   - DOMAIN-KEYWORD,-cn,DIRECT
   - GEOIP,CN,DIRECT
   - MATCH,日常节点
-subscribe-url: https://store.proxies.ip-ddns.com/s-u-b-s-t-o-r-e/download/collection/ALL?target=Stash
+subscribe-url: 订阅链接
