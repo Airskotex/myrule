@@ -59,12 +59,12 @@ external-controller-cors:
     - https://yacd.metacubex.one
     - https://metacubex.github.io
     - https://board.zash.run.place
-    # 订阅节点配置
+# 订阅节点配置
 proxy-providers:
   # 第一个订阅，同时作为模板
   all-nodes: &template
     type: http
-    url: 订阅链接
+    url: 订阅链接1
     interval: 3600
     health-check:
       url: http://www.google-analytics.com/generate_204
@@ -78,7 +78,7 @@ proxy-providers:
 proxy-groups:
   # 全局手动选择
   - name: 手动选择
-    type: select
+    输入: select
     proxies:
       - 日常节点 # 默认选项
       - 高倍纯净节点
@@ -93,7 +93,7 @@ proxy-groups:
     icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Rocket.png
   # 日常节点组
   - name: 所有节点
-    type: url-test
+    输入: url-test
     use:
       - all-nodes
     url: http://www.google.com/generate_204
@@ -102,7 +102,7 @@ proxy-groups:
     icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Global.png
   # 纯净节点组
   - name: 高倍纯净节点
-    type: url-test
+    输入: url-test
     filter: '(?i)(原生|Native|Premium|专线|砖线|家宽).*x([4-9]|[1-9]\d+)'
     use:
       - all-nodes
@@ -161,7 +161,16 @@ proxy-groups:
     interval: 300
     tolerance: 50
     icon: https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Spotify.png
-    # -- 为兼容覆写文件而创建的别名组 (在UI中隐藏) --
+  # US(Dia) 专用组
+  #- name: US
+  #  type: select
+  #  use:
+  #    - all-nodes
+  #  filter: '(?i)US|美国'
+  #  url: http://www.google.com/generate_204
+  #  interval: 300
+  #  tolerance: 50
+  # -- 为兼容覆写文件而创建的别名组 (在UI中隐藏) --
   - name: PROXY
     type: url-test
     proxies:
@@ -316,6 +325,20 @@ rule-providers:
     behavior: classical
     url: https://cdn.jsdelivr.net/gh/blackmatrix7/ios_rule_script@master/rule/Clash/DouYin/DouYin.yaml
     path: ./ruleset/tnnevol/DouYin.yaml
+  Steam:
+    type: http
+    format: yaml
+    interval: 86400
+    behavior: classical
+    url: https://cdn.jsdelivr.net/gh/blackmatrix7/ios_rule_script@master/rule/Clash/Steam/Steam.yaml
+    path: ./ruleset/tnnevol/Steam.yaml
+  SteamCN:
+    type: http
+    format: yaml
+    interval: 86400
+    behavior: classical
+    url: https://cdn.jsdelivr.net/gh/blackmatrix7/ios_rule_script@master/rule/Clash/SteamCN/SteamCN.yaml
+    path: ./ruleset/tnnevol/SteamCN.yaml
   AI:
     type: http
     format: yaml
@@ -337,6 +360,7 @@ rule-providers:
 #4. 相同策略按功能分组：广告拦截 > 国内服务 > 代理服务 > AI服务 > 流媒体 > 下载工具 > 全局代理
 #5. Remote Rule分组排序：按策略类型分组（REJECT > DIRECT > 下载 > 代理 > 流媒体 > 其他）
 rules:
+  - IP-CIDR,34.82.68.179/32,日常节点,no-resolve # GCP
   # ====== 广告拦截 ======
   - DOMAIN-KEYWORD,lianmeng,REJECT
   - DOMAIN-KEYWORD,mopub,REJECT
@@ -354,8 +378,12 @@ rules:
   - DOMAIN,local.adguard.org,DIRECT
   # ====== 国内服务直连 ======
   - RULE-SET,Apple,DIRECT
-  - RULE-SET,DouYin,DIRECT
+  - PROCESS-NAME,飞书,DIRECT,no-track
+  - DOMAIN,api.deeplx.org,DIRECT
+  - RULE-SET,DouYin,DIRECT,no-track
+  - RULE-SET,SteamCN,DIRECT
   - DOMAIN-SUFFIX,macpaw.com,DIRECT
+  - DOMAIN-SUFFIX,huaweicloud.com,DIRECT,no-track
   - DOMAIN-SUFFIX,sub-page.proxys.ip-ddns.com,DIRECT
   - DOMAIN-SUFFIX,canva.cn,DIRECT
   - DOMAIN-SUFFIX,warhut.cn,DIRECT
@@ -374,9 +402,10 @@ rules:
   - DOMAIN-SUFFIX,customercontrolpanel.de,DIRECT
   # ====== 下载服务 ======
   - PROCESS-NAME,iMe,下载节点
+  - PROCESS-NAME,DuckDuckGo,下载节点,no-resolve
   - PROCESS-NAME,Infuse,下载节点
   - PROCESS-NAME,VidHub,下载节点
-  - PROCESS-NAME,SenPlayer,下载节点
+  - PROCESS-NAME,SenPlayer,视频节点
   - PROCESS-NAME,NeatDownloadManager,下载节点
   - PROCESS-NAME,Motrix,下载节点
   - PROCESS-NAME,Mountain Duck,下载节点
@@ -384,6 +413,9 @@ rules:
   - RULE-SET,Download,下载节点
   - RULE-SET,GoogleDrive,下载节点
   - RULE-SET,Telegram,下载节点
+  - PROCESS-NAME,Steam,下载节点
+  - PROCESS-NAME,Steam Helper,下载节点
+  - RULE-SET,Steam,下载节点
   - DOMAIN-SUFFIX,dl.delivery.mp.microsoft.com,下载节点
   - IP-CIDR,34.82.68.179/32,下载节点,no-resolve
   # ====== AI服务 ======
@@ -409,6 +441,8 @@ rules:
   - DOMAIN-SUFFIX,nodeseek.com,日常纯净节点
   # ====== 流媒体服务 ======
   - RULE-SET,YouTube,视频节点
+  - PROCESS-NAME,Spotify,Spotify,no-resolve
+  - PROCESS-NAME,Spotify Helper,Spotify,no-resolve
   - RULE-SET,Spotify,Spotify
   - DOMAIN-SUFFIX,manus.im,视频节点
   - DOMAIN-SUFFIX,jsdelivr.net,视频节点
@@ -422,6 +456,7 @@ rules:
   - RULE-SET,GoogleFCM,日常节点
   ## 代理域名
   - DOMAIN-SUFFIX,browserleaks.com,日常节点
+  - DOMAIN-SUFFIX,betadash.lunes.host,日常节点,no-resolve
   - DOMAIN-SUFFIX,claw.cloud,日常节点
   - DOMAIN-SUFFIX,sub.contaction.me,日常节点
   - DOMAIN-SUFFIX,cursor.com,日常节点
