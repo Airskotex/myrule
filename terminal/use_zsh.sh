@@ -443,7 +443,7 @@ install_plugin "fzf-tab" "https://github.com/Aloxaf/fzf-tab"
 if [ -f "\$HOME/.zshrc" ]; then
     echo -e "\${GREEN}[INFO]\${NC} 发现已存在的 .zshrc，开始备份..."
     # 清理旧的备份，只保留最新的一个。
-    ls -t "\$HOME"/.zshrc.backup.* 2>/dev/null | tail -n +2 | xargs -r rm -f --
+    ls -t "\$HOME"/.zshrc.backup.* 2>/dev/null | tail -n +2 | xargs -r rm -f -- || true
     
     # 创建新的时间戳备份
     cp "\$HOME/.zshrc" "\$HOME/.zshrc.backup.\$(date +%Y%m%d_%H%M%S)"
