@@ -465,7 +465,7 @@ plugins=(
     zsh-syntax-highlighting
     command-not-found
     history-substring-search
-    colored-man-pages  
+    colored-man-pages
     extract
     sudo
     catimg
