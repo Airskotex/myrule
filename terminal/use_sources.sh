@@ -387,8 +387,8 @@ main() {
             ;;
     esac
     
-    echo -e "${GREEN}源已成功更新，5秒后退出脚本...${NC}"
-    for i in {5..1}; do
+    echo -e "${GREEN}源已成功更新，3秒后退出脚本...${NC}"
+    for i in {3..1}; do
         echo -ne "${YELLOW}$i...${NC}"
         sleep 1
     done
