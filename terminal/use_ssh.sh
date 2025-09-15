@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # SSH配置管理脚本
-# 作者: Claude Sonnet 4
+# 作者: Airskotex
 # 功能: 配置SSH设置，支持备份和还原，支持自删除
 
 CONFIG_DIR="/etc/ssh/sshd_config.d"
