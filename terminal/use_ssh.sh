@@ -2,12 +2,16 @@
 
 # SSH配置管理脚本
 # 作者: Claude Sonnet 4
-# 功能: 配置SSH设置，支持备份和还原
+# 功能: 配置SSH设置，支持备份和还原，支持自删除
 
 CONFIG_DIR="/etc/ssh/sshd_config.d"
 CONFIG_FILE="01-cloudimg-settings.conf"
 BACKUP_SUFFIX=".back"
 RESTORE_INFO_FILE="/tmp/ssh_config_restore_info"
+
+# 获取脚本自身的完整路径
+SCRIPT_PATH="$(realpath "$0")"
+SCRIPT_NAME="$(basename "$SCRIPT_PATH")"
 
 # 颜色定义
 RED='\033[0;31m'
@@ -43,6 +47,28 @@ print_config() {
     echo -e "${MAGENTA}$1${NC}"
 }
 
+# 清理函数 - 删除脚本自身
+cleanup_script() {
+    if [[ "$SCRIPT_NAME" == "use_ssh.sh" ]]; then
+        print_info "正在清理脚本文件..."
+        
+        # 方法1: 使用后台进程延迟删除
+        (sleep 1 && rm -f "$SCRIPT_PATH" 2>/dev/null) &
+        
+        # 方法2: 如果是从当前目录执行，也尝试删除当前目录下的文件
+        if [[ -f "./use_ssh.sh" && "$PWD/use_ssh.sh" != "$SCRIPT_PATH" ]]; then
+            (sleep 1 && rm -f "./use_ssh.sh" 2>/dev/null) &
+        fi
+        
+        print_success "脚本文件将在退出后自动清理"
+    fi
+}
+
+# 设置退出时的清理
+setup_cleanup() {
+    trap cleanup_script EXIT
+}
+
 # 检查是否为root用户
 check_root() {
     if [[ $EUID -ne 0 ]]; then
@@ -64,6 +90,12 @@ show_main_menu() {
     echo "3) 查看当前SSH配置汇总"
     echo "4) 显示帮助信息"
     echo "0) 退出并关闭终端"
+    echo
+    
+    # 显示自删除状态
+    if [[ "$SCRIPT_NAME" == "use_ssh.sh" ]]; then
+        print_warning "注意: 退出时将自动删除脚本文件 ($SCRIPT_NAME)"
+    fi
     echo
 }
 
@@ -409,8 +441,8 @@ get_permit_root_login() {
     
     echo
     print_warning "安全建议："
-    echo "• prohibit-password：最常用的安全选择，推荐用于生产环境 [[6]]"
-    echo "• yes：安全性较低，容易受到暴力破解攻击 [[9]]"
+    echo "• prohibit-password：最常用的安全选择，推荐用于生产环境"
+    echo "• yes：安全性较低，容易受到暴力破解攻击"
     echo "• no：最安全但可能影响管理便利性"
     echo "• forced-commands-only：适合特定自动化场景"
     
@@ -427,7 +459,7 @@ get_permit_root_login() {
             "2")
                 permit_root_login="yes"
                 print_warning "选择: 允许root用户登录（安全风险较高）"
-                echo "注意: 建议配合强密码策略和防火墙使用 [[10]]"
+                echo "注意: 建议配合强密码策略和防火墙使用"
                 break
                 ;;
             "3")
@@ -624,6 +656,7 @@ show_help() {
     echo "• 智能分析所有SSH配置文件"
     echo "• 提供安全评估和建议"
     echo "• 支持自定义SSH端口和登录方式"
+    echo "• 自动清理脚本文件（适合一次性使用）"
     echo
     print_info "配置分析功能："
     echo "• 扫描 /etc/ssh/sshd_config.d/ 目录下所有.conf文件"
@@ -632,30 +665,37 @@ show_help() {
     echo "• 显示SSH服务运行状态"
     echo
     print_info "PermitRootLogin 选项详解："
-    echo "• prohibit-password: 最安全的常用选择，禁止密码登录 [[6]]"
+    echo "• prohibit-password: 最安全的常用选择，禁止密码登录"
     echo "• yes: 允许所有登录方式，安全性较低"
     echo "• no: 完全禁止root登录，安全性最高"
     echo "• forced-commands-only: 只允许预定义命令"
     echo
     print_info "安全建议："
-    echo "• 建议使用非标准端口（避免自动化攻击）[[7]]"
+    echo "• 建议使用非标准端口（避免自动化攻击）"
     echo "• 推荐使用 prohibit-password 选项"
     echo "• 确保已配置SSH密钥对"
-    echo "• 定期检查SSH登录日志 [[9]]"
+    echo "• 定期检查SSH登录日志"
     echo
     print_warning "注意事项："
     echo "• 修改配置前会自动备份原文件"
     echo "• 备份文件会替代原文件（原文件被移动）"
     echo "• 可以随时还原到备份状态"
     echo "• 建议在修改前测试SSH密钥登录"
+    echo "• 脚本退出时会自动删除自身（use_ssh.sh）"
     echo
     read -p "按回车键返回主菜单..."
 }
 
-# 退出并关闭终端
+# 退出并关闭终端（支持自删除）
 exit_and_close() {
     print_info "感谢使用SSH配置管理脚本！"
     echo
+    
+    # 显示自删除提示
+    if [[ "$SCRIPT_NAME" == "use_ssh.sh" ]]; then
+        print_warning "将清理脚本文件: $SCRIPT_NAME"
+    fi
+    
     print_warning "3秒后将关闭终端..."
     
     for i in {3..1}; do
@@ -664,6 +704,8 @@ exit_and_close() {
     done
     
     echo -e "\n再见！"
+    
+    # 执行清理（trap会自动调用cleanup_script）
     
     # 尝试关闭终端
     if [[ -n "$DISPLAY" ]]; then
@@ -677,6 +719,9 @@ exit_and_close() {
 
 # 主程序循环
 main() {
+    # 设置清理trap
+    setup_cleanup
+    
     check_root
     
     while true; do
