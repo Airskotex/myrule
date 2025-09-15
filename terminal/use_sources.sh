@@ -7,6 +7,9 @@ YELLOW='\033[0;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # 无颜色
 
+# 获取脚本自身的路径
+SCRIPT_PATH="$0"
+
 # 检查是否以 root 权限运行
 if [ "$(id -u)" -ne 0 ]; then
     echo -e "${RED}错误: 此脚本需要 root 权限运行${NC}"
@@ -349,6 +352,18 @@ update_el_sources() {
     dnf makecache
 }
 
+# 删除脚本自身
+delete_self() {
+    echo -e "${YELLOW}正在删除脚本文件...${NC}"
+    # 使用 rm 命令删除脚本自身
+    rm -f "$SCRIPT_PATH"
+    if [ $? -eq 0 ]; then
+        echo -e "${GREEN}脚本文件已成功删除${NC}"
+    else
+        echo -e "${RED}脚本文件删除失败${NC}"
+    fi
+}
+
 # 主函数
 main() {
     check_system
@@ -372,12 +387,15 @@ main() {
             ;;
     esac
     
-    echo -e "${GREEN}源已成功更新，3秒后退出脚本...${NC}"
-    for i in {3..1}; do
+    echo -e "${GREEN}源已成功更新，5秒后退出脚本...${NC}"
+    for i in {5..1}; do
         echo -ne "${YELLOW}$i...${NC}"
         sleep 1
     done
     echo -e "\n${GREEN}再见!${NC}"
+    
+    # 退出前删除脚本自身
+    delete_self
 }
 
 main
