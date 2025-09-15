@@ -81,12 +81,12 @@ check_root() {
 # 检测系统发行版
 detect_system() {
     if [[ -f /etc/os-release ]]; then
-        . /etc/os-release
+        source /etc/os-release
         DISTRO="$ID"
         VERSION="$VERSION_ID"
         CODENAME="$VERSION_CODENAME"
     elif [[ -f /etc/lsb-release ]]; then
-        . /etc/lsb-release
+        source /etc/lsb-release
         DISTRO="$DISTRIB_ID"
         VERSION="$DISTRIB_RELEASE"
         CODENAME="$DISTRIB_CODENAME"
@@ -263,8 +263,8 @@ deb http://$MIRROR_URL/debian/ ${CODENAME}-updates main contrib non-free
 deb-src http://$MIRROR_URL/debian/ ${CODENAME}-updates main contrib non-free
 
 # 安全更新源
-deb http://$MIRROR_URL/debian-security $CODENAME/updates main contrib non-free
-deb-src http://$MIRROR_URL/debian-security $CODENAME/updates main contrib non-free"
+deb http://$MIRROR_URL/debian-security/ ${CODENAME}-security main contrib non-free
+deb-src http://$MIRROR_URL/debian-security/ ${CODENAME}-security main contrib non-free"
             ;;
         *)
             print_error "不支持的发行版: $DISTRO"
@@ -300,7 +300,8 @@ configure_mirror_sources() {
     
     # 生成新的源配置
     print_info "生成新的软件源配置..."
-    local new_sources=$(generate_ubuntu_sources)
+    local new_sources
+    new_sources=$(generate_ubuntu_sources)
     
     if [[ -z "$new_sources" ]]; then
         print_error "生成源配置失败"
@@ -341,7 +342,7 @@ restore_sources() {
     print_info "还原原始软件源"
     echo "========================================"
     
-    if [[ ! -f "$RESTORE_INFO_FILE" ]]; 键，然后
+    if [[ ! -f "$RESTORE_INFO_FILE" ]]; then
         print_error "没有找到备份信息文件，无法还原"
         echo "可能原因："
         echo "• 没有执行过镜像源配置操作"
@@ -393,7 +394,7 @@ restore_sources() {
         done
     fi
     
-    if [[ $restore_count -gt 0 ]]; then
+    if [[ $restore_count -gt 0 ]]; 键，然后
         print_success "已还原 $restore_count 个文件"
     else
         print_warning "没有找到需要还原的备份文件"
@@ -583,7 +584,7 @@ show_help() {
     print_info "支持的镜像源："
     echo "• 阿里云镜像 (mirrors.aliyun.com)"
     echo "• 清华大学镜像 (mirrors.tuna.tsinghua.edu.cn)"
-    echo "• 中科大镜像 (mirrors.ustc.edu.cn) [[1]]"
+    echo "• 中科大镜像 (mirrors.ustc.edu.cn)"
     echo "• 华为云镜像 (mirrors.huaweicloud.com)"
     echo "• 腾讯云镜像 (mirrors.cloud.tencent.com)"
     echo "• 网易163镜像 (mirrors.163.com)"
@@ -594,7 +595,7 @@ show_help() {
     echo
     print_info "使用建议："
     echo "• 建议选择地理位置较近的镜像源"
-    echo "• 配置前会自动备份原始配置 [[2]]"
+    echo "• 配置前会自动备份原始配置"
     echo "• 可以随时还原到原始状态"
     echo "• 建议配置后测试连通性"
     echo
