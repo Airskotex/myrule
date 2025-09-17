@@ -788,7 +788,7 @@ main() {
 
     final_system_check
 
-    log_step "========================================================"  
+    log_step "========================================================"
     log_step "所有操作已成功完成！"
     log_info "脚本将在退出时自动删除自身文件: $SCRIPT_NAME"
     log_warn "强烈建议重启系统以应用所有更改："
@@ -800,7 +800,7 @@ main() {
 
     echo
     read -p "是否立即重启系统? (强烈推荐) (y/n): " choice
-    case "$choice" in 
+    case "$choice" 在 
       y|Y ) 
         terminal_close_warning
         log_info "正在重启..."
