@@ -2,7 +2,7 @@
 
 # ================================================================
 # Zsh 环境自动配置脚本 v0.5
-# 支持：Debian/Ubuntu (apt)、RHEL/CentOS (yum/dnf)、macOS (brew)    
+# 支持：Debian/Ubuntu (apt)、RHEL/CentOS (yum/dnf)、macOS (brew)
 # ================================================================
 
 # 启用严格的错误处理
@@ -349,7 +349,7 @@ install_for_user() {
     fi
     
     # 创建用户安装脚本，正确传递变量
-    local temp_script="/tmp/zsh_install_${username}_$$.sh"  
+    local temp_script="/tmp/zsh_install_${username}_$$.sh"
     
     # 使用 printf 而不是 echo，并正确转义变量
     cat > "$temp_script" << USERSCRIPT
@@ -398,7 +398,7 @@ if [ ! -d "\$HOME/.oh-my-zsh" ]; then
     export RUNZSH=no
     export CHSH=no
     sh -c "\$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended || {
-        echo -e "\${RED}[ERROR]\${NC} Oh My Zsh 安装失败"  
+        echo -e "\${RED}[ERROR]\${NC} Oh My Zsh 安装失败"
         exit 1
     }
 else
@@ -446,7 +446,7 @@ if [ -f "\$HOME/.zshrc" ]; then
     ls -t "\$HOME"/.zshrc.backup.* 2>/dev/null | tail -n +2 | xargs -r rm -f -- || true
     
     # 创建新的时间戳备份
-    cp "\$HOME/.zshrc" "\$HOME/.zshrc.backup.\$(date +%Y%m%d_%H%M%S)"  
+    cp "\$HOME/.zshrc" "\$HOME/.zshrc.backup.\$(date +%Y%m%d_%H%M%S)"
 fi
 
 # 创建配置文件
@@ -483,16 +483,16 @@ source \$ZSH/oh-my-zsh.sh
 # === CUSTOM CONFIGURATION ===
 
 # Enable Powerlevel10k instant prompt
-if [[ -r "\${XDG_CACHE_HOME:-\$HOME/.cache}/p10k-instant-prompt-\${(%):-%n}.zsh" ]]; then  
+if [[ -r "\${XDG_CACHE_HOME:-\$HOME/.cache}/p10k-instant-prompt-\${(%):-%n}.zsh" ]]; then
   source "\${XDG_CACHE_HOME:-\$HOME/.cache}/p10k-instant-prompt-\${(%):-%n}.zsh"
 fi
 
 # fzf-tab configuration
-zstyle ':completion:*:git-checkout:*' sort false  
+zstyle ':completion:*:git-checkout:*' sort false
 zstyle ':completion:*:descriptions' format '[%d]'
 zstyle ':completion:*' list-colors \${(s.:.)LS_COLORS}
-zstyle ':fzf-tab:complete:cd:*' fzf-preview 'ls -1 --color=always \$realpath 2>/dev/null || echo "No preview"'  
-zstyle ':fzf-tab:complete:kill:argument-rest' fzf-preview 'ps aux | grep \$word'  
+zstyle ':fzf-tab:complete:cd:*' fzf-preview 'ls -1 --color=always \$realpath 2>/dev/null || echo "No preview"'
+zstyle ':fzf-tab:complete:kill:argument-rest' fzf-preview 'ps aux | grep \$word'
 
 # History configuration
 HISTFILE=~/.zsh_history
@@ -589,7 +589,7 @@ echo -e "\${GREEN}[INFO]\${NC} 安装 Nerd 字体..."
 fonts=(
     "https://github.com/romkatv/powerlevel10k-media/raw/master/MesloLGS%20NF%20Regular.ttf"
     "https://github.com/romkatv/powerlevel10k-media/raw/master/MesloLGS%20NF%20Bold.ttf"
-    "https://github.com/romkatv/powerlevel10k-media/raw/master/MesloLGS%20NF%20Italic.ttf"  
+    "https://github.com/romkatv/powerlevel10k-media/raw/master/MesloLGS%20NF%20Italic.ttf"
     "https://github.com/romkatv/powerlevel10k-media/raw/master/MesloLGS%20NF%20Bold%20Italic.ttf"
 )
 
@@ -691,7 +691,7 @@ show_banner() {
     echo -e "${PURPLE}"
     echo "╔══════════════════════════════════════════════╗"
     echo "║     Zsh 环境自动配置脚本 v$SCRIPT_VERSION                ║"
-    echo "║     Enhanced with Oh My Zsh & Powerlevel10k  ║"    
+    echo "║     Enhanced with Oh My Zsh & Powerlevel10k  ║"
     echo "╚══════════════════════════════════════════════╝"
     echo -e "${NC}"
 }
@@ -839,7 +839,7 @@ main() {
 
 # 处理命令行参数
 while [[ $# -gt 0 ]]; do
-    case $1 in
+    case $1 在
         --help|-h)
             echo "用法: $0 [选项]"
             echo ""
