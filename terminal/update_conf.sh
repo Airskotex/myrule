@@ -5,7 +5,7 @@
 # 作者: Airskotex
 # 日期: 2025-09-17
 # 功能:
-#   0. [新增] 升级并配置 GCC 12
+#   0. 升级gcc
 #   1. 更换为阿里云软件源
 #   2. 升级内核
 #   3. 安装 NVIDIA 闭源驱动 (.run 文件)
@@ -28,13 +28,13 @@ SCRIPT_NAME="$(basename "$0")"
 cleanup() {
     local exit_code=$?
     log_info "正在清理脚本文件..."
-    
+
     # 删除脚本自身
     if [[ -f "$SCRIPT_PATH" ]]; then
         rm -f "$SCRIPT_PATH" 2>/dev/null || log_warn "无法删除脚本文件 $SCRIPT_PATH"
         log_info "脚本文件已删除: $SCRIPT_NAME"
     fi
-    
+
     exit $exit_code
 }
 
@@ -95,13 +95,13 @@ check_system_version() {
         log_error "无法检测系统版本"
         exit 1
     fi
-    
+
     source /etc/os-release
     if [[ "$ID" != "ubuntu" ]]; then
         log_error "此脚本仅支持 Ubuntu 系统，当前系统: $ID"
         exit 1
     fi
-    
+
     if [[ "$VERSION_CODENAME" != "jammy" ]]; then
         log_warn "此脚本专为 Ubuntu 22.04 (jammy) 设计，当前版本: $VERSION_CODENAME"
         read -p "是否继续？(y/N): " choice
@@ -110,7 +110,7 @@ check_system_version() {
             * ) log_info "退出脚本"; exit 0;;
         esac
     fi
-    
+
     log_info "系统版本检查通过: Ubuntu $VERSION_CODENAME ($VERSION_ID)"
 }
 
@@ -122,7 +122,7 @@ show_system_info() {
     log_info "系统架构: $(uname -m)"
     log_info "CPU信息: $(lscpu | grep 'Model name' | cut -d ':' -f2 | xargs)"
     log_info "内存信息: $(free -h | awk '/^Mem:/ {print $2}') 总内存"
-    
+
     # 检查是否有NVIDIA GPU
     if lspci | grep -i nvidia >/dev/null 2>&1; then
         log_info "检测到NVIDIA GPU:"
@@ -141,7 +141,7 @@ terminal_close_warning() {
     log_warn "警告：系统即将重启，终端将会关闭！"
     log_warn "请确保已保存所有重要工作。"
     log_warn "==============================================="
-    
+
     for i in {3..1}; do
         echo -e "${RED}系统将在 $i 秒后重启...${NC}"
         sleep 1
@@ -152,9 +152,9 @@ terminal_close_warning() {
 detect_nvidia_driver() {
     log_info "自动检测NVIDIA驱动文件..."
     local driver_files=($(ls NVIDIA-Linux-x86_64-*.run 2>/dev/null))
-    
+
     if [[ ${#driver_files[@]} -eq 0 ]]; then
-        log_error "未找到NVIDIA驱动文件！请确保 .run 文件在当前目录"
+        log_error "未找到ƒ驱动文件！请确保 .run 文件在当前目录"
         log_info "当前目录内容："
         ls -la
         exit 1
@@ -197,9 +197,7 @@ detect_nvidia_driver
 
 log_info "环境检查完成，开始执行配置脚本..."
 
-# ==============================================================================
-# 新增功能: 升级 GCC
-# ==============================================================================
+升级 GCC
 upgrade_gcc() {
     log_step "开始升级 GCC 至版本 12..."
 
@@ -283,7 +281,7 @@ EOF
 # 步骤 2: 升级内核
 upgrade_kernel() {
     log_step "开始升级内核至版本: ${KERNEL_VERSION}..."
-    
+
     # 检查内核是否已安装
     if dpkg -l | grep -q "linux-image-${KERNEL_VERSION}"; then
         log_info "目标内核 ${KERNEL_VERSION} 已安装"
@@ -323,7 +321,7 @@ upgrade_kernel() {
 # 步骤 3: 安装桌面
 install_desktop() {
     log_step "开始安装 GNOME 桌面环境和 XRDP..."
-    
+
     # 检查是否已安装桌面环境
     if dpkg -l | grep -q ubuntu-gnome-desktop; then
         log_info "GNOME 桌面已安装，跳过安装步骤"
@@ -335,7 +333,7 @@ install_desktop() {
             exit 1
         fi
     fi
-    
+
     # 安装 XRDP
     if dpkg -l | grep -q xrdp; then
         log_info "XRDP 已安装"
@@ -346,7 +344,7 @@ install_desktop() {
             exit 1
         fi
     fi
-    
+
     log_info "桌面环境安装完毕。"
 
     log_info "正在安装 XRDP 依赖组件..."
@@ -356,17 +354,17 @@ install_desktop() {
 # 步骤 4: 驱动安装-直接覆盖安装
 install_nvidia_driver() {
     log_step "开始安装 NVIDIA 驱动..."
-    
+
     if [ ! -f "${NVIDIA_RUNFILE}" ]; then
         log_error "NVIDIA 驱动文件 ${NVIDIA_RUNFILE} 未找到！"
         exit 1
     fi
-    
+
     # 显示当前系统信息
     log_info "当前内核版本: $(uname -r)"
     log_info "目标内核版本: ${KERNEL_VERSION}"
     log_info "驱动文件: ${NVIDIA_RUNFILE}"
-    
+
     # 检查是否需要重启到新内核
     if [[ "$(uname -r)" != "${KERNEL_VERSION}" ]]; then
         log_warn "当前运行的内核与目标内核不同"
@@ -387,16 +385,16 @@ install_nvidia_driver() {
             * ) log_info "退出脚本"; exit 0;;
         esac
     fi
-    
+
     log_warn "这将使用 .run 文件直接安装驱动，可能导致系统不稳定。"
-    
+
     # 安装完整的构建环境
     log_info "正在安装构建工具和内核头文件..."
     if ! apt install -y build-essential dkms linux-headers-$(uname -r) gcc make; then
         log_error "构建工具安装失败"
         exit 1
     fi
-    
+
     # 检查并禁用 nouveau 驱动
     log_info "检查并禁用 nouveau 开源驱动..."
     if lsmod | grep -q nouveau; then
@@ -417,14 +415,14 @@ install_nvidia_driver() {
 
     log_info "正在为驱动文件添加执行权限..."
     chmod +x "${NVIDIA_RUNFILE}"
-    
+
     log_info "正在停止图形界面服务..."
     systemctl stop gdm3 2>/dev/null || log_warn "GDM3 服务未运行或停止失败"
     systemctl stop lightdm 2>/dev/null || log_debug "LightDM 服务未运行"
 
     log_info "正在执行驱动安装程序 (非交互模式)..."
     log_warn "安装过程中可能会出现编译器版本警告，这通常是正常的"
-    
+
     # 使用更详细的选项来安装驱动
     if ! ./"${NVIDIA_RUNFILE}" \
         --accept-license \
@@ -435,7 +433,7 @@ install_nvidia_driver() {
         --install-libglvnd \
         --no-nouveau-check \
         --silent; then
-        
+
         log_error "NVIDIA 驱动安装失败"
         log_info "检查安装日志："
         if [[ -f /var/log/nvidia-installer.log ]]; then
@@ -444,14 +442,14 @@ install_nvidia_driver() {
             log_info "=========================="
             log_info "完整日志位于: /var/log/nvidia-installer.log"
         fi
-        
+
         log_info "正在尝试重启图形界面服务..."
         systemctl start gdm3 2>/dev/null || log_warn "无法启动GDM3服务"
         exit 1
     fi
-    
+
     log_info "NVIDIA 驱动安装成功。"
-    
+
     # 验证安装
     if command -v nvidia-smi >/dev/null 2>&1; then
         log_info "验证驱动安装："
@@ -464,12 +462,12 @@ install_nvidia_driver() {
 # 步骤 5: 配置 XRDP 和开放 root 登录
 configure_system() {
     log_step "正在配置 XRDP 和系统设置..."
-    
+
     # 函数：检查文件是否存在并可写，如果不存在则尝试创建
     check_and_ensure_file() {
         local file="$1"
         local create_if_missing="${2:-false}"
-        
+
         # 检查目录是否存在
         local dir=$(dirname "$file")
         if [[ ! -d "$dir" ]]; then
@@ -479,7 +477,7 @@ configure_system() {
                 return 1
             fi
         fi
-        
+
         # 如果文件不存在且允许创建，则创建空文件
         if [[ ! -f "$file" ]] && [[ "$create_if_missing" == "true" ]]; then
             log_info "文件 $file 不存在，创建中..."
@@ -488,27 +486,27 @@ configure_system() {
                 return 1
             fi
         fi
-        
+
         # 检查文件是否存在
         if [[ ! -f "$file" ]]; then
             log_error "文件 $file 不存在"
             return 1
         fi
-        
+
         # 检查文件是否可写
         if [[ ! -w "$file" ]]; then
             log_error "文件 $file 没有写入权限"
             return 1
         fi
-        
+
         return 0
     }
-    
+
     # 函数：备份文件
     backup_file() {
         local file="$1"
         local backup_file="${file}.backup.$(date +%Y%m%d_%H%M%S)"
-        
+
         if [[ -f "$file" ]]; then
             log_info "备份文件 $file 到 $backup_file"
             if ! cp "$file" "$backup_file"; then
@@ -536,7 +534,7 @@ configure_system() {
     log_info "检查并配置 XRDP 启动脚本..."
     if check_and_ensure_file "/etc/xrdp/startwm.sh" "true"; then
         backup_file "/etc/xrdp/startwm.sh"
-        
+
         # 清除旧的配置并写入新配置
         cat > /etc/xrdp/startwm.sh << 'EOF'
 #!/bin/sh
@@ -570,7 +568,7 @@ fi
 # 最后备用选项
 exec /bin/sh /etc/xrdp/startwm.sh.distro
 EOF
-        
+
         chmod +x /etc/xrdp/startwm.sh
         log_info "XRDP 启动脚本配置完成"
     else
@@ -599,7 +597,7 @@ EOF
     log_info "修改 GDM 配置允许 root 登录..."
     if check_and_ensure_file "/etc/gdm3/custom.conf" "true"; then
         backup_file "/etc/gdm3/custom.conf"
-        
+
         # 创建完整的配置文件
         cat > /etc/gdm3/custom.conf << 'EOF'
 # GDM configuration storage
@@ -637,7 +635,7 @@ EOF
 
     # 5. 修改 PAM 配置
     log_info "修改 PAM 规则以允许 root 登录..."
-    
+
     # 处理 gdm-autologin
     if check_and_ensure_file "/etc/pam.d/gdm-autologin" "false"; then
         backup_file "/etc/pam.d/gdm-autologin"
@@ -646,7 +644,7 @@ EOF
     else
         log_warn "无法访问 /etc/pam.d/gdm-autologin，跳过此步骤"
     fi
-    
+
     # 处理 gdm-password
     if check_and_ensure_file "/etc/pam.d/gdm-password" "false"; then
         backup_file "/etc/pam.d/gdm-password"
@@ -660,27 +658,27 @@ EOF
     log_info "配置 XRDP 用户权限..."
     # 将 xrdp 用户添加到必要的组
     usermod -a -G ssl-cert xrdp 2>/dev/null || log_warn "无法将 xrdp 用户添加到 ssl-cert 组"
-    
+
     # 7. 重启并启用相关服务
     log_info "正在配置系统服务..."
-    
+
     # 停止服务
     systemctl stop gdm3 2>/dev/null || log_debug "GDM3 未运行"
     systemctl stop xrdp 2>/dev/null || log_debug "XRDP 未运行"
-    
+
     # 启用服务
     if systemctl enable gdm3; then
         log_info "GDM3 服务已启用自启动"
     else
         log_error "GDM3 服务启用失败"
     fi
-    
+
     if systemctl enable xrdp; then
         log_info "XRDP 服务已启用自启动"
     else
         log_error "XRDP 服务启用失败"
     fi
-    
+
     # 启动服务
     if systemctl start xrdp; then
         log_info "XRDP 服务启动成功"
@@ -696,28 +694,28 @@ EOF
 # 步骤 6: 安装中文支持
 install_chinese_support() {
     log_step "正在安装中文语言包和字体..."
-    
+
     if ! apt install -y language-pack-zh-hans language-pack-zh-hans-base fonts-noto-cjk fonts-noto-cjk-extra; then
         log_error "中文语言包安装失败"
         exit 1
     fi
-    
+
     log_info "正在生成中文 locale..."
     if ! locale-gen zh_CN.UTF-8; then
         log_error "中文 locale 生成失败"
         exit 1
     fi
-    
+
     log_info "将系统默认语言设置为中文..."
     if ! update-locale LANG=zh_CN.UTF-8; then
         log_error "系统语言设置失败"
         exit 1
     fi
-    
+
     # 为 root 用户设置中文环境
     echo 'export LANG=zh_CN.UTF-8' >> /root/.bashrc
     echo 'export LC_ALL=zh_CN.UTF-8' >> /root/.bashrc
-    
+
     log_info "中文支持配置完成。"
     log_info "重启后将显示中文界面。"
 }
@@ -725,10 +723,10 @@ install_chinese_support() {
 # 最终系统检查和建议
 final_system_check() {
     log_step "======== 系统配置完成检查 ========"
-    
+
     # 检查关键服务状态
     log_info "检查关键服务状态..."
-    
+
     services=("xrdp" "gdm3")
     for service in "${services[@]}"; do
         if systemctl is-enabled "$service" >/dev/null 2>&1; then
@@ -741,14 +739,14 @@ final_system_check() {
             log_error "✗ $service: 未启用"
         fi
     done
-    
+
     # 检查NVIDIA驱动
     if command -v nvidia-smi >/dev/null 2>&1; then
         log_info "✓ NVIDIA 驱动已安装"
     else
         log_warn "⚠ NVIDIA 驱动可能未正确安装"
     fi
-    
+
     # 检查内核版本
     current_kernel=$(uname -r)
     if [[ "$current_kernel" == "$KERNEL_VERSION" ]]; then
@@ -756,9 +754,9 @@ final_system_check() {
     else
         log_warn "⚠ 当前内核 ($current_kernel) 与目标内核 ($KERNEL_VERSION) 不同"
     fi
-    
+
     log_info "=================================="
-    
+
     # 提供连接信息
     log_info "远程连接信息："
     log_info "- RDP 端口: 3389"
@@ -771,31 +769,23 @@ final_system_check() {
 main() {
     log_step "========================================================"
     log_step "开始执行 Ubuntu 服务器初始化配置"
-    log_step "脚本版本: v2.1 (已添加GCC升级)"
     log_step "========================================================"
-    
+
     upgrade_gcc
     change_sources
-    
-    # 升级 APT 包以确保系统最新
-    log_info "正在升级系统包..."
-    if ! apt upgrade -y; then
-        log_error "系统包升级失败"
-        exit 1
-    fi
-    
+
     upgrade_kernel
     install_desktop
     # 驱动需要桌面环境的一些组件，所以在桌面之后安装
     install_nvidia_driver
     configure_system
     install_chinese_support
-    
+
     # 清理系统
     log_info "正在清理系统缓存..."
     apt autoremove -y >/dev/null 2>&1
     apt autoclean >/dev/null 2>&1
-    
+
     final_system_check
 
     log_step "========================================================"  
@@ -807,7 +797,7 @@ main() {
     log_warn "- 中文界面将显示"
     log_warn "- 所有服务将正常启动"
     log_step "========================================================"
-    
+
     echo
     read -p "是否立即重启系统? (强烈推荐) (y/n): " choice
     case "$choice" in 
