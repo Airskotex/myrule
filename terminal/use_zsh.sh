@@ -483,7 +483,7 @@ source \$ZSH/oh-my-zsh.sh
 # === CUSTOM CONFIGURATION ===
 
 # Enable Powerlevel10k instant prompt
-if [[ -r "\${XDG_CACHE_HOME:-\$HOME/.cache}/p10k-instant-prompt-\${(%):-%n}.zsh" ]]; then
+if [[ -r "\${XDG_CACHE_HOME:-\$HOME/.cache}/p10k-instant-prompt-\${(%):-%n}.zsh" ]]; then  
   source "\${XDG_CACHE_HOME:-\$HOME/.cache}/p10k-instant-prompt-\${(%):-%n}.zsh"
 fi
 
@@ -491,10 +491,8 @@ fi
 zstyle ':completion:*:git-checkout:*' sort false  
 zstyle ':completion:*:descriptions' format '[%d]'
 zstyle ':completion:*' list-colors \${(s.:.)LS_COLORS}
-# 设置 fzf-tab 的预览窗口编码
-zstyle ':fzf-tab:*' fzf-preview 'echo $LANG'
-zstyle ':fzf-tab:complete:cd:*' fzf-preview 'ls -1 --color=always \$realpath 2>/dev/null || echo "No preview"'
-zstyle ':fzf-tab:complete:kill:argument-rest' fzf-preview 'ps aux | grep \$word'
+zstyle ':fzf-tab:complete:cd:*' fzf-preview 'ls -1 --color=always \$realpath 2>/dev/null || echo "No preview"'  
+zstyle ':fzf-tab:complete:kill:argument-rest' fzf-preview 'ps aux | grep \$word'  
 
 # History configuration
 HISTFILE=~/.zsh_history
