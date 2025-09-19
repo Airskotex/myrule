@@ -721,10 +721,11 @@
 			exit 1
 		fi
 		
-		# 为 root 用户设置中文环境
-		echo 'export LANG=zh_CN.UTF-8' >> /root/.bashrc
+		# 为 root 用户设置中文环境，先匹配删除再追加避免重复
+		sed -i '/^export LANG=zh_CN.UTF-8$/d' /root/.bashrc
+		cho 'export LANG=zh_CN.UTF-8' >> /root/.bashrc
+		sed -i '/^export LC_ALL=zh_CN.UTF-8$/d' /root/.bashrc
 		echo 'export LC_ALL=zh_CN.UTF-8' >> /root/.bashrc
-		
 		log_info "中文支持配置完成。"
 		log_info "重启后将显示中文界面。"
 	}
@@ -770,7 +771,6 @@
 		log_info "远程连接信息："
 		log_info "- RDP 端口: 3389"
 		log_info "- 用户名: root"
-		log_info "- 密码: [您的 root 密码]"
 		log_warn "安全提醒: 生产环境中不建议启用 root 远程登录"
 	}
 
@@ -778,7 +778,6 @@
 	main() {
 		log_step "========================================================"
 		log_step "开始执行 Ubuntu 服务器初始化配置"
-		log_step "脚本版本: v2.1 (已添加GCC升级)"
 		log_step "========================================================"
 		
 		upgrade_gcc
