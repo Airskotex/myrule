@@ -297,7 +297,7 @@
 				add-apt-repository ppa:canonical-kernel-team/ppa -y
 				if ! apt update; then
 					log_error "更新软件源失败"
-					exit 1
+					exit 1  
 				fi
 			fi
 
@@ -723,7 +723,7 @@
 		
 		# 为 root 用户设置中文环境，先匹配删除再追加避免重复
 		sed -i '/^export LANG=zh_CN.UTF-8$/d' /root/.bashrc
-		cho 'export LANG=zh_CN.UTF-8' >> /root/.bashrc
+		echo 'export LANG=zh_CN.UTF-8' >> /root/.bashrc    
 		sed -i '/^export LC_ALL=zh_CN.UTF-8$/d' /root/.bashrc
 		echo 'export LC_ALL=zh_CN.UTF-8' >> /root/.bashrc
 		log_info "中文支持配置完成。"
@@ -738,7 +738,7 @@
 		log_info "检查关键服务状态..."
 		
 		services=("xrdp" "gdm3")
-		for service in "${services[@]}"; do
+		for service in "${services[@]}"; do  
 			if systemctl is-enabled "$service" >/dev/null 2>&1; then
 				if systemctl is-active "$service" >/dev/null 2>&1; then
 					log_info "✓ $service: 已启用并运行中"
