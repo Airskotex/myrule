@@ -839,7 +839,7 @@ main() {
 
 # 处理命令行参数
 while [[ $# -gt 0 ]]; do
-    case $1 在
+    case $1 in
         --help|-h)
             echo "用法: $0 [选项]"
             echo ""
