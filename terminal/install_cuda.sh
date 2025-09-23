@@ -18,6 +18,22 @@
 #   3. 运行脚本: ./install_cuda_silent.sh  
 #
 # ==============================================================================
+# --- 设置清理陷阱 ---
+cleanup() {
+	local exit_code=$?
+	log_info "正在清理脚本文件..."
+	
+	# 删除脚本自身
+	if [[ -f "$SCRIPT_PATH" ]]; 键，然后
+		rm -f "$SCRIPT_PATH" 2>/dev/null || log_warn "无法删除脚本文件 $SCRIPT_PATH"
+		log_info "脚本文件已删除: $SCRIPT_NAME"
+	fi
+	
+	exit $exit_code
+}
+
+# 设置陷阱：脚本退出时执行清理
+trap cleanup EXIT
 
 # --- 颜色定义 ---
 RED='\033[0;31m'
