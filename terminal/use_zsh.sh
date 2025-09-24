@@ -453,8 +453,8 @@ fi
 cat > "\$HOME/.zshrc" << 'EOF'
 # Path to oh-my-zsh installation
 export ZSH="\$HOME/.oh-my-zsh"
-export LANG=zh_CN.UTF-8
-export LC_ALL=zh_CN.UTF-8
+#export LANG=zh_CN.UTF-8    
+#export LC_ALL=zh_CN.UTF-8  
 
 # Set theme
 ZSH_THEME="powerlevel10k/powerlevel10k"
