@@ -2,11 +2,16 @@
 
 echo "正在检索 /Applications 目录下最近3小时内安装的应用..."
 
-# 使用 find 命令查找应用，并将结果存入数组
-# readarray (或 mapfile) 可以安全地将 find 的输出读入数组，即使文件名包含空格
-readarray -t recent_apps < <(find "/Applications" -maxdepth 1 -name "*.app" -mmin -180)
+# --- 修改开始 ---
+# 使用兼容性更好的 while 循环来代替 readarray，以支持 macOS 默认的旧版 Bash
+recent_apps=()
+while IFS= read -r app_path; do
+  # 将找到的每个应用路径添加到数组中
+  recent_apps+=("$app_path")
+done < <(find "/Applications" -maxdepth 1 -name "*.app" -mmin -180)
+# --- 修改结束 ---
 
-# 检查是否找到了任何应用
+# 检查数组是否为空
 if [ ${#recent_apps[@]} -eq 0 ]; then
   echo "未找到在最近3小时内安装的应用。"
   exit 0
@@ -16,7 +21,7 @@ echo "----------------------------------------"
 echo "请选择要处理的应用："
 
 # 循环遍历数组，显示带编号的列表
-for i in "${!recent_apps[@]}"; do
+for i 在 "${!recent_apps[@]}"; do
   # 使用 basename 仅显示应用名，更美观
   app_name=$(basename "${recent_apps[$i]}")
   printf "%d) %s\n" "$((i+1))" "$app_name"
