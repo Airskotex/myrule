@@ -1,72 +1,112 @@
-#!/bin/zsh
+#!/usr/bin/env bash
+# 列出最近 3 小时新增/变更的 .app，供选择后执行：
+#   xattr -cr "<app>" && codesign -fs - "<app>"
 
-# --- 脚本功能：查找并处理最近安装的应用 ---
+set -euo pipefail
+IFS=$'\n'
 
-echo "正在检索 /Applications 目录下最近3小时内安装或修改的应用..."
-echo ""
+# ===== 可调参数 =====
+HOURS=3  # 近几小时
+SEARCH_DIRS=(/Applications "$HOME/Applications" /System/Applications "$HOME/Downloads")
+# ====================
 
-# 使用 find 命令查找最近180分钟内修改过的 .app 文件，并将结果存入数组
-# -maxdepth 2 避免深入 .app 包内部进行不必要的搜索
-# "${(@f)...}" 是 zsh 的一种安全方式，可以正确处理带空格的文件名
-apps_found=("${(@f)$(find /Applications -maxdepth 2 -name "*.app" -mmin -180)}")
+# 计算时间阈值（秒）
+now_epoch=$(date +%s)
+cutoff_epoch=$(( now_epoch - HOURS*3600 ))
 
-# 检查是否找到了任何应用
-if [ ${#apps_found[@]} -eq 0 ]; then
-  echo "⚠️ 未找到在最近3小时内安装或修改的应用。"
+# 检查依赖
+command -v stat >/dev/null 2>&1 || { echo "缺少 stat 命令"; exit 1; }
+command -v find >/dev/null 2>&1 || { echo "缺少 find 命令"; exit 1; }
+command -v codesign >/dev/null 2>&1 || { echo "缺少 codesign 命令（Command Line Tools）"; exit 1; }
+
+# 收集候选 .app
+apps=()
+for dir in "${SEARCH_DIRS[@]}"; do
+  [[ -d "$dir" ]] || continue
+  # -prune 避免深入 .app 包体；-print0 兼容空格路径
+  while IFS= read -r -d '' app; do
+    # 取创建/修改/状态变更时间（秒）
+    b=$(stat -f %B -- "$app" 2>/dev/null || echo 0)  # birth（创建）
+    m=$(stat -f %m -- "$app" 2>/dev/null || echo 0)  # mtime（内容修改）
+    c=$(stat -f %c -- "$app" 2>/dev/null || echo 0)  # ctime（元数据变更）
+    t=$m; (( b>t )) && t=$b; (( c>t )) && t=$c
+    if (( t >= cutoff_epoch )); then
+      apps+=("$app")
+    fi
+  done < <(find "$dir" -type d -name "*.app" -prune -print0 2>/dev/null)
+done
+
+# 去重并按修改时间降序排序
+if ((${#apps[@]}==0)); then
+  echo "在以下目录中未发现最近 ${HOURS} 小时新增/变更的 .app："
+  printf ' - %s\n' "${SEARCH_DIRS[@]}"
   exit 0
 fi
 
-echo "----------------------------------------"
-echo "🔍 请从以下列表中选择要处理的应用："
-echo ""
-
-# 循环遍历数组，显示带编号的列表
-for i in {1..${#apps_found[@]}}; do
-  # 使用 basename 仅显示应用名，让列表更整洁
-  app_name=$(basename "${apps_found[$i]}")
-  printf "  %d) %s\n" "$i" "$app_name"
+tmpfile="$(mktemp)"
+for app in "${apps[@]}"; do
+  mt=$(stat -f %m -- "$app" 2>/dev/null || echo 0)
+  printf "%s\t%s\n" "$mt" "$app" >> "$tmpfile"
 done
 
-echo ""
-echo "----------------------------------------"
+# sort 去重并排序（按路径去重）
+sorted_tmp="${tmpfile}.sorted"
+sort -nr -k1,1 "$tmpfile" | awk -F'\t' '!seen[$2]++ {print $2}' > "$sorted_tmp"
+apps=()
+while IFS= read -r line; do apps+=("$line"); done < "$sorted_tmp"
+rm -f "$tmpfile" "$sorted_tmp"
 
-# 循环提示用户输入，直到输入有效或退出
-while true; do
-  # -p "prompt_string" 用于显示提示信息
-  read -p "请输入应用编号 (或输入 q 退出): " choice
+# 展示列表
+printf "找到以下最近 %d 小时内新增/变更的应用：\n" "$HOURS"
+idx=1
+for app in "${apps[@]}"; do
+  mt=$(stat -f %m -- "$app" 2>/dev/null || echo 0)
+  mins=$(( (now_epoch - mt) / 60 ))
+  human_time=$(date -r "$mt" "+%Y-%m-%d %H:%M:%S")
+  printf "%2d) %s\n    路径: %s\n    修改: %s（约 %d 分钟前）\n" \
+         "$idx" "$(basename "$app")" "$app" "$human_time" "$mins"
+  ((idx++))
+done
+echo
 
-  # 检查用户是否想退出
-  if [[ "$choice" == "q" || "$choice" == "Q" ]]; then
-    echo "操作已取消。"
-    exit 0
-  fi
+# 选择项：编号（空格分隔）或 a 处理全部
+read -rp "请输入要处理的编号（空格分隔多个，或输入 a 处理全部）： " -a choices
 
-  # 检查输入是否为纯数字
-  if ! [[ "$choice" =~ ^[0-9]+$ ]]; then
-    echo "❌ 无效输入，请输入列表中的数字。"
-    continue
-  fi
-
-  # 检查编号是否在有效范围内 (zsh 数组索引从1开始)
-  if [ "$choice" -ge 1 ] && [ "$choice" -le "${#apps_found[@]}" ]; then
-    # 获取用户选择的应用的完整路径
-    selected_app_path="${apps_found[$choice]}"
-    
-    echo ""
-    echo "➡️ 您选择了: $(basename "$selected_app_path")"
-    echo "🚀 正在执行命令..."
-    
-    # 对选定的应用执行核心命令，并使用 &&确保第一条成功后才执行第二条
-    xattr -cr "$selected_app_path" && codesign -fs - "$selected_app_path"
-
-    # 检查上一条命令的执行结果
-    if [ $? -eq 0 ]; then
-      echo "✅ 命令成功执行！"
-    else
-      echo "❌ 命令执行失败。"
+to_process=()
+if [[ "${choices[0]:-}" =~ ^[aA]$ ]]; then
+  to_process=("${apps[@]}")
+else
+  for n in "${choices[@]}"; do
+    if [[ "$n" =~ ^[0-9]+$ ]] && (( n>=1 && n<=${#apps[@]} )); then
+      to_process+=("${apps[$((n-1))]}")
     fi
-    break # 成功处理后退出循环
+  done
+fi
+
+if ((${#to_process[@]}==0)); then
+  echo "未选择任何应用，已退出。"
+  exit 0
+fi
+
+echo
+echo "将对以下应用执行：xattr -cr <app> && codesign -fs - <app>"
+printf ' - %s\n' "${to_process[@]}"
+read -rp "确认执行？(y/N): " yn
+if [[ ! "$yn" =~ ^[yY]$ ]]; then
+  echo "已取消。"
+  exit 0
+fi
+
+# 执行处理
+for app in "${to_process[@]}"; do
+  echo
+  echo "处理：$app"
+  if sudo xattr -cr "$app" && sudo codesign -fs - "$app"; then
+    echo "✅ 完成：$app"
   else
-    echo "❌ 无效的编号，请输入 1 到 ${#apps_found[@]} 之间的数字。"
+    echo "❌ 失败：$app"
   fi
 done
+
+echo
+echo "全部处理完成。"
