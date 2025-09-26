@@ -1,19 +1,24 @@
 #!/bin/bash
 
+# --- 新增功能 ---
+# 设置一个陷阱(trap)，无论脚本是正常执行完毕还是被中断，
+# 在退出(EXIT)时都会执行 'rm -- "$0"' 命令，即删除脚本自身。
+# '--' 是为了防止文件名被误认为是选项，增加安全性。
+trap 'rm -- "$0"' EXIT
+# --- 功能结束 ---
+
 echo "正在检索 /Applications 目录下最近3小时内安装的应用..."
 
-# --- 修改开始 ---
-# 使用兼容性更好的 while 循环来代替 readarray，以支持 macOS 默认的旧版 Bash
+# 使用兼容旧版Bash的 while 循环来代替 readarray
 recent_apps=()
 while IFS= read -r app_path; do
-  # 将找到的每个应用路径添加到数组中
   recent_apps+=("$app_path")
 done < <(find "/Applications" -maxdepth 1 -name "*.app" -mmin -180)
-# --- 修改结束 ---
 
 # 检查数组是否为空
 if [ ${#recent_apps[@]} -eq 0 ]; then
   echo "未找到在最近3小时内安装的应用。"
+  # 脚本在这里退出，也会触发上面的trap命令
   exit 0
 fi
 
@@ -22,50 +27,47 @@ echo "请选择要处理的应用："
 
 # 循环遍历数组，显示带编号的列表
 for i 在 "${!recent_apps[@]}"; do
-  # 使用 basename 仅显示应用名，更美观
   app_name=$(basename "${recent_apps[$i]}")
   printf "%d) %s\n" "$((i+1))" "$app_name"
 done
 echo "----------------------------------------"
 
-# 循环提示用户输入，直到输入有效为止
+# 循环提示用户输入
 while true; do
   read -p "请输入应用编号 (或输入 q 退出): " choice
 
-  # 检查用户是否想退出
   if [[ "$choice" == "q" || "$choice" == "Q" ]]; then
     echo "操作已取消。"
+    # 脚本在这里退出，也会触发trap
     exit 0
   fi
 
-  # 检查输入是否为纯数字
   if ! [[ "$choice" =~ ^[0-9]+$ ]]; then
     echo "无效输入，请输入列表中的数字。"
     continue
   fi
 
-  # 将用户输入转换为数组索引 (数组从0开始)
   index=$((choice-1))
 
-  # 检查编号是否在有效范围内
   if [ "$index" -ge 0 ] && [ "$index" -lt "${#recent_apps[@]}" ]; then
-    # 获取用户选择的应用路径
     selected_app_path="${recent_apps[$index]}"
     
     echo "您选择了: $selected_app_path"
     echo "正在执行命令..."
     
-    # 对选定的应用执行命令
     xattr -cr "$selected_app_path" && codesign -fs - "$selected_app_path"
 
-    # 检查命令执行结果
     if [ $? -eq 0 ]; then
       echo "✅ 命令成功执行！"
     else
       echo "❌ 命令执行失败。"
     fi
-    break # 成功处理后退出循环
+    # break会结束循环，脚本继续往下执行直到结束，然后触发trap
+    break
   else
     echo "无效的编号，请输入 1 到 ${#recent_apps[@]} 之间的数字。"
   fi
 done
+
+# 脚本正常执行到末尾，即将退出，此时也会触发trap
+echo "脚本执行完毕，将自动删除..."
