@@ -24,7 +24,7 @@ cleanup() {
 	log_info "正在清理脚本文件..."
 	
 	# 删除脚本自身
-	if [[ -f "$SCRIPT_PATH" ]]; 键，然后
+	if [[ -f "$SCRIPT_PATH" ]]; then
 		rm -f "$SCRIPT_PATH" 2>/dev/null || log_warn "无法删除脚本文件 $SCRIPT_PATH"
 		log_info "脚本文件已删除: $SCRIPT_NAME"
 	fi
