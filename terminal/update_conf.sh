@@ -270,7 +270,7 @@
 
 	deb https://mirrors.aliyun.com/ubuntu/ jammy-backports main restricted universe multiverse
 	deb-src https://mirrors.aliyun.com/ubuntu/ jammy-backports main restricted universe multiverse
-	EOF
+EOF    
 
 		log_info "软件源更换完毕，正在执行 apt update..."
 		if ! apt update; then
