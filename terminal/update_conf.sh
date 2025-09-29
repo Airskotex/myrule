@@ -576,7 +576,7 @@ EOF   
 
 	# 最后备用选项
 	exec /bin/sh /etc/xrdp/startwm.sh.distro
-	EOF
+EOF
 			
 			chmod +x /etc/xrdp/startwm.sh
 			log_info "XRDP 启动脚本配置完成"
@@ -593,7 +593,7 @@ EOF   
 	export XDG_SESSION_TYPE=x11
 	export GDK_BACKEND=x11
 	exec gnome-session --session=ubuntu
-	EOF
+EOF
 			chmod +x /root/.xsession
 			log_info ".xsession 文件创建完成"
 		else
@@ -636,7 +636,7 @@ EOF   
 	# More verbose logs
 	# Additionally lets the X server dump core if it crashes
 	#Enable=true
-	EOF
+EOF
 			log_info "GDM 配置文件更新完成"
 		else
 			log_error "无法访问 /etc/gdm3/custom.conf，跳过此步骤"
