@@ -540,42 +540,34 @@ EOF   
 			# 清除旧的配置并写入新配置
 			cat > /etc/xrdp/startwm.sh << 'EOF'
 	#!/bin/sh
-	# xrdp X session start script (c) 2015, 2017, 2021 mirabilos
-	# published under The MirOS Licence
-
-	# Rely on /etc/pam.d/xrdp-sesman using pam_env to load both
-	# /etc/environment and /etc/default/locale to initialise the
-	# locale and the user environment properly.
+	# 先加载环境配置
 	if test -r /etc/profile; then
-			. /etc/profile
+    	. /etc/profile
 	fi
-	#启动 dbus
-	export $(dbus-launch)
-	test -x /etc/X11/Xsession && exec /etc/X11/Xsession
-	exec /bin/sh /etc/X11/Xsession
-	
+
 	if [ -r /etc/default/locale ]; then
-	  . /etc/default/locale
-	  export LANG LANGUAGE LC_ALL LC_COLLATE LC_CTYPE LC_MESSAGES 
-	  export LC_MONETARY LC_NUMERIC LC_TIME
+    	. /etc/default/locale
+    	export LANG LANGUAGE LC_ALL LC_COLLATE LC_CTYPE LC_MESSAGES 
+    	export LC_MONETARY LC_NUMERIC LC_TIME
 	fi
 
 	# 解决XRDP环境变量问题
 	unset DBUS_SESSION_BUS_ADDRESS
 	unset XDG_RUNTIME_DIR
 
-	# 启动GNOME会话
+	# 启动 dbus
+	export $(dbus-launch)
+
+	# 尝试启动桌面会话
 	if [ -x /usr/bin/gnome-session ]; then
-		exec /usr/bin/gnome-session
+    	exec /usr/bin/gnome-session
+	elif [ -x /usr/bin/startxfce4 ]; then
+    	exec /usr/bin/startxfce4
+	elif test -x /etc/X11/Xsession; then
+    	exec /etc/X11/Xsession
+	else
+    	exec /bin/sh /etc/X11/Xsession
 	fi
-
-	# 备用启动选项
-	if [ -x /usr/bin/startxfce4 ]; then
-		exec /usr/bin/startxfce4
-	fi
-
-	# 最后备用选项
-	exec /bin/sh /etc/xrdp/startwm.sh.distro
 EOF
 			
 			chmod +x /etc/xrdp/startwm.sh
