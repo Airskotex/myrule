@@ -241,8 +241,8 @@ Acquire::CompressionTypes::Order:: "gz";
 Acquire::http::Pipeline-Depth "5";
 APT::Acquire::Retries "3";
 EOF
-	fi
 
+	fi
 	# 添加便捷别名到用户配置
 	if ! grep -q "alias apt='apt-fast'" ~/.bashrc; then
     	echo -e "${GREEN}添加 apt-fast 别名到 ~/.bashrc...${NC}"  
