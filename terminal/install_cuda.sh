@@ -18,6 +18,26 @@
 #   3. 运行脚本: ./install_cuda_silent.sh  
 #
 # ==============================================================================
+# --- 辅助函数 ---
+log_info() {
+	echo -e "${GREEN}[INFO] $1${NC}"
+}
+
+log_warn() {
+	echo -e "${YELLOW}[WARN] $1${NC}"
+}
+
+log_error() {
+	echo -e "${RED}[ERROR] $1${NC}"
+}
+
+log_debug() {
+	echo -e "${BLUE}[DEBUG] $1${NC}"
+}
+
+log_step() {
+	echo -e "${CYAN}[STEP] $1${NC}"
+}
 # --- 设置清理陷阱 ---
 cleanup() {
 	local exit_code=$?
