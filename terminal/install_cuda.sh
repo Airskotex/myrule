@@ -98,8 +98,28 @@ echo
 echo -e "${YELLOW}--- 正在从 NVIDIA 官网获取可用的 CUDA 版本列表... ---${NC}"
 CUDA_ARCHIVE_URL="https://developer.nvidia.com/cuda-toolkit-archive"
 # mapfile -t CUDA_VERSIONS < <(wget -qO- ${CUDA_ARCHIVE_URL} | grep -Eo "cuda_[0-9]+\.[0-9]+\.[0-9]+_[0-9]+\.[0-9]+\.[0-9]+_linux.run" | sort -rV | uniq)  
-mapfile -t CUDA_VERSIONS < <(wget -qO- ${CUDA_ARCHIVE_URL} | grep -oE "CUDA Toolkit [0-9]+\.[0-9]+(\.[0-9]+)?" | sed 's/CUDA Toolkit //' | sed 's/\([0-9]\+\.[0-9]\+\)\(\.[0-9]\+\)\?/cuda_\1\2_linux.run/' | sort -rV | uniq)
-if [ ${#CUDA_VERSIONS[@]} -eq 0 ]; then
+# 获取包含驱动版本的完整CUDA文件名数组
+mapfile -t CUDA_VERSIONS < <(
+    # 1. 获取所有CUDA版本
+    wget -qO- https://developer.nvidia.com/cuda-toolkit-archive | \  
+    grep -oE "CUDA Toolkit [0-9]+\.[0-9]+(\.[0-9]+)?" | \
+    sed 's/CUDA Toolkit //' | \
+    sort -rV | uniq | \
+    while read version; do
+        # 2. 对每个版本获取驱动版本
+        driver_version=$(wget -qO- "https://docs.nvidia.com/cuda/archive/${version}/cuda-toolkit-release-notes/index.html" 2>/dev/null | \
+            grep -A2 "NVIDIA Linux Driver" | \
+            grep -oE "[0-9]+\.[0-9]+\.[0-9]+" | head -1)
+        
+        # 3. 构建完整文件名
+        if [[ -n "$driver_version" ]]; then
+            echo "cuda_${version}_${driver_version}_linux.run"
+        else
+            echo "cuda_${version}_linux.run"
+        fi
+    done
+)
+if [ ${#CUDA_VERSIONS[@]} -eq 0 ]; then  
     echo -e "${RED}错误: 无法从 NVIDIA 官网获取 CUDA 版本列表。${NC}"
     exit 1
 fi
