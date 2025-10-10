@@ -226,6 +226,7 @@ COLOR=auto
 
 ${EXTRA_CONFIG}
 EOF
+
 	# 创建下载目录
 	sudo mkdir -p /var/cache/apt/apt-fast
 	sudo chmod 755 /var/cache/apt/apt-fast
@@ -233,7 +234,7 @@ EOF
 	# 为 Ubuntu 24.04 添加额外的 APT 优化
 	if [ "$UBUNTU_VERSION" = "24.04" ]; then
     	echo -e "${GREEN}为 Ubuntu 24.04 应用额外的 APT 优化...${NC}"
-    	sudo tee /etc/apt/apt.conf.d/99-apt-fast-optimizations > /dev/null << 'EOF'  
+    	sudo tee /etc/apt/apt.conf.d/99-apt-fast-optimizations > /dev/null << 'EOF'
 # APT 优化设置 (Ubuntu 24.04)
 Acquire::Languages "none";
 Acquire::GzipIndexes "true";
@@ -246,7 +247,7 @@ EOF
 	# 添加便捷别名到用户配置
 	if ! grep -q "alias apt='apt-fast'" ~/.bashrc; then
     	echo -e "${GREEN}添加 apt-fast 别名到 ~/.bashrc...${NC}"  
-    	cat >> ~/.bashrc << 'EOF'        
+    	cat >> ~/.bashrc << 'EOF'
 
 # apt-fast 别名 - 加速包管理
 alias apt='apt-fast'
@@ -256,7 +257,7 @@ EOF
 	fi
 
 	# 创建系统级别的别名配置（对所有用户生效）
-	sudo tee /etc/profile.d/apt-fast.sh > /dev/null << 'EOF'  
+	sudo tee /etc/profile.d/apt-fast.sh > /dev/null << 'EOF'
 # apt-fast 系统级别别名
 alias apt='apt-fast'
 alias apt-get='apt-fast'
