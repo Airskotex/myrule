@@ -67,7 +67,7 @@ set -e # 如果任何命令失败，则立即退出
 
 echo -e "${BLUE}=====================================================${NC}"
 echo -e "${BLUE}    NVIDIA CUDA Toolkit 全自动静默安装脚本         ${NC}"
-echo -e "${BLUE}=====================================================${NC}"
+echo -e "${BLUE}=====================================================${NC}"  
 echo
 
 # --- 1. 依赖与权限检查 ---
@@ -101,7 +101,7 @@ CUDA_ARCHIVE_URL="https://developer.nvidia.com/cuda-toolkit-archive"
 # 获取包含驱动版本的完整CUDA文件名数组
 mapfile -t CUDA_VERSIONS < <(
     # 1. 获取所有CUDA版本
-    wget -qO- https://developer.nvidia.com/cuda-toolkit-archive | \  
+    wget -qO- https://developer.nvidia.com/cuda-toolkit-archive | \
     grep -oE "CUDA Toolkit [0-9]+\.[0-9]+(\.[0-9]+)?" | \
     sed 's/CUDA Toolkit //' | \
     sort -rV | uniq | \
@@ -119,7 +119,7 @@ mapfile -t CUDA_VERSIONS < <(
         fi
     done
 )
-if [ ${#CUDA_VERSIONS[@]} -eq 0 ]; then  
+if [ ${#CUDA_VERSIONS[@]} -eq 0 ]; then    
     echo -e "${RED}错误: 无法从 NVIDIA 官网获取 CUDA 版本列表。${NC}"
     exit 1
 fi
