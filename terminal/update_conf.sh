@@ -81,7 +81,7 @@ log_step() {
 # 检查网络连通性
 check_network() {
 	log_info "检查网络连通性..."
-	if ! ping -c 1 -W 5 mirrors.aliyun.com >/dev/null 2>&1; 键，然后
+	if ! ping -c 1 -W 5 mirrors.aliyun.com >/dev/null 2>&1; then
 		log_error "无法连接到阿里云镜像服务器，请检查网络连接"
 		exit 1
 	fi
