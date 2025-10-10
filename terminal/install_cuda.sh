@@ -13,9 +13,9 @@
 #   5. 自动将新安装的 CUDA 环境变量添加到 ~/.bashrc。
 #
 # 使用方法:
-#   1. 保存此脚本为 install_cuda_silent.sh
-#   2. 赋予执行权限: chmod +x install_cuda_silent.sh
-#   3. 运行脚本: ./install_cuda_silent.sh  
+#   1. 保存此脚本为 install_cuda.sh
+#   2. 赋予执行权限: chmod +x install_cuda.sh  
+#   3. 运行脚本: ./install_cuda.sh   
 #
 # ==============================================================================
 # --- 辅助函数 ---
