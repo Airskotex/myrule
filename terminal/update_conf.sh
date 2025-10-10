@@ -98,7 +98,7 @@ check_system_version() {
 	
 	source /etc/os-release
     UBUNTU_CODENAME="${VERSION_CODENAME}"
-    UBUNTU_VERSION="${VERSION_ID}"
+    UBUNTU_VERSION="${VERSION_ID}"  
     SYSTEM_ARCH="$(uname -m)"
     
     log_info "检测到系统信息："
@@ -142,11 +142,11 @@ use_apt_fast(){
         	EXTRA_CONFIG=""
         	;;
     	"22.04")    
-        	echo -e "${GREEN}配置 Ubuntu 22.04 LTS (Jammy Jellyfish) 专用设置${NC}"
+        	echo -e "${GREEN}配置 Ubuntu 22.04 LTS (Jammy Jellyfish) 专用设置${NC}"  
         	MAX_CONNECTIONS=20    
         	MAX_PER_SERVER=10
         	MIRROR_LIST='http://archive.ubuntu.com/ubuntu,http://us.archive.ubuntu.com/ubuntu,http://uk.archive.ubuntu.com/ubuntu,http://de.archive.ubuntu.com/ubuntu,http://fr.archive.ubuntu.com/ubuntu,http://jp.archive.ubuntu.com/ubuntu,http://sg.archive.ubuntu.com/ubuntu,http://au.archive.ubuntu.com/ubuntu,http://ca.archive.ubuntu.com/ubuntu,http://mirrors.digitalocean.com/ubuntu'
-        	APT_MANAGER="apt-get"
+        	APT_MANAGER="apt-get"  
         	EXTRA_CONFIG="# 启用 Ubuntu 22.04 的并行下载特性
 	APT_FAST_NO_PARALLEL=0"    
         	;;
@@ -154,7 +154,7 @@ use_apt_fast(){
         	echo -e "${GREEN}配置 Ubuntu 24.04 LTS (Noble Numbat) 专用设置${NC}"
         	MAX_CONNECTIONS=24
         	MAX_PER_SERVER=12
-        	MIRROR_LIST='http://archive.ubuntu.com/ubuntu,http://us.archive.ubuntu.com/ubuntu,http://uk.archive.ubuntu.com/ubuntu,http://de.archive.ubuntu.com/ubuntu,http://fr.archive.ubuntu.com/ubuntu,http://jp.archive.ubuntu.com/ubuntu,http://sg.archive.ubuntu.com/ubuntu,http://au.archive.ubuntu.com/ubuntu,http://ca.archive.ubuntu.com/ubuntu,http://mirrors.digitalocean.com/ubuntu,http://mirror.hetzner.com/ubuntu/packages,http://azure.archive.ubuntu.com/ubuntu'
+        	MIRROR_LIST='http://archive.ubuntu.com/ubuntu,http://us.archive.ubuntu.com/ubuntu,http://uk.archive.ubuntu.com/ubuntu,http://de.archive.ubuntu.com/ubuntu,http://fr.archive.ubuntu.com/ubuntu,http://jp.archive.ubuntu.com/ubuntu,http://sg.archive.ubuntu.com/ubuntu,http://au.archive.ubuntu.com/ubuntu,http://ca.archive.ubuntu.com/ubuntu,http://mirrors.digitalocean.com/ubuntu,http://mirror.hetzner.com/ubuntu/packages,http://azure.archive.ubuntu.com/ubuntu'  
         	APT_MANAGER="apt"
         	EXTRA_CONFIG="# 启用 Ubuntu 24.04 的增强特性
 	APT_FAST_NO_PARALLEL=0
@@ -166,7 +166,7 @@ use_apt_fast(){
         	echo -e "${YELLOW}此脚本仅支持 Ubuntu 20.04, 22.04 和 24.04 LTS${NC}"
         	exit 1
         	;;
-	esac    
+	esac
 
 	# 检查是否已安装 apt-fast
 	if ! command -v apt-fast &> /dev/null; then
@@ -192,7 +192,7 @@ use_apt_fast(){
 _APTMGR=${APT_MANAGER}
 
 # 跳过确认对话框
-DOWNLOADBEFORE=true
+DOWNLOADBEFORE=true  
 
 # 最大连接数
 _MAXNUM=${MAX_CONNECTIONS}
