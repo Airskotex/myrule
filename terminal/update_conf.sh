@@ -181,7 +181,7 @@ use_apt_fast(){
 	echo -e "${GREEN}正在优化 apt-fast 配置...${NC}"
 
 	# 创建自定义配置文件
-	sudo tee /etc/apt-fast.conf > /dev/null << EOF
+	sudo tee /etc/apt-fast.conf > /dev/null << 'EOF'
 ###################################################################
 # apt-fast 配置文件
 # Ubuntu ${UBUNTU_VERSION} LTS (${UBUNTU_CODENAME})  
@@ -412,7 +412,7 @@ change_sources() {
 	cp /etc/apt/sources.list /etc/apt/sources.list.bak_$(date +%F_%H%M%S)
 
 	log_info "正在写入新的阿里云 sources.list..."
-	cat > /etc/apt/sources.list << EOF
+	cat > /etc/apt/sources.list << 'EOF'
 deb https://mirrors.aliyun.com/ubuntu/ ${UBUNTU_CODENAME} main restricted universe multiverse
 deb-src https://mirrors.aliyun.com/ubuntu/ ${UBUNTU_CODENAME} main restricted universe multiverse
 
