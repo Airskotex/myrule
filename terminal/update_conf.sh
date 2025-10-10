@@ -181,7 +181,7 @@ use_apt_fast(){
 	echo -e "${GREEN}正在优化 apt-fast 配置...${NC}"
 
 	# 创建自定义配置文件
-	sudo tee /etc/apt-fast.conf > /dev/null << 'EOF'
+	sudo tee /etc/apt-fast.conf > /dev/null << EOF
 ###################################################################
 # apt-fast 配置文件
 # Ubuntu ${UBUNTU_VERSION} LTS (${UBUNTU_CODENAME})  
@@ -234,7 +234,7 @@ EOF
 	# 为 Ubuntu 24.04 添加额外的 APT 优化
 	if [ "$UBUNTU_VERSION" = "24.04" ]; then
     	echo -e "${GREEN}为 Ubuntu 24.04 应用额外的 APT 优化...${NC}"
-    	sudo tee /etc/apt/apt.conf.d/99-apt-fast-optimizations > /dev/null << 'EOF'
+    	sudo tee /etc/apt/apt.conf.d/99-apt-fast-optimizations > /dev/null << EOF
 # APT 优化设置 (Ubuntu 24.04)
 Acquire::Languages "none";
 Acquire::GzipIndexes "true";
@@ -247,7 +247,7 @@ EOF
 	# 添加便捷别名到用户配置
 	if ! grep -q "alias apt='apt-fast'" ~/.bashrc; then
     	echo -e "${GREEN}添加 apt-fast 别名到 ~/.bashrc...${NC}"  
-    	cat >> ~/.bashrc << 'EOF'
+    	cat >> ~/.bashrc << EOF
 
 # apt-fast 别名 - 加速包管理
 alias apt='apt-fast'
@@ -257,7 +257,7 @@ EOF
 	fi
 
 	# 创建系统级别的别名配置（对所有用户生效）
-	sudo tee /etc/profile.d/apt-fast.sh > /dev/null << 'EOF'
+	sudo tee /etc/profile.d/apt-fast.sh > /dev/null << EOF
 # apt-fast 系统级别别名
 alias apt='apt-fast'
 alias apt-get='apt-fast'
@@ -413,7 +413,7 @@ change_sources() {
 	cp /etc/apt/sources.list /etc/apt/sources.list.bak_$(date +%F_%H%M%S)
 
 	log_info "正在写入新的阿里云 sources.list..."
-	cat > /etc/apt/sources.list << 'EOF'
+	cat > /etc/apt/sources.list << EOF
 deb https://mirrors.aliyun.com/ubuntu/ ${UBUNTU_CODENAME} main restricted universe multiverse
 deb-src https://mirrors.aliyun.com/ubuntu/ ${UBUNTU_CODENAME} main restricted universe multiverse
 
@@ -722,7 +722,7 @@ configure_system() {
 	log_info "检查并配置 XRDP 启动脚本..."
 	if check_and_ensure_file "/etc/xrdp/startwm.sh" "true"; then
 		backup_file "/etc/xrdp/startwm.sh"
-		cat > /etc/xrdp/startwm.sh << 'EOF'
+		cat > /etc/xrdp/startwm.sh << EOF
 #!/bin/sh
 if test -r /etc/profile; then . /etc/profile; fi
 if [ -r /etc/default/locale ]; then
@@ -748,7 +748,7 @@ EOF
 	log_info "为 root 用户创建 .xsession 文件..."
 	if check_and_ensure_file "/root/.xsession" "true"; then
 		backup_file "/root/.xsession"
-		cat > /root/.xsession << 'EOF'
+		cat > /root/.xsession << EOF
 #!/bin/bash
 export XDG_SESSION_TYPE=x11
 export GDK_BACKEND=x11
@@ -766,7 +766,7 @@ EOF
 	log_info "修改 GDM 配置允许 root 登录..."
 	if check_and_ensure_file "/etc/gdm3/custom.conf" "true"; then
 		backup_file "/etc/gdm3/custom.conf"
-		cat > /etc/gdm3/custom.conf << 'EOF'
+		cat > /etc/gdm3/custom.conf << EOF
 # GDM configuration storage  
 [daemon]
 #WaylandEnable=false
