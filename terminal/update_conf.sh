@@ -226,7 +226,6 @@ COLOR=auto
 
 ${EXTRA_CONFIG}
 EOF
-
 	# 创建下载目录
 	sudo mkdir -p /var/cache/apt/apt-fast
 	sudo chmod 755 /var/cache/apt/apt-fast
@@ -242,7 +241,6 @@ Acquire::CompressionTypes::Order:: "gz";
 Acquire::http::Pipeline-Depth "5";
 APT::Acquire::Retries "3";
 EOF
-
 	fi
 
 	# 添加便捷别名到用户配置
@@ -255,7 +253,6 @@ alias apt='apt-fast'
 alias apt-get='apt-fast'
 alias aptitude='apt-fast'
 EOF
-
 	fi
 
 	# 创建系统级别的别名配置（对所有用户生效）
