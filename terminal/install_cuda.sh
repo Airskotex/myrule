@@ -44,7 +44,7 @@ cleanup() {
 	log_info "正在清理脚本文件..."
 	
 	# 删除脚本自身
-	if [[ -f "$SCRIPT_PATH" ]]; then
+	if [[ -f "$SCRIPT_PATH" ]]; then  
 		rm -f "$SCRIPT_PATH" 2>/dev/null || log_warn "无法删除脚本文件 $SCRIPT_PATH"
 		log_info "脚本文件已删除: $SCRIPT_NAME"
 	fi
@@ -67,15 +67,15 @@ set -e # 如果任何命令失败，则立即退出
 
 echo -e "${BLUE}=====================================================${NC}"
 echo -e "${BLUE}    NVIDIA CUDA Toolkit 全自动静默安装脚本         ${NC}"
-echo -e "${BLUE}=====================================================${NC}"  
+echo -e "${BLUE}=====================================================${NC}"
 echo
 
 # --- 1. 依赖与权限检查 ---
 if ! command -v wget &> /dev/null; then
     echo -e "${RED}错误: 'wget' 未安装。请先安装 wget。${NC}"
-    exit 1  
+    exit 1  
 fi
-#if [[ $EUID -eq 0 ]]; then      
+#if [[ $EUID -eq 0 ]]; then    
 #   echo -e "${RED}错误：请不要使用 root 用户或 'sudo' 来运行此脚本。${NC}"
 #   echo "脚本会在需要时自动请求 sudo 密码。"
 #   exit 1
@@ -97,7 +97,7 @@ echo
 # --- 3. 获取所有可用的CUDA版本 ---
 echo -e "${YELLOW}--- 正在从 NVIDIA 官网获取可用的 CUDA 版本列表... ---${NC}"
 CUDA_ARCHIVE_URL="https://developer.nvidia.com/cuda-toolkit-archive"
-# mapfile -t CUDA_VERSIONS < <(wget -qO- ${CUDA_ARCHIVE_URL} | grep -Eo "cuda_[0-9]+\.[0-9]+\.[0-9]+_[0-9]+\.[0-9]+\.[0-9]+_linux.run" | sort -rV | uniq)    
+#mapfile -t CUDA_VERSIONS < <(wget -qO- ${CUDA_ARCHIVE_URL} | grep -oE "CUDA Toolkit [0-9]+\.[0-9]+(\.[0-9]+)?" | sed 's/CUDA Toolkit //' | sed 's/\([0-9]\+\.[0-9]\+\)\(\.[0-9]\+\)\?/cuda_\1\2_linux.run/' | sort -rV | uniq
 # 获取包含驱动版本的完整CUDA文件名数组
 mapfile -t CUDA_VERSIONS < <(
     # 1. 获取所有CUDA版本
@@ -112,14 +112,13 @@ mapfile -t CUDA_VERSIONS < <(
             grep -oE "[0-9]+\.[0-9]+\.[0-9]+" | head -1)
         
         # 3. 构建完整文件名
-        if [[ -n "$driver_version" ]]; then  
+        if [[ -n "$driver_version" ]]; then
             echo "cuda_${version}_${driver_version}_linux.run"
         else
             echo "cuda_${version}_linux.run"
         fi
     done
 )
-
 if [ ${#CUDA_VERSIONS[@]} -eq 0 ]; then
     echo -e "${RED}错误: 无法从 NVIDIA 官网获取 CUDA 版本列表。${NC}"
     exit 1
