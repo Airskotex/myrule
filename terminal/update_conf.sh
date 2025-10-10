@@ -81,7 +81,7 @@ log_step() {
 # 检查网络连通性
 check_network() {
 	log_info "检查网络连通性..."
-	if ! ping -c 1 -W 5 mirrors.aliyun.com >/dev/null 2>&1; then
+	if ! ping -c 1 -W 5 mirrors.aliyun.com >/dev/null 2>&1; then  
 		log_error "无法连接到阿里云镜像服务器，请检查网络连接"
 		exit 1
 	fi
@@ -120,6 +120,148 @@ check_system_version() {
     fi
 	
 	log_info "系统版本检查通过: Ubuntu $VERSION_CODENAME ($VERSION_ID)"
+}
+# apt-fast 自动安装和配置
+use_apt_fast(){
+	# 检测 Ubuntu 版本
+	echo -e "${GREEN}正在检测系统版本...${NC}"
+	UBUNTU_VERSION=$(lsb_release -r | grep -oP '\d+\.\d+')        
+	UBUNTU_CODENAME=$(lsb_release -c | cut -f2)    
+
+	# 显示检测到的版本
+	echo -e "${GREEN}检测到系统版本: Ubuntu ${UBUNTU_VERSION} (${UBUNTU_CODENAME})${NC}"    
+
+	# 根据版本设置参数
+	case "$UBUNTU_VERSION" in  
+    	"20.04")  
+        	echo -e "${GREEN}配置 Ubuntu 20.04 LTS (Focal Fossa) 专用设置${NC}"  
+        	MAX_CONNECTIONS=16  
+        	MAX_PER_SERVER=10  
+        	MIRROR_LIST='http://archive.ubuntu.com/ubuntu,http://us.archive.ubuntu.com/ubuntu,http://uk.archive.ubuntu.com/ubuntu,http://de.archive.ubuntu.com/ubuntu,http://fr.archive.ubuntu.com/ubuntu,http://jp.archive.ubuntu.com/ubuntu,http://in.archive.ubuntu.com/ubuntu,http://br.archive.ubuntu.com/ubuntu'    
+        	APT_MANAGER="apt-get"    
+        	EXTRA_CONFIG=""
+        	;;
+    	"22.04")  
+        	echo -e "${GREEN}配置 Ubuntu 22.04 LTS (Jammy Jellyfish) 专用设置${NC}"  
+        	MAX_CONNECTIONS=20  
+        	MAX_PER_SERVER=10  
+        	MIRROR_LIST='http://archive.ubuntu.com/ubuntu,http://us.archive.ubuntu.com/ubuntu,http://uk.archive.ubuntu.com/ubuntu,http://de.archive.ubuntu.com/ubuntu,http://fr.archive.ubuntu.com/ubuntu,http://jp.archive.ubuntu.com/ubuntu,http://sg.archive.ubuntu.com/ubuntu,http://au.archive.ubuntu.com/ubuntu,http://ca.archive.ubuntu.com/ubuntu,http://mirrors.digitalocean.com/ubuntu'        
+        	APT_MANAGER="apt-get"  
+        	EXTRA_CONFIG="# 启用 Ubuntu 22.04 的并行下载特性
+	APT_FAST_NO_PARALLEL=0"  
+        	;;
+    	"24.04")  
+        	echo -e "${GREEN}配置 Ubuntu 24.04 LTS (Noble Numbat) 专用设置${NC}"  
+        	MAX_CONNECTIONS=24  
+        	MAX_PER_SERVER=12
+        	MIRROR_LIST='http://archive.ubuntu.com/ubuntu,http://us.archive.ubuntu.com/ubuntu,http://uk.archive.ubuntu.com/ubuntu,http://de.archive.ubuntu.com/ubuntu,http://fr.archive.ubuntu.com/ubuntu,http://jp.archive.ubuntu.com/ubuntu,http://sg.archive.ubuntu.com/ubuntu,http://au.archive.ubuntu.com/ubuntu,http://ca.archive.ubuntu.com/ubuntu,http://mirrors.digitalocean.com/ubuntu,http://mirror.hetzner.com/ubuntu/packages,http://azure.archive.ubuntu.com/ubuntu'    
+        	APT_MANAGER="apt"  
+        	EXTRA_CONFIG="# 启用 Ubuntu 24.04 的增强特性
+	APT_FAST_NO_PARALLEL=0  
+	APT_FAST_TIMEOUT=300  
+	APT_FAST_COMPRESSION=true"  
+        	;;
+    	*)
+        	echo -e "${RED}错误: 不支持的 Ubuntu 版本 ${UBUNTU_VERSION}${NC}"
+        	echo -e "${YELLOW}此脚本仅支持 Ubuntu 20.04, 22.04 和 24.04 LTS${NC}"  
+        	exit 1  
+        	;;
+	esac    
+
+	# 检查是否已安装 apt-fast
+	if ! command -v apt-fast &> /dev/null; then  
+    	echo -e "${YELLOW}apt-fast 未安装，正在安装...${NC}"  
+    	sudo add-apt-repository -y ppa:apt-fast/stable  
+    	sudo apt-get update    
+    	sudo DEBIAN_FRONTEND=noninteractive apt-get install -y apt-fast  
+	else
+    	echo -e "${GREEN}apt-fast 已安装${NC}"  
+	fi
+
+	echo -e "${GREEN}正在优化 apt-fast 配置...${NC}"  
+
+	# 创建自定义配置文件
+	sudo tee /etc/apt-fast.conf > /dev/null << EOF
+###################################################################
+# apt-fast 配置文件
+# Ubuntu ${UBUNTU_VERSION} LTS (${UBUNTU_CODENAME})
+# 生成时间: $(date)
+###################################################################
+
+# 使用的包管理器
+_APTMGR=${APT_MANAGER}
+
+# 跳过确认对话框
+DOWNLOADBEFORE=true
+
+# 最大连接数
+_MAXNUM=${MAX_CONNECTIONS}
+
+# 每个服务器的最大连接数
+_MAXCONPERSRV=${MAX_PER_SERVER}
+
+# 下载管理器 (aria2c - 推荐的高性能选项)
+_DOWNLOADER='aria2c --no-conf -c -j \${_MAXNUM} -x \${_MAXCONPERSRV} -s \${_MAXCONPERSRV} -k 1M --min-split-size=1M --file-allocation=none --console-log-level=warn --summary-interval=0'
+
+# 备用下载管理器 (axel)
+#_DOWNLOADER='axel -n \${_MAXNUM} -a -o \${DLDIR}'
+
+# 备用下载管理器 (wget)
+#_DOWNLOADER='wget -cN -P \${DLDIR}'  
+
+# 下载目录
+DLDIR=/var/cache/apt/apt-fast
+
+# APT 缓存目录
+APTCACHE=/var/cache/apt/archives  
+
+# 中止时清理部分下载
+DLLIST_CLEAN=true
+
+# Ubuntu ${UBUNTU_VERSION} 镜像列表（全球优化）
+MIRRORS=( '${MIRROR_LIST}' )  
+
+# 彩色输出
+COLOR=auto
+
+${EXTRA_CONFIG}
+EOF
+
+	# 创建下载目录
+	sudo mkdir -p /var/cache/apt/apt-fast  
+	sudo chmod 755 /var/cache/apt/apt-fast    
+
+	# 为 Ubuntu 24.04 添加额外的 APT 优化
+	if [ "$UBUNTU_VERSION" = "24.04" ]; then  
+    	echo -e "${GREEN}为 Ubuntu 24.04 应用额外的 APT 优化...${NC}"
+    	sudo tee /etc/apt/apt.conf.d/99-apt-fast-optimizations > /dev/null << 'EOF'  
+# APT 优化设置 (Ubuntu 24.04)
+Acquire::Languages "none";  
+Acquire::GzipIndexes "true";
+Acquire::CompressionTypes::Order:: "gz";
+Acquire::http::Pipeline-Depth "5";  
+APT::Acquire::Retries "3";
+EOF
+	fi
+
+	# 添加便捷别名到用户配置
+	if ! grep -q "alias apt='apt-fast'" ~/.bashrc; then  
+    	echo -e "${GREEN}添加 apt-fast 别名到 ~/.bashrc...${NC}"  
+    	cat >> ~/.bashrc << 'EOF'    
+
+# apt-fast 别名 - 加速包管理
+alias apt='apt-fast'
+alias apt-get='apt-fast'
+alias aptitude='apt-fast'
+EOF
+	fi
+
+	# 创建系统级别的别名配置（对所有用户生效）
+	sudo tee /etc/profile.d/apt-fast.sh > /dev/null << 'EOF'    
+# apt-fast 系统级别别名
+alias apt='apt-fast'
+alias apt-get='apt-fast'
+EOF  
 }
 
 # 检查和显示系统信息
