@@ -73,13 +73,13 @@ echo
 # --- 1. 依赖与权限检查 ---
 if ! command -v wget &> /dev/null; then
     echo -e "${RED}错误: 'wget' 未安装。请先安装 wget。${NC}"
-    exit 1
+    exit 1  
 fi
-if [[ $EUID -eq 0 ]]; then
-   echo -e "${RED}错误：请不要使用 root 用户或 'sudo' 来运行此脚本。${NC}"
-   echo "脚本会在需要时自动请求 sudo 密码。"
-   exit 1
-fi
+#if [[ $EUID -eq 0 ]]; then    
+#   echo -e "${RED}错误：请不要使用 root 用户或 'sudo' 来运行此脚本。${NC}"
+#   echo "脚本会在需要时自动请求 sudo 密码。"
+#   exit 1
+#fi
 
 # --- 2. 判断系统版本 ---
 echo -e "${YELLOW}--- 正在检测系统信息 ---${NC}"
