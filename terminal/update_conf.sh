@@ -246,8 +246,8 @@ EOF
 
 	# 添加便捷别名到用户配置
 	if ! grep -q "alias apt='apt-fast'" ~/.bashrc; then
-    	echo -e "${GREEN}添加 apt-fast 别名到 ~/.bashrc...${NC}"
-    	cat >> ~/.bashrc << 'EOF'      
+    	echo -e "${GREEN}添加 apt-fast 别名到 ~/.bashrc...${NC}"  
+    	cat >> ~/.bashrc << 'EOF'        
 
 # apt-fast 别名 - 加速包管理
 alias apt='apt-fast'
@@ -257,11 +257,12 @@ EOF
 	fi
 
 	# 创建系统级别的别名配置（对所有用户生效）
-	sudo tee /etc/profile.d/apt-fast.sh > /dev/null << 'EOF'
+	sudo tee /etc/profile.d/apt-fast.sh > /dev/null << 'EOF'  
 # apt-fast 系统级别别名
 alias apt='apt-fast'
 alias apt-get='apt-fast'
 EOF
+
 }
 
 # 检查和显示系统信息
