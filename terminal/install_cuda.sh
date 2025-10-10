@@ -98,8 +98,7 @@ echo
 echo -e "${YELLOW}--- 正在从 NVIDIA 官网获取可用的 CUDA 版本列表... ---${NC}"
 CUDA_ARCHIVE_URL="https://developer.nvidia.com/cuda-toolkit-archive"
 # mapfile -t CUDA_VERSIONS < <(wget -qO- ${CUDA_ARCHIVE_URL} | grep -Eo "cuda_[0-9]+\.[0-9]+\.[0-9]+_[0-9]+\.[0-9]+\.[0-9]+_linux.run" | sort -rV | uniq)  
-mapfile -t CUDA_VERSIONS < <(wget -qO- ${CUDA_ARCHIVE_URL} | grep -oE "CUDA Toolkit [0-9]+\.[0-9]+(\.[0-9]+)?" | sed 's/CUDA Toolkit //' | sed 's/\([0-9]\+\.[0-9]\+\)\(\.[0-9]\+\)\?/cuda_\1\2_linux.run/' | sort -rV | uniq)                
-
+mapfile -t CUDA_VERSIONS < <(wget -qO- ${CUDA_ARCHIVE_URL} | grep -oE "CUDA Toolkit [0-9]+\.[0-9]+(\.[0-9]+)?" | sed 's/CUDA Toolkit //' | sed 's/\([0-9]\+\.[0-9]\+\)\(\.[0-9]\+\)\?/cuda_\1\2_linux.run/' | sort -rV | uniq)
 if [ ${#CUDA_VERSIONS[@]} -eq 0 ]; then
     echo -e "${RED}错误: 无法从 NVIDIA 官网获取 CUDA 版本列表。${NC}"
     exit 1
