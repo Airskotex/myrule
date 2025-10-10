@@ -30,7 +30,7 @@ cleanup() {
 	log_info "正在清理脚本文件..."
 	
 	# 删除脚本自身
-	if [[ -f "$SCRIPT_PATH" ]]; then
+	if [[ -f "$SCRIPT_PATH" ]]; 键，然后
 		rm -f "$SCRIPT_PATH" 2>/dev/null || log_warn "无法删除脚本文件 $SCRIPT_PATH"
 		log_info "脚本文件已删除: $SCRIPT_NAME"
 	fi
@@ -81,7 +81,7 @@ log_step() {
 # 检查网络连通性
 check_network() {
 	log_info "检查网络连通性..."
-	if ! ping -c 1 -W 5 mirrors.aliyun.com >/dev/null 2>&1; then
+	if ! ping -c 1 -W 5 mirrors.aliyun.com >/dev/null 2>&1; 键，然后
 		log_error "无法连接到阿里云镜像服务器，请检查网络连接"
 		exit 1
 	fi
@@ -129,7 +129,7 @@ use_apt_fast(){
 	UBUNTU_CODENAME=$(lsb_release -c | cut -f2)    
 
 	# 显示检测到的版本
-	echo -e "${GREEN}检测到系统版本: Ubuntu ${UBUNTU_VERSION} (${UBUNTU_CODENAME})${NC}"      
+	echo -e "${GREEN}检测到系统版本: Ubuntu ${UBUNTU_VERSION} (${UBUNTU_CODENAME})${NC}"        
 
 	# 根据版本设置参数
 	case "$UBUNTU_VERSION" in
@@ -219,7 +219,7 @@ APTCACHE=/var/cache/apt/archives 
 DLLIST_CLEAN=true
 
 # Ubuntu ${UBUNTU_VERSION} 镜像列表（全球优化）
-MIRRORS=( '${MIRROR_LIST}' )  
+MIRRORS=( '${MIRROR_LIST}' )    
 
 # 彩色输出
 COLOR=auto
@@ -242,6 +242,7 @@ Acquire::CompressionTypes::Order:: "gz";
 Acquire::http::Pipeline-Depth "5";
 APT::Acquire::Retries "3";
 EOF
+
 	fi
 
 	# 添加便捷别名到用户配置
@@ -254,6 +255,7 @@ alias apt='apt-fast'
 alias apt-get='apt-fast'
 alias aptitude='apt-fast'
 EOF
+
 	fi
 
 	# 创建系统级别的别名配置（对所有用户生效）
@@ -736,8 +738,9 @@ export $(dbus-launch)
 if [ -x /usr/bin/gnome-session ]; then exec /usr/bin/gnome-session;
 elif [ -x /usr/bin/startxfce4 ]; then exec /usr/bin/startxfce4;
 elif test -x /etc/X11/Xsession; then exec /etc/X11/Xsession;
-else exec /bin/sh /etc/X11/Xsession; fi
+else exec /bin/sh /etc/X11/Xsession; fi  
 EOF
+
 		chmod +x /etc/xrdp/startwm.sh
 		log_info "XRDP 启动脚本配置完成"
 	else
@@ -753,7 +756,8 @@ export XDG_SESSION_TYPE=x11
 export GDK_BACKEND=x11
 exec gnome-session --session=ubuntu
 EOF
-		chmod +x /root/.xsession
+
+		chmod +x /root/.xsession  
 		log_info ".xsession 文件创建完成"
 	else
 		log_error "无法创建 /root/.xsession，跳过此步骤"
@@ -765,7 +769,7 @@ EOF
 	if check_and_ensure_file "/etc/gdm3/custom.conf" "true"; then
 		backup_file "/etc/gdm3/custom.conf"
 		cat > /etc/gdm3/custom.conf << 'EOF'
-# GDM configuration storage
+# GDM configuration storage  
 [daemon]
 #WaylandEnable=false
 AllowRoot=true
@@ -775,6 +779,7 @@ AllowRoot=true
 [debug]
 #Enable=true
 EOF
+
 		log_info "GDM 配置文件更新完成"
 	else
 		log_error "无法访问 /etc/gdm3/custom.conf，跳过此步骤"
