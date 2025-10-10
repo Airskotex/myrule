@@ -129,62 +129,62 @@ use_apt_fast(){
 	UBUNTU_CODENAME=$(lsb_release -c | cut -f2)    
 
 	# 显示检测到的版本
-	echo -e "${GREEN}检测到系统版本: Ubuntu ${UBUNTU_VERSION} (${UBUNTU_CODENAME})${NC}"    
+	echo -e "${GREEN}检测到系统版本: Ubuntu ${UBUNTU_VERSION} (${UBUNTU_CODENAME})${NC}"      
 
 	# 根据版本设置参数
-	case "$UBUNTU_VERSION" in  
-    	"20.04")  
-        	echo -e "${GREEN}配置 Ubuntu 20.04 LTS (Focal Fossa) 专用设置${NC}"  
-        	MAX_CONNECTIONS=16  
-        	MAX_PER_SERVER=10  
-        	MIRROR_LIST='http://archive.ubuntu.com/ubuntu,http://us.archive.ubuntu.com/ubuntu,http://uk.archive.ubuntu.com/ubuntu,http://de.archive.ubuntu.com/ubuntu,http://fr.archive.ubuntu.com/ubuntu,http://jp.archive.ubuntu.com/ubuntu,http://in.archive.ubuntu.com/ubuntu,http://br.archive.ubuntu.com/ubuntu'    
-        	APT_MANAGER="apt-get"    
+	case "$UBUNTU_VERSION" in
+    	"20.04")
+        	echo -e "${GREEN}配置 Ubuntu 20.04 LTS (Focal Fossa) 专用设置${NC}"
+        	MAX_CONNECTIONS=16
+        	MAX_PER_SERVER=10
+        	MIRROR_LIST='http://archive.ubuntu.com/ubuntu,http://us.archive.ubuntu.com/ubuntu,http://uk.archive.ubuntu.com/ubuntu,http://de.archive.ubuntu.com/ubuntu,http://fr.archive.ubuntu.com/ubuntu,http://jp.archive.ubuntu.com/ubuntu,http://in.archive.ubuntu.com/ubuntu,http://br.archive.ubuntu.com/ubuntu'
+        	APT_MANAGER="apt-get"
         	EXTRA_CONFIG=""
         	;;
-    	"22.04")  
-        	echo -e "${GREEN}配置 Ubuntu 22.04 LTS (Jammy Jellyfish) 专用设置${NC}"  
-        	MAX_CONNECTIONS=20  
-        	MAX_PER_SERVER=10  
-        	MIRROR_LIST='http://archive.ubuntu.com/ubuntu,http://us.archive.ubuntu.com/ubuntu,http://uk.archive.ubuntu.com/ubuntu,http://de.archive.ubuntu.com/ubuntu,http://fr.archive.ubuntu.com/ubuntu,http://jp.archive.ubuntu.com/ubuntu,http://sg.archive.ubuntu.com/ubuntu,http://au.archive.ubuntu.com/ubuntu,http://ca.archive.ubuntu.com/ubuntu,http://mirrors.digitalocean.com/ubuntu'        
-        	APT_MANAGER="apt-get"  
+    	"22.04")    
+        	echo -e "${GREEN}配置 Ubuntu 22.04 LTS (Jammy Jellyfish) 专用设置${NC}"
+        	MAX_CONNECTIONS=20    
+        	MAX_PER_SERVER=10
+        	MIRROR_LIST='http://archive.ubuntu.com/ubuntu,http://us.archive.ubuntu.com/ubuntu,http://uk.archive.ubuntu.com/ubuntu,http://de.archive.ubuntu.com/ubuntu,http://fr.archive.ubuntu.com/ubuntu,http://jp.archive.ubuntu.com/ubuntu,http://sg.archive.ubuntu.com/ubuntu,http://au.archive.ubuntu.com/ubuntu,http://ca.archive.ubuntu.com/ubuntu,http://mirrors.digitalocean.com/ubuntu'
+        	APT_MANAGER="apt-get"
         	EXTRA_CONFIG="# 启用 Ubuntu 22.04 的并行下载特性
-	APT_FAST_NO_PARALLEL=0"  
+	APT_FAST_NO_PARALLEL=0"    
         	;;
-    	"24.04")  
-        	echo -e "${GREEN}配置 Ubuntu 24.04 LTS (Noble Numbat) 专用设置${NC}"  
-        	MAX_CONNECTIONS=24  
+    	"24.04")
+        	echo -e "${GREEN}配置 Ubuntu 24.04 LTS (Noble Numbat) 专用设置${NC}"
+        	MAX_CONNECTIONS=24
         	MAX_PER_SERVER=12
-        	MIRROR_LIST='http://archive.ubuntu.com/ubuntu,http://us.archive.ubuntu.com/ubuntu,http://uk.archive.ubuntu.com/ubuntu,http://de.archive.ubuntu.com/ubuntu,http://fr.archive.ubuntu.com/ubuntu,http://jp.archive.ubuntu.com/ubuntu,http://sg.archive.ubuntu.com/ubuntu,http://au.archive.ubuntu.com/ubuntu,http://ca.archive.ubuntu.com/ubuntu,http://mirrors.digitalocean.com/ubuntu,http://mirror.hetzner.com/ubuntu/packages,http://azure.archive.ubuntu.com/ubuntu'    
-        	APT_MANAGER="apt"  
+        	MIRROR_LIST='http://archive.ubuntu.com/ubuntu,http://us.archive.ubuntu.com/ubuntu,http://uk.archive.ubuntu.com/ubuntu,http://de.archive.ubuntu.com/ubuntu,http://fr.archive.ubuntu.com/ubuntu,http://jp.archive.ubuntu.com/ubuntu,http://sg.archive.ubuntu.com/ubuntu,http://au.archive.ubuntu.com/ubuntu,http://ca.archive.ubuntu.com/ubuntu,http://mirrors.digitalocean.com/ubuntu,http://mirror.hetzner.com/ubuntu/packages,http://azure.archive.ubuntu.com/ubuntu'
+        	APT_MANAGER="apt"
         	EXTRA_CONFIG="# 启用 Ubuntu 24.04 的增强特性
-	APT_FAST_NO_PARALLEL=0  
-	APT_FAST_TIMEOUT=300  
-	APT_FAST_COMPRESSION=true"  
+	APT_FAST_NO_PARALLEL=0
+	APT_FAST_TIMEOUT=300
+	APT_FAST_COMPRESSION=true"
         	;;
     	*)
         	echo -e "${RED}错误: 不支持的 Ubuntu 版本 ${UBUNTU_VERSION}${NC}"
-        	echo -e "${YELLOW}此脚本仅支持 Ubuntu 20.04, 22.04 和 24.04 LTS${NC}"  
-        	exit 1  
+        	echo -e "${YELLOW}此脚本仅支持 Ubuntu 20.04, 22.04 和 24.04 LTS${NC}"
+        	exit 1
         	;;
 	esac    
 
 	# 检查是否已安装 apt-fast
-	if ! command -v apt-fast &> /dev/null; then  
-    	echo -e "${YELLOW}apt-fast 未安装，正在安装...${NC}"  
-    	sudo add-apt-repository -y ppa:apt-fast/stable  
-    	sudo apt-get update    
-    	sudo DEBIAN_FRONTEND=noninteractive apt-get install -y apt-fast  
+	if ! command -v apt-fast &> /dev/null; then
+    	echo -e "${YELLOW}apt-fast 未安装，正在安装...${NC}"
+    	sudo add-apt-repository -y ppa:apt-fast/stable
+    	sudo apt-get update
+    	sudo DEBIAN_FRONTEND=noninteractive apt-get install -y apt-fast
 	else
-    	echo -e "${GREEN}apt-fast 已安装${NC}"  
+    	echo -e "${GREEN}apt-fast 已安装${NC}"
 	fi
 
-	echo -e "${GREEN}正在优化 apt-fast 配置...${NC}"  
+	echo -e "${GREEN}正在优化 apt-fast 配置...${NC}"
 
 	# 创建自定义配置文件
 	sudo tee /etc/apt-fast.conf > /dev/null << EOF
 ###################################################################
 # apt-fast 配置文件
-# Ubuntu ${UBUNTU_VERSION} LTS (${UBUNTU_CODENAME})
+# Ubuntu ${UBUNTU_VERSION} LTS (${UBUNTU_CODENAME})  
 # 生成时间: $(date)
 ###################################################################
 
@@ -228,26 +228,26 @@ ${EXTRA_CONFIG}
 EOF
 
 	# 创建下载目录
-	sudo mkdir -p /var/cache/apt/apt-fast  
-	sudo chmod 755 /var/cache/apt/apt-fast    
+	sudo mkdir -p /var/cache/apt/apt-fast
+	sudo chmod 755 /var/cache/apt/apt-fast
 
 	# 为 Ubuntu 24.04 添加额外的 APT 优化
-	if [ "$UBUNTU_VERSION" = "24.04" ]; then  
+	if [ "$UBUNTU_VERSION" = "24.04" ]; then
     	echo -e "${GREEN}为 Ubuntu 24.04 应用额外的 APT 优化...${NC}"
     	sudo tee /etc/apt/apt.conf.d/99-apt-fast-optimizations > /dev/null << 'EOF'  
 # APT 优化设置 (Ubuntu 24.04)
-Acquire::Languages "none";  
+Acquire::Languages "none";
 Acquire::GzipIndexes "true";
 Acquire::CompressionTypes::Order:: "gz";
-Acquire::http::Pipeline-Depth "5";  
+Acquire::http::Pipeline-Depth "5";
 APT::Acquire::Retries "3";
 EOF
 	fi
 
 	# 添加便捷别名到用户配置
-	if ! grep -q "alias apt='apt-fast'" ~/.bashrc; then  
-    	echo -e "${GREEN}添加 apt-fast 别名到 ~/.bashrc...${NC}"  
-    	cat >> ~/.bashrc << 'EOF'    
+	if ! grep -q "alias apt='apt-fast'" ~/.bashrc; then
+    	echo -e "${GREEN}添加 apt-fast 别名到 ~/.bashrc...${NC}"
+    	cat >> ~/.bashrc << 'EOF'      
 
 # apt-fast 别名 - 加速包管理
 alias apt='apt-fast'
@@ -257,11 +257,11 @@ EOF
 	fi
 
 	# 创建系统级别的别名配置（对所有用户生效）
-	sudo tee /etc/profile.d/apt-fast.sh > /dev/null << 'EOF'    
+	sudo tee /etc/profile.d/apt-fast.sh > /dev/null << 'EOF'
 # apt-fast 系统级别别名
 alias apt='apt-fast'
 alias apt-get='apt-fast'
-EOF  
+EOF
 }
 
 # 检查和显示系统信息
@@ -274,7 +274,7 @@ show_system_info() {
         log_warn "目标内核版本: 未检测到合适的升级版本"
     fi
 	log_info "系统架构: $(uname -m)"
-	log_info "CPU信息: $(lscpu | grep 'Model name' | cut -d ':' -f2 | xargs)"
+	log_info "CPU信息: $(lscpu | grep 'Model name' | cut -d ':' -f2 | xargs)"  
 	log_info "内存信息: $(free -h | awk '/^Mem:/ {print $2}') 总内存"
 	
 	# 检查是否有NVIDIA GPU
@@ -292,7 +292,7 @@ show_system_info() {
 
 # 终端关闭提示函数
 terminal_close_warning() {
-	log_warn "==============================================="
+	log_warn "==============================================="  
 	log_warn "警告：系统即将重启，终端将会关闭！"
 	log_warn "请确保已保存所有重要工作。"
 	log_warn "==============================================="
