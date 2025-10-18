@@ -39,7 +39,7 @@ log() {
     case "$level" in
         "INFO") color="$GREEN" ;;
         "WARN") color="$YELLOW" ;;
-        "ERROR") color="$RED" ;;
+        "ERROR") color="$RED" ;;  
         "DEBUG") color="$BLUE" ;;
     esac
     
@@ -532,13 +532,13 @@ alias ps='ps auxf'
 
 # bat 配置（如果存在）
 # 注意：在 Debian/Ubuntu 上，bat 命令实际是 batcat
-if command -v batcat &> /dev/null; then
-    alias cat='batcat'
+if command -v batcat &> /dev/null; then    
+#    alias cat='batcat'
     alias bat='batcat'
     export BAT_THEME="TwoDark"
-elif command -v bat &> /dev/null; then
-    alias cat='bat'
-    export BAT_THEME="TwoDark"
+elif command -v bat &> /dev/null; then    
+#    alias cat='bat'
+    export BAT_THEME="TwoDark"  
 fi
 
 # Custom functions
