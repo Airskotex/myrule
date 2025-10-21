@@ -3,7 +3,7 @@
 <img width="1708" height="884" alt="image" src="https://github.com/user-attachments/assets/ca35ae39-6971-4291-b182-28cb292c0353" />
 
 
-想加群的自己点击添加吧 tg交流群 https://t.me/+ft-zI76oovgwNmRh 
+想加群的自己点击添加吧 
 
 ###  Snippets
 
@@ -101,4 +101,4 @@
   * 本项目反代IP来着前端独苗kejiland  [[qwer-search](https://github.com/qwer-search)) ，感谢作者的贡献。
 ## Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=byJoey/cfnew&type=Timeline)](https://www.star-history.com/#byJoey/cfnew&Timeline&LogScale)
+[![Star History Chart](https://api.star-history.com/svg?repos=byJoey/cfnew&type=Timeline)](https://www.star-history.com/#byJoey/cfnew&Timeline&LogScale)  
