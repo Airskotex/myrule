@@ -39,13 +39,13 @@ log() {
     case "$level" in
         "INFO") color="$GREEN" ;;
         "WARN") color="$YELLOW" ;;
-        "ERROR") color="$RED" ;;  
+        "ERROR") color="$RED" ;;
         "DEBUG") color="$BLUE" ;;
     esac
     
     # 使用 printf 避免日志格式问题
     printf "${color}[%s] [%s]${NC} %s\n" "$timestamp" "$level" "$message"
-    printf "[%s] [%s] %s\n" "$timestamp" "$level" "$message" >> "$LOG_FILE" 2>/dev/null || true 
+    printf "[%s] [%s] %s\n" "$timestamp" "$level" "$message" >> "$LOG_FILE" 2>/dev/null || true
 }
 
 log_info() { log "INFO" "$1"; }
