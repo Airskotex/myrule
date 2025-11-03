@@ -881,11 +881,21 @@ main() {
 	
 	upgrade_gcc
 	upgrade_kernel
-	install_desktop
 	install_nvidia_driver
-	configure_system
-	install_chinese_support
 	
+	read -p "是否添加桌面登录和中文支持(y/n): " desktop
+	case "$desktop" in 
+	  y|Y ) 
+		log_info "正在添加桌面和中文支持……"
+		install_desktop
+		configure_system
+		install_chinese_support
+		;;
+	  * ) 
+		log_warn "您选择了不添加桌面和中文支持。"
+		;;
+	esac
+
 	log_info "正在清理系统缓存..."
 	apt autoremove -y >/dev/null 2>&1
 	apt autoclean >/dev/null 2>&1
