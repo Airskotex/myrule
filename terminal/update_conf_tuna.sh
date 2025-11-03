@@ -98,7 +98,7 @@ check_system_version() {
 	
 	source /etc/os-release
     UBUNTU_CODENAME="${VERSION_CODENAME}"
-    UBUNTU_VERSION="${VERSION_ID}"  
+    UBUNTU_VERSION="${VERSION_ID}"
     SYSTEM_ARCH="$(uname -m)"
     
     log_info "检测到系统信息："
@@ -125,11 +125,11 @@ check_system_version() {
 use_apt_fast(){
 	# 检测 Ubuntu 版本
 	echo -e "${GREEN}正在检测系统版本...${NC}"
-	UBUNTU_VERSION=$(lsb_release -r | grep -oP '\d+\.\d+')        
-	UBUNTU_CODENAME=$(lsb_release -c | cut -f2)    
+	UBUNTU_VERSION=$(lsb_release -r | grep -oP '\d+\.\d+')
+	UBUNTU_CODENAME=$(lsb_release -c | cut -f2)
 
 	# 显示检测到的版本
-	echo -e "${GREEN}检测到系统版本: Ubuntu ${UBUNTU_VERSION} (${UBUNTU_CODENAME})${NC}"        
+	echo -e "${GREEN}检测到系统版本: Ubuntu ${UBUNTU_VERSION} (${UBUNTU_CODENAME})${NC}"
 
 	# 根据版本设置参数
 	case "$UBUNTU_VERSION" in
@@ -141,14 +141,14 @@ use_apt_fast(){
         	APT_MANAGER="apt-get"
         	EXTRA_CONFIG=""
         	;;
-    	"22.04")    
-        	echo -e "${GREEN}配置 Ubuntu 22.04 LTS (Jammy Jellyfish) 专用设置${NC}"  
-        	MAX_CONNECTIONS=20    
+    	"22.04")
+        	echo -e "${GREEN}配置 Ubuntu 22.04 LTS (Jammy Jellyfish) 专用设置${NC}"
+        	MAX_CONNECTIONS=20
         	MAX_PER_SERVER=10
         	MIRROR_LIST='http://archive.ubuntu.com/ubuntu,http://us.archive.ubuntu.com/ubuntu,http://uk.archive.ubuntu.com/ubuntu,http://de.archive.ubuntu.com/ubuntu,http://fr.archive.ubuntu.com/ubuntu,http://jp.archive.ubuntu.com/ubuntu,http://sg.archive.ubuntu.com/ubuntu,http://au.archive.ubuntu.com/ubuntu,http://ca.archive.ubuntu.com/ubuntu,http://mirrors.digitalocean.com/ubuntu'
-        	APT_MANAGER="apt-get"  
+        	APT_MANAGER="apt-get"
         	EXTRA_CONFIG="# 启用 Ubuntu 22.04 的并行下载特性
-	APT_FAST_NO_PARALLEL=0"    
+	APT_FAST_NO_PARALLEL=0"
         	;;
     	"24.04")
         	echo -e "${GREEN}配置 Ubuntu 24.04 LTS (Noble Numbat) 专用设置${NC}"
@@ -184,7 +184,7 @@ use_apt_fast(){
 	sudo tee /etc/apt-fast.conf > /dev/null << EOF
 ###################################################################
 # apt-fast 配置文件
-# Ubuntu ${UBUNTU_VERSION} LTS (${UBUNTU_CODENAME})  
+# Ubuntu ${UBUNTU_VERSION} LTS (${UBUNTU_CODENAME})
 # 生成时间: $(date)
 ###################################################################
 
@@ -192,7 +192,7 @@ use_apt_fast(){
 _APTMGR=${APT_MANAGER}
 
 # 跳过确认对话框
-DOWNLOADBEFORE=true  
+DOWNLOADBEFORE=true
 
 # 最大连接数
 _MAXNUM=${MAX_CONNECTIONS}
@@ -207,19 +207,19 @@ _DOWNLOADER='aria2c --no-conf -c -j \${_MAXNUM} -x \${_MAXCONPERSRV} -s \${_MAXC
 #_DOWNLOADER='axel -n \${_MAXNUM} -a -o \${DLDIR}'
 
 # 备用下载管理器 (wget)
-#_DOWNLOADER='wget -cN -P \${DLDIR}'  
+#_DOWNLOADER='wget -cN -P \${DLDIR}'
 
 # 下载目录
 DLDIR=/var/cache/apt/apt-fast
 
 # APT 缓存目录
-APTCACHE=/var/cache/apt/archives  
+APTCACHE=/var/cache/apt/archives
 
 # 中止时清理部分下载
 DLLIST_CLEAN=true
 
 # Ubuntu ${UBUNTU_VERSION} 镜像列表（全球优化）
-MIRRORS=( '${MIRROR_LIST}' )    
+MIRRORS=( '${MIRROR_LIST}' )
 
 # 彩色输出
 COLOR=auto
@@ -228,7 +228,7 @@ ${EXTRA_CONFIG}
 EOF
 
 	# 创建下载目录
-	sudo mkdir -p /var/cache/apt/apt-fast
+	sudo mkdir -p /var/cache/apt/apt-fast  
 	sudo chmod 755 /var/cache/apt/apt-fast
 
 	# 为 Ubuntu 24.04 添加额外的 APT 优化
@@ -246,7 +246,7 @@ EOF
 	fi
 	# 添加便捷别名到用户配置
 	if ! grep -q "alias apt='apt-fast'" ~/.bashrc; then
-    	echo -e "${GREEN}添加 apt-fast 别名到 ~/.bashrc...${NC}"  
+    	echo -e "${GREEN}添加 apt-fast 别名到 ~/.bashrc...${NC}"
     	cat >> ~/.bashrc << EOF
 
 # apt-fast 别名 - 加速包管理
@@ -275,7 +275,7 @@ show_system_info() {
         log_warn "目标内核版本: 未检测到合适的升级版本"
     fi
 	log_info "系统架构: $(uname -m)"
-	log_info "CPU信息: $(lscpu | grep 'Model name' | cut -d ':' -f2 | xargs)"  
+	log_info "CPU信息: $(lscpu | grep 'Model name' | cut -d ':' -f2 | xargs)"
 	log_info "内存信息: $(free -h | awk '/^Mem:/ {print $2}') 总内存"
 	
 	# 检查是否有NVIDIA GPU
@@ -293,7 +293,7 @@ show_system_info() {
 
 # 终端关闭提示函数
 terminal_close_warning() {
-	log_warn "==============================================="  
+	log_warn "==============================================="
 	log_warn "警告：系统即将重启，终端将会关闭！"
 	log_warn "请确保已保存所有重要工作。"
 	log_warn "==============================================="
@@ -413,7 +413,7 @@ change_sources() {
 	cp /etc/apt/sources.list /etc/apt/sources.list.bak_$(date +%F_%H%M%S)
 
 	log_info "正在写入新的阿里云 sources.list..."
-	cat > /etc/apt/sources.list << EOF  
+	cat > /etc/apt/sources.list << EOF
 deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ ${UBUNTU_CODENAME} main restricted universe multiverse
 deb-src https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ ${UBUNTU_CODENAME} main restricted universe multivers
 
@@ -424,7 +424,7 @@ deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ ${UBUNTU_CODENAME}-updates main
 deb-src https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ ${UBUNTU_CODENAME}-updates main restricted universe multiverse
 
 # deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ ${UBUNTU_CODENAME}-proposed main restricted universe multiverse
-# deb-src https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ ${UBUNTU_CODENAME}-proposed main restricted universe multiverse
+# deb-src https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ ${UBUNTU_CODENAME}-proposed main restricted universe multiverse  
 
 deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ ${UBUNTU_CODENAME}-backports main restricted universe multiverse
 deb-src https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ ${UBUNTU_CODENAME}-backports main restricted universe multiverse
@@ -523,7 +523,7 @@ upgrade_kernel() {
 			add-apt-repository ppa:canonical-kernel-team/ppa -y
 			if ! apt update; then
 				log_error "更新软件源失败"
-				exit 1  
+				exit 1
 			fi
 		fi
 
@@ -736,7 +736,7 @@ export $(dbus-launch)
 if [ -x /usr/bin/gnome-session ]; then exec /usr/bin/gnome-session;
 elif [ -x /usr/bin/startxfce4 ]; then exec /usr/bin/startxfce4;
 elif test -x /etc/X11/Xsession; then exec /etc/X11/Xsession;
-else exec /bin/sh /etc/X11/Xsession; fi  
+else exec /bin/sh /etc/X11/Xsession; fi
 EOF
 
 		chmod +x /etc/xrdp/startwm.sh
@@ -755,7 +755,7 @@ export GDK_BACKEND=x11
 exec gnome-session --session=ubuntu
 EOF
 
-		chmod +x /root/.xsession  
+		chmod +x /root/.xsession
 		log_info ".xsession 文件创建完成"
 	else
 		log_error "无法创建 /root/.xsession，跳过此步骤"
@@ -767,7 +767,7 @@ EOF
 	if check_and_ensure_file "/etc/gdm3/custom.conf" "true"; then
 		backup_file "/etc/gdm3/custom.conf"
 		cat > /etc/gdm3/custom.conf << EOF
-# GDM configuration storage  
+# GDM configuration storage
 [daemon]
 #WaylandEnable=false
 AllowRoot=true
@@ -801,7 +801,7 @@ EOF
 	fi
 
 	log_info "配置 XRDP 用户权限..."
-	usermod -a -G ssl-cert xrdp 2>/dev/null || log_warn "无法将 xrdp 用户添加到 ssl-cert 组"  
+	usermod -a -G ssl-cert xrdp 2>/dev/null || log_warn "无法将 xrdp 用户添加到 ssl-cert 组"
 	
 	log_info "正在配置系统服务..."
 	systemctl stop gdm3 2>/dev/null || log_debug "GDM3 未运行"
@@ -831,7 +831,7 @@ install_chinese_support() {
 	if ! update-locale LANG=zh_CN.UTF-8; then log_error "系统语言设置失败"; exit 1; fi
 	
 	sed -i '/^export LANG=zh_CN.UTF-8$/d' /root/.bashrc
-	echo 'export LANG=zh_CN.UTF-8' >> /root/.bashrc    
+	echo 'export LANG=zh_CN.UTF-8' >> /root/.bashrc
 	sed -i '/^export LC_ALL=zh_CN.UTF-8$/d' /root/.bashrc
 	echo 'export LC_ALL=zh_CN.UTF-8' >> /root/.bashrc
 	log_info "中文支持配置完成。重启后将显示中文界面。"
@@ -843,7 +843,7 @@ final_system_check() {
 	
 	log_info "检查关键服务状态..."
 	services=("xrdp" "gdm3")
-	for service in "${services[@]}"; do  
+	for service in "${services[@]}"; do
 		if systemctl is-enabled "$service" >/dev/null 2>&1; then
 			if systemctl is-active "$service" >/dev/null 2>&1; then
 				log_info "✓ $service: 已启用并运行中"
@@ -858,7 +858,7 @@ final_system_check() {
 	if command -v nvidia-smi >/dev/null 2>&1; then log_info "✓ NVIDIA 驱动已安装"; else log_warn "⚠ NVIDIA 驱动可能未正确安装"; fi
 	
 	local current_kernel
-    current_kernel=$(uname -r)  
+    current_kernel=$(uname -r)
 	if [[ "$current_kernel" == "$KERNEL_VERSION" ]]; then
 		log_info "✓ 当前内核版本正确: $current_kernel"
 	else
@@ -868,7 +868,7 @@ final_system_check() {
 	log_info "=================================="
 	
 	log_info "远程连接信息："
-	log_info "- RDP 端口: 3389"  
+	log_info "- RDP 端口: 3389"
 	log_info "- 用户名: root"
 	log_warn "安全提醒: 生产环境中不建议启用 root 远程登录"
 }
@@ -892,7 +892,7 @@ main() {
 	
 	final_system_check
 
-	log_step "========================================================"  
+	log_step "========================================================"
 	log_step "所有操作已成功完成！"
 	log_info "脚本将在退出时自动删除自身文件: $SCRIPT_NAME"
 	log_warn "强烈建议重启系统以应用所有更改："
