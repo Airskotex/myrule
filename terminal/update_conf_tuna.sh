@@ -882,7 +882,7 @@ main() {
 	upgrade_gcc
 	upgrade_kernel
 	install_nvidia_driver
-	echo
+
 	read -p "是否添加桌面登录和中文支持(y/n): " desktop
 	case "$desktop" in 
 	  y|Y ) 
@@ -900,9 +900,9 @@ main() {
 	apt autoremove -y >/dev/null 2>&1  
 	apt autoclean >/dev/null 2>&1
 	
-	final_system_check
+	final_system_check  
 
-	log_step "========================================================"
+	log_step "========================================================"  
 	log_step "所有操作已成功完成！"
 	log_info "脚本将在退出时自动删除自身文件: $SCRIPT_NAME"
 	log_warn "强烈建议重启系统以应用所有更改："
