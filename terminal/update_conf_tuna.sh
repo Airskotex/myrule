@@ -882,7 +882,7 @@ main() {
 	upgrade_gcc
 	upgrade_kernel
 	install_nvidia_driver
-	
+	echo
 	read -p "是否添加桌面登录和中文支持(y/n): " desktop
 	case "$desktop" in 
 	  y|Y ) 
@@ -897,7 +897,7 @@ main() {
 	esac
 
 	log_info "正在清理系统缓存..."
-	apt autoremove -y >/dev/null 2>&1
+	apt autoremove -y >/dev/null 2>&1  
 	apt autoclean >/dev/null 2>&1
 	
 	final_system_check
