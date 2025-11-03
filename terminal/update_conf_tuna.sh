@@ -621,12 +621,18 @@ install_nvidia_driver() {
 		log_warn "检测到正在使用的 nouveau 驱动，需要先禁用"
 		echo "blacklist nouveau" >> /etc/modprobe.d/blacklist-nouveau.conf
 		echo "options nouveau modeset=0" >> /etc/modprobe.d/blacklist-nouveau.conf
-		update-initramfs -u
+		read -p "是否重新生成/更新 initramfs 镜像文件(建议选择 n) (y/n): " initramfs
+		case "$initramfs" in
+			y|Y )
+				update-initramfs -u
+				;;
+			* ) log_warn "继续安装，不手动重新生成/更新 initramfs 镜像文件";;
+		esac
 		log_warn "nouveau 驱动已禁用，需要重启后生效"
 		read -p "是否现在重启？(建议选择 y) (y/n): " choice
-		case "$choice" in 
-			y|Y ) 
-				terminal_close_warning
+		case "$choice" in   
+			y|Y )   
+				terminal_close_warning  
 				reboot
 				;;
 			* ) log_warn "继续安装，但可能会有冲突...";;
