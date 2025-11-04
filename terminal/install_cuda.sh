@@ -179,7 +179,7 @@ echo -e "${GREEN}开始静默安装，请稍候...${NC}"
 # --samples: 安装示例代码
 # --no-driver: 明确不安装驱动程序
 # --installpath: 指定安装目录
-sudo "./${FILENAME}" --silent --toolkit --samples --no-driver --installpath="${INSTALL_PATH}"
+sudo "./${FILENAME}" --silent --toolkit --samples --installpath="${INSTALL_PATH}"
 INSTALL_EXIT_CODE=$?
 
 if [ $INSTALL_EXIT_CODE -ne 0 ]; then
