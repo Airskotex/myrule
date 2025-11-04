@@ -95,7 +95,7 @@ echo
 
 # --- 3. 获取所有可用的CUDA版本 ---
 echo -e "${YELLOW}--- 正在从 NVIDIA 官网获取可用的 CUDA 版本列表... ---${NC}"
-CUDA_ARCHIVE_URL="https://developer.nvidia.com/cuda-toolkit-archive"
+CUDA_ARCHIVE_URL="https://developer.nvidia.com/cuda-toolkit-archive"  
 mapfile -t CUDA_VERSIONS < <(
     wget -qO- https://developer.nvidia.com/cuda-toolkit-archive | \
     grep -oE "CUDA Toolkit [0-9]+\.[0-9]+(\.[0-9]+)?" | \
@@ -125,7 +125,7 @@ echo -e "${YELLOW}--- 请选择您要安装的 CUDA Toolkit 版本 ---${NC}"
 PS3="请输入选项编号: "
 select FILENAME in "${CUDA_VERSIONS[@]}"; do
     if [[ -n "$FILENAME" ]]; then
-        echo -e "您选择了: ${GREEN}${FILENAME}${NC}"
+        echo -e "您选择了: ${GREEN}${FILENAME}${NC}"  
         break
     else
         echo -e "${RED}无效选项，请重新输入。${NC}"
@@ -179,7 +179,7 @@ echo -e "${GREEN}开始静默安装，请稍候...${NC}"
 # --samples: 安装示例代码
 # --no-driver: 明确不安装驱动程序
 # --installpath: 指定安装目录
-sudo "./${FILENAME}" --silent --toolkit --samples --installpath="${INSTALL_PATH}"
+sudo "./${FILENAME}" --silent --toolkit --driver --samples --installpath="${INSTALL_PATH}"    
 INSTALL_EXIT_CODE=$?
 
 if [ $INSTALL_EXIT_CODE -ne 0 ]; then
