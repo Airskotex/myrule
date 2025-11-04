@@ -180,21 +180,7 @@ echo -e "${GREEN}开始静默安装，请稍候...${NC}"
 # --no-driver: 明确不安装驱动程序
 # --installpath: 指定安装目录
 sudo "./${FILENAME}" --silent --toolkit --driver --samples --installpath="${INSTALL_PATH}"
-        
-        
-          
-            
-          
-          重试
-          
-        
-          
-            
-          
-          错误原因
-        
-        
-        
+ 
 INSTALL_EXIT_CODE=$?
 
 if [ $INSTALL_EXIT_CODE -ne 0 ]; then
@@ -209,7 +195,6 @@ echo
 echo -e "${YELLOW}--- 正在配置环境变量... ---${NC}"
 BASHRC_FILE="$HOME/.bashrc"
 SYMLINK_PATH="/usr/local/cuda"
-
 # 创建或更新 /usr/local/cuda 符号链接，指向新安装的版本
 echo "正在创建符号链接 ${SYMLINK_PATH} -> ${INSTALL_PATH}"
 sudo ln -sfn "${INSTALL_PATH}" "${SYMLINK_PATH}"
