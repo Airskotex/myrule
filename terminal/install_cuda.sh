@@ -153,7 +153,7 @@ echo
 
 # --- 6. 执行静默安装 ---
 # 从文件名中提取版本号，例如 "cuda_12.5.1_..." -> "12.5"
-CUDA_INSTALL_VERSION=$(echo "$CUDA_MAJOR_VERSION" | awk -F. '{print $1"."$2}')
+CUDA_INSTALL_VERSION=$(echo "$CUDA_MAJOR_VERSION" | awk -F. '{print $1"."$2}')  
 INSTALL_PATH="/usr/local/cuda-${CUDA_INSTALL_VERSION}"
 
 echo -e "${RED}===================== 最终确认 =======================${NC}"
@@ -179,7 +179,22 @@ echo -e "${GREEN}开始静默安装，请稍候...${NC}"
 # --samples: 安装示例代码
 # --no-driver: 明确不安装驱动程序
 # --installpath: 指定安装目录
-sudo "./${FILENAME}" --silent --toolkit --driver --samples --installpath="${INSTALL_PATH}"    
+sudo "./${FILENAME}" --silent --toolkit --driver --samples --installpath="${INSTALL_PATH}"
+        
+        
+          
+            
+          
+          重试
+          
+        
+          
+            
+          
+          错误原因
+        
+        
+        
 INSTALL_EXIT_CODE=$?
 
 if [ $INSTALL_EXIT_CODE -ne 0 ]; then
