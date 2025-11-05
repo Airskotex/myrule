@@ -888,7 +888,8 @@ main() {
 	upgrade_gcc
 	upgrade_kernel
 	install_nvidia_driver
-
+	
+	echo
 	read -p "是否添加桌面登录和中文支持(y/n): " desktop
 	case "$desktop" in 
 	  y|Y ) 
