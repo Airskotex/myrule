@@ -929,7 +929,7 @@ final_system_check() {
 		log_warn "⚠ 当前内核 ($current_kernel) 与目标内核 ($KERNEL_VERSION) 不同。重启后将应用新内核。"
 	fi
 	
-	log_info "=================================="
+	log_info "=================================="  
 	
 	log_info "远程连接信息："
 	log_info "- RDP 端口: 3389"
@@ -958,21 +958,26 @@ main() {
 	
     # 步骤 1: 升级 GCC
 	upgrade_gcc
-    
     # 步骤 2: 升级内核
 	upgrade_kernel
-    
-    # 步骤 3: 安装桌面
-	install_desktop
-    
     # 步骤 4: 安装驱动
-	install_nvidia_driver
-    
-    # 步骤 5: 配置系统
-	configure_system
-    
-    # 步骤 6: 安装中文
-	install_chinese_support
+	install_nvidia_driver  
+	echo
+	read -p "是否添加桌面登录和中文支持(y/n): " desktop
+	case "$desktop" in 
+	  y|Y ) 
+		log_info "正在添加桌面和中文支持……"
+		# 步骤 3: 安装桌面
+		install_desktop  
+		# 步骤 5: 配置系统
+		configure_system  
+		# 步骤 6: 安装中文
+		install_chinese_support
+		;;
+	  * ) 
+		log_warn "您选择了不添加桌面和中文支持。"
+		;;
+	esac
 	
 	log_info "正在清理系统缓存..."
 	apt autoremove -y >/dev/null 2>&1
