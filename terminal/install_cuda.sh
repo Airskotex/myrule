@@ -6,11 +6,11 @@
 #
 # 功能:
 #   1. 自动检测系统信息。
-#   2. 从 NVIDIA 官网获取所有可用的 CUDA Toolkit 版本。
+#   2. 从 NVIDIA 官网获取所有可用的 CUDA Toolkit 版本。 (已优化为并行获取)
 #   3. 提供一个菜单供用户选择要安装的版本。
-#   4. 下载选择的版本并以静默模式自动安装。
-#      - 默认只安装 Toolkit 和 Samples，不安装驱动以避免冲突。
-#   5. 自动将新安装的 CUDA 环境变量添加到 ~/.bashrc。
+#   4. [新] 询问用户是否要一并安装驱动程序。
+#   5. 下载选择的版本并以静默模式自动安装。
+#   6. 自动将新安装的 CUDA 环境变量添加到 ~/.bashrc。
 #
 # 使用方法:
 #   1. 保存此脚本为 install_cuda.sh
@@ -94,23 +94,45 @@ fi
 echo
 
 # --- 3. 获取所有可用的CUDA版本 ---
-echo -e "${YELLOW}--- 正在从 NVIDIA 官网获取可用的 CUDA 版本列表... ---${NC}"
-CUDA_ARCHIVE_URL="https://developer.nvidia.com/cuda-toolkit-archive"  
-mapfile -t CUDA_VERSIONS < <(
-    wget -qO- https://developer.nvidia.com/cuda-toolkit-archive | \
+echo -e "${YELLOW}--- 正在从 NVIDIA 官网获取可用的 CUDA 版本列表 (已优化)... ---${NC}"
+CUDA_ARCHIVE_URL="https://developer.nvidia.com/cuda-toolkit-archive"
+
+# 临时存储未排序的结果
+mapfile -t temp_versions < <(
+    # 1. 获取所有版本号
+    wget -qO- "$CUDA_ARCHIVE_URL" | \
     grep -oE "CUDA Toolkit [0-9]+\.[0-9]+(\.[0-9]+)?" | \
     sed 's/CUDA Toolkit //' | \
-    sort -rV | uniq | \
-    while read version; do
-        driver_version=$(wget -qO- "https://docs.nvidia.com/cuda/archive/${version}/cuda-toolkit-release-notes/index.html" 2>/dev/null | \
-            grep -A2 "NVIDIA Linux Driver" | \
-            grep -oE "[0-9]+\.[0-9]+\.[0-9]+" | head -1)
-        if [[ -n "$driver_version" ]]; then
-            echo "cuda_${version}_${driver_version}_linux.run"
-        else
-            echo "cuda_${version}_linux.run"
-        fi
+    uniq | \
+    while read -r version; do
+        # 2. 为每个版本启动一个并行的子 shell
+        (
+            # driver_version 变量仅在此 () 子 shell 中有效
+            driver_version=$(wget -qO- "https://docs.nvidia.com/cuda/archive/${version}/cuda-toolkit-release-notes/index.html" 2>/dev/null | \
+                grep -A2 "NVIDIA Linux Driver" | \
+                grep -oE "[0-9]+\.[0-9]+\.[0-9]+" | head -1)
+            
+            # 3. 输出 "版本号[TAB]文件名" 格式，以便后续排序
+            # 使用制表符 \t 作为分隔符，避免版本号或文件名中可能出现的空格
+            if [[ -n "$driver_version" ]]; then
+                echo -e "${version}\tcuda_${version}_${driver_version}_linux.run"
+            else
+                echo -e "${version}\tcuda_${version}_linux.run"
+            fi
+        ) & # 关键：& 将任务放入后台并行执行
     done
+    
+    # 4. 关键：等待所有后台启动的 wget 子任务完成
+    wait
+)
+
+# 5. 对并行获取的乱序结果，按版本号(第1字段)进行反向版本排序
+mapfile -t CUDA_VERSIONS < <(
+    printf "%s\n" "${temp_versions[@]}" | \
+    # -k1,1 按第一个字段排序, -t $'\t' 指定分隔符为Tab
+    sort -rV -k1,1 -t $'\t' | \
+    # 提取第二个字段及之后的所有内容 (即文件名)
+    cut -f2- -d $'\t'
 )
 
 if [ ${#CUDA_VERSIONS[@]} -eq 0 ]; then
@@ -151,6 +173,28 @@ chmod +x "${FILENAME}"
 echo -e "${GREEN}权限添加成功！${NC}"
 echo
 
+# --- 5.1. [新] 询问是否安装驱动 ---
+echo -e "${YELLOW}--- 您是否要在此过程中一并安装 NVIDIA 驱动程序? ---${NC}"
+echo -e "  - ${GREEN}(Y)es${NC}:  选择 'y' 将会安装与 ${CUDA_MAJOR_VERSION} 匹配的驱动。"
+echo -e "  - ${RED}(N)o${NC}:   选择 'n' (默认) 将跳过驱动安装 (推荐)。"
+echo
+read -p "是否安装驱动? (y/N): " CONFIRM_DRIVER
+
+DRIVER_ARG="" # 默认参数
+DRIVER_MSG="无驱动程序" # 默认消息
+
+if [[ "$CONFIRM_DRIVER" =~ ^[yY]([eE][sS])?$ ]]; then
+    DRIVER_ARG="--driver"
+    DRIVER_MSG="包含驱动程序"
+    log_warn "您已选择安装驱动。这可能会覆盖您现有的驱动程序。"
+else
+    DRIVER_ARG=""
+    DRIVER_MSG="无驱动程序 (推荐)"
+    log_info "您已选择不安装驱动。"
+fi
+echo
+
+
 # --- 6. 执行静默安装 ---
 # 从文件名中提取版本号，例如 "cuda_12.5.1_..." -> "12.5"
 CUDA_INSTALL_VERSION=$(echo "$CUDA_MAJOR_VERSION" | awk -F. '{print $1"."$2}')  
@@ -161,7 +205,7 @@ echo -e "${YELLOW}脚本即将以静默模式进行安装，这将不会有任�
 echo
 echo -e "将要安装的版本: ${GREEN}${CUDA_MAJOR_VERSION}${NC}"
 echo -e "预计安装路径:   ${GREEN}${INSTALL_PATH}${NC}"
-echo -e "安装的组件:     ${GREEN}Toolkit, Samples (无驱动程序)${NC}"
+echo -e "安装的组件:     ${GREEN}Toolkit, Samples (${DRIVER_MSG})${NC}" # <-- 动态消息
 echo -e "${YELLOW}环境变量将被自动添加到: ${GREEN}~/.bashrc${NC}"
 echo -e "${RED}========================================================${NC}"
 echo
@@ -177,9 +221,9 @@ echo -e "${GREEN}开始静默安装，请稍候...${NC}"
 # --silent: 完整静默模式
 # --toolkit: 安装CUDA Toolkit
 # --samples: 安装示例代码
-# --no-driver: 明确不安装驱动程序
+# ${DRIVER_ARG}: --driver 或 --no-driver
 # --installpath: 指定安装目录
-sudo "./${FILENAME}" --silent --toolkit --driver --samples --installpath="${INSTALL_PATH}"
+sudo "./${FILENAME}" --silent --toolkit --samples ${DRIVER_ARG} --installpath="${INSTALL_PATH}"
  
 INSTALL_EXIT_CODE=$?
 
