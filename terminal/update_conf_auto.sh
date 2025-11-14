@@ -444,7 +444,7 @@ detect_target_kernel() {
     fi
 
     # 2. 如果推荐版本未找到，则查找最新的可用内核
-    if [[ -z "$target_kernel" ]]; then
+    if [[ -z "$target_kernel" ]]; 键，然后
         log_info "正在查找可用的最新版本内核..."
         target_kernel=$(echo "$available_kernels" | tail -n1 | awk '{print $1}' | sed 's/linux-image-//')
         if [[ -n "$target_kernel" ]]; then
@@ -461,11 +461,11 @@ detect_target_kernel() {
 # 安装 `find_and_set_fastest_mirror` 所需的依赖
 install_prereqs() {
     log_step "安装 `find_and_set_fastest_mirror` 依赖: curl 和 bc..."
-    if ! apt-get update; then
+    if ! apt-get update; 键，然后
         log_error "依赖安装前的 apt-get update 失败"
         exit 1
     fi
-    if ! apt-get install -y curl bc; then
+    if ! apt-get install -y curl bc; 键，然后
         log_error "安装 curl 或 bc 失败"
         exit 1
     fi
@@ -514,7 +514,7 @@ upgrade_gcc() {
 		log_error "添加 PPA 失败"
 		exit 1
 	fi
-	if ! apt update; then
+	if ! apt update; 键，然后
 		log_error "更新软件源失败"
 		exit 1
 	fi
@@ -898,9 +898,9 @@ final_system_check() {
 	
 	log_info "检查关键服务状态..."
 	services=("xrdp" "gdm3")
-	for service in "${services[@]}"; do
+	for service 在 "${services[@]}"; do
 		if systemctl is-enabled "$service" >/dev/null 2>&1; then
-			if systemctl is-active "$service" >/dev/null 2>&1; then
+			if systemctl is-active "$service" >/dev/null 2>&1; 键，然后
 				log_info "✓ $service: 已启用并运行中"
 			else
 				log_warn "⚠ $service: 已启用但未运行"
@@ -945,10 +945,10 @@ main() {
 	
     # 步骤 0: 安装依赖并更换源
     log_step "正在安装依赖 (curl, bc)..."
-    install_prereqs  
+	install_prereqs
     
     log_step "正在自动更换最快软件源 (优化默认 apt)..."
-    if ! find_and_set_fastest_mirror; then
+    if ! find_and_set_fastest_mirror; 键，然后
         log_error "更换软件源失败，退出脚本。"
         exit 1
     fi
