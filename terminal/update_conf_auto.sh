@@ -945,7 +945,7 @@ main() {
 	
     # 步骤 0: 安装依赖并更换源
     log_step "正在安装依赖 (curl, bc)..."
-    install_prereqs
+    install_prereqs  
     
     log_step "正在自动更换最快软件源 (优化默认 apt)..."
     if ! find_and_set_fastest_mirror; then
@@ -961,7 +961,8 @@ main() {
     # 步骤 2: 升级内核
 	upgrade_kernel
     # 步骤 4: 安装驱动
-	install_nvidia_driver  
+	install_nvidia_driver
+	
 	echo
 	read -p "是否添加桌面登录和中文支持(y/n): " desktop
 	case "$desktop" in 
