@@ -444,7 +444,7 @@ detect_target_kernel() {
     fi
 
     # 2. 如果推荐版本未找到，则查找最新的可用内核
-    if [[ -z "$target_kernel" ]]; then    
+    if [[ -z "$target_kernel" ]]; then
         log_info "正在查找可用的最新版本内核..."
         target_kernel=$(echo "$available_kernels" | tail -n1 | awk '{print $1}' | sed 's/linux-image-//')
         if [[ -n "$target_kernel" ]]; then
@@ -461,7 +461,7 @@ detect_target_kernel() {
 # 安装 `find_and_set_fastest_mirror` 所需的依赖
 install_prereqs() {
     log_step "安装 `find_and_set_fastest_mirror` 依赖: curl 和 bc..."
-    if ! apt-get update; then    
+    if ! apt-get update; then
         log_error "依赖安装前的 apt-get update 失败"
         exit 1
     fi
