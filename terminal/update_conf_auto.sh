@@ -444,7 +444,7 @@ detect_target_kernel() {
     fi
 
     # 2. 如果推荐版本未找到，则查找最新的可用内核
-    if [[ -z "$target_kernel" ]]; 键，然后
+    if [[ -z "$target_kernel" ]]; then    
         log_info "正在查找可用的最新版本内核..."
         target_kernel=$(echo "$available_kernels" | tail -n1 | awk '{print $1}' | sed 's/linux-image-//')
         if [[ -n "$target_kernel" ]]; then
