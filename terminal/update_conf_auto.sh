@@ -898,7 +898,7 @@ final_system_check() {
 	
 	log_info "检查关键服务状态..."
 	services=("xrdp" "gdm3")
-	for service 在 "${services[@]}"; do
+	for service in "${services[@]}"; do
 		if systemctl is-enabled "$service" >/dev/null 2>&1; then
 			if systemctl is-active "$service" >/dev/null 2>&1; then
 				log_info "✓ $service: 已启用并运行中"
