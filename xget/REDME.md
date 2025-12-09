@@ -2,9 +2,9 @@
 
 ***[English](README.en.md)***  
 
-<a href="https://trendshift.io/repositories/14768" target="_blank"><img src="https://trendshift.io/api/badge/repositories/14768" alt="xixu-me%2FXget | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>  
+<a href="https://trendshift.io/repositories/14768" target="_blank"><img src="https://trendshift.io/api/badge/repositories/14768" alt="xixu-me%2FXget | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>      
 
-[![Ask Zread](https://img.shields.io/badge/Ask_Zread-_.svg?style=flat&color=00b0aa&labelColor=000000&logo=data%3Aimage%2Fsvg%2Bxml%3Bbase64%2CPHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCAxNiAxNiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTQuOTYxNTYgMS42MDAxSDIuMjQxNTZDMS44ODgxIDEuNjAwMSAxLjYwMTU2IDEuODg2NjQgMS42MDE1NiAyLjI0MDFWNC45NjAxQzEuNjAxNTYgNS4zMTM1NiAxLjg4ODEgNS42MDAxIDIuMjQxNTYgNS42MDAxSDQuOTYxNTZDNS4zMTUwMiA1LjYwMDEgNS42MDE1NiA1LjMxMzU2IDUuNjAxNTYgNC45NjAxVjIuMjQwMUM1LjYwMTU2IDEuODg2NjQgNS4zMTUwMiAxLjYwMDEgNC45NjE1NiAxLjYwMDFaIiBmaWxsPSIjZmZmIi8%2BCjxwYXRoIGQ9Ik00Ljk2MTU2IDEwLjM5OTlIMi4yNDE1NkMxLjg4ODEgMTAuMzk5OSAxLjYwMTU2IDEwLjY4NjQgMS42MDE1NiAxMS4wMzk5VjEzLjc1OTlDMS42MDE1NiAxNC4xMTM0IDEuODg4MSAxNC4zOTk5IDIuMjQxNTYgMTQuMzk5OUg0Ljk2MTU2QzUuMzE1MDIgMTQuMzk5OSA1LjYwMTU2IDE0LjExMzQgNS42MDE1NiAxMy43NTk5VjExLjAzOTlDNS42MDE1NiAxMC42ODY0IDUuMzE1MDIgMTAuMzk5OSA0Ljk2MTU2IDEwLjM5OTlaIiBmaWxsPSIjZmZmIi8%2BCjxwYXRoIGQ9Ik0xMy43NTg0IDEuNjAwMUgxMS4wMzg0QzEwLjY4NSAxLjYwMDEgMTAuMzk4NCAxLjg4NjY0IDEwLjM5ODQgMi4yNDAxVjQuOTYwMUMxMC4zOTg0IDUuMzEzNTYgMTAuNjg1IDUuNjAwMSAxMS4wMzg0IDUuNjAwMUgxMy43NTg0QzE0LjExMTkgNS42MDAxIDE0LjM5ODQgNS4zMTM1NiAxNC4zOTg0IDQuOTYwMVYyLjI0MDFDMTQuMzk4NCAxLjg4NjY0IDE0LjExMTkgMS42MDAxIDEzLjc1ODQgMS42MDAxWiIgZmlsbD0iI2ZmZiIvPgo8cGF0aCBkPSJNNCAxMkwxMiA0TDQgMTJaIiBmaWxsPSIjZmZmIi8%2BCjxwYXRoIGQ9Ik00IDEyTDEyIDQiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgo8L3N2Zz4K&logoColor=ffffff)](https://zread.ai/xixu-me/Xget)
+[![Ask Zread](https://img.shields.io/badge/Ask_Zread-_.svg?style=flat&color=00b0aa&labelColor=000000&logo=data%3Aimage%2Fsvg%2Bxml%3Bbase64%2CPHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCAxNiAxNiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTQuOTYxNTYgMS42MDAxSDIuMjQxNTZDMS44ODgxIDEuNjAwMSAxLjYwMTU2IDEuODg2NjQgMS42MDE1NiAyLjI0MDFWNC45NjAxQzEuNjAxNTYgNS4zMTM1NiAxLjg4ODEgNS42MDAxIDIuMjQxNTYgNS42MDAxSDQuOTYxNTZDNS4zMTUwMiA1LjYwMDEgNS42MDE1NiA1LjMxMzU2IDUuNjAxNTYgNC45NjAxVjIuMjQwMUM1LjYwMTU2IDEuODg2NjQgNS4zMTUwMiAxLjYwMDEgNC45NjE1NiAxLjYwMDFaIiBmaWxsPSIjZmZmIi8%2BCjxwYXRoIGQ9Ik00Ljk2MTU2IDEwLjM5OTlIMi4yNDE1NkMxLjg4ODEgMTAuMzk5OSAxLjYwMTU2IDEwLjY4NjQgMS42MDE1NiAxMS4wMzk5VjEzLjc1OTlDMS42MDE1NiAxNC4xMTM0IDEuODg4MSAxNC4zOTk5IDIuMjQxNTYgMTQuMzk5OUg0Ljk2MTU2QzUuMzE1MDIgMTQuMzk5OSA1LjYwMTU2IDE0LjExMzQgNS42MDE1NiAxMy43NTk5VjExLjAzOTlDNS42MDE1NiAxMC42ODY0IDUuMzE1MDIgMTAuMzk5OSA0Ljk2MTU2IDEwLjM5OTlaIiBmaWxsPSIjZmZmIi8%2BCjxwYXRoIGQ9Ik0xMy43NTg0IDEuNjAwMUgxMS4wMzg0QzEwLjY4NSAxLjYwMDEgMTAuMzk4NCAxLjg4NjY0IDEwLjM5ODQgMi4yNDAxVjQuOTYwMUMxMC4zOTg0IDUuMzEzNTYgMTAuNjg1IDUuNjAwMSAxMS4wMzg0IDUuNjAwMUgxMy43NTg0QzE0LjExMTkgNS42MDAxIDE0LjM5ODQgNS4zMTM1NiAxNC4zOTg0IDQuOTYwMVYyLjI0MDFDMTQuMzk4NCAxLjg4NjY0IDE0LjExMTkgMS42MDAxIDEzLjc1ODQgMS42MDAxWiIgZmlsbD0iI2ZmZiIvPgo8cGF0aCBkPSJNNCAxMkwxMiA0TDQgMTJaIiBmaWxsPSIjZmZmIi8%2BCjxwYXRoIGQ9Ik00IDEyTDEyIDQiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgo8L3N2Zz4K&logoColor=ffffff)](https://zread.ai/xixu-me/Xget)  
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/xixu-me/Xget)  
 
 [![Chromium 扩展](https://img.shields.io/badge/Chromium%20扩展-4285F4?logo=googlechrome&logoColor=white)](#-生态系统集成)
@@ -61,9 +61,9 @@
 
 ## 🎯 快速使用
 
-**预部署实例（不保证可靠性）：`proxies.pp.ua`** - 开箱即用，无需部署！
+**预部署实例（不保证可靠性）：`xget.pp.ua`** - 开箱即用，无需部署！
 
-**URL 转换器：**[**`proxies.pp.ua`**](https://proxies.pp.ua) - 一键转换任意支持平台的 URL 为 Xget 的加速格式！
+**URL 转换器：**[**`xget.pp.ua`**](https://xget.pp.ua) - 一键转换任意支持平台的 URL 为 Xget 的加速格式！
 
 > **⚡ 立即体验极速下载**：无需注册，无需配置，直接使用即可感受飞一般的下载速度！
 
@@ -141,44 +141,44 @@
 
 ## 📖 URL 转换规则
 
-使用预部署实例 **`proxies.pp.ua`或`xget.proxies.ip-ddns.com`或`xget.proxys.ip-ddns.com`或`xget.proxies.codelib.re`或`xget.proxys.codelib.re`** 或你自己部署的实例，只需简单替换域名并添加平台前缀：
+使用预部署实例 **`xget.pp.ua`或`xget.proxies.ip-ddns.com`或`xget.proxys.ip-ddns.com`或`xget.proxies.codelib.re`或`xget.proxys.codelib.re`** 或你自己部署的实例，只需简单替换域名并添加平台前缀：
 ### 转换格式
 
 | 平台 | 平台前缀 | 原始 URL 格式 | 加速 URL 格式 |
 |------|----------|--------------|--------------|
-| GitHub | `gh` | `https://github.com/...` | `https://proxies.pp.ua/gh/...` |
-| GitHub Gist | `gist` | `https://gist.github.com/...` | `https://proxies.pp.ua/gist/...` |
-| GitLab | `gl` | `https://gitlab.com/...` | `https://proxies.pp.ua/gl/...` |
-| Gitea | `gitea` | `https://gitea.com/...` | `https://proxies.pp.ua/gitea/...` |
-| Codeberg | `codeberg` | `https://codeberg.org/...` | `https://proxies.pp.ua/codeberg/...` |
-| SourceForge | `sf` | `https://sourceforge.net/...` | `https://proxies.pp.ua/sf/...` |
-| AOSP | `aosp` | `https://android.googlesource.com/...` | `https://proxies.pp.ua/aosp/...` |  
-| Hugging Face | `hf` | `https://huggingface.co/...` | `https://proxies.pp.ua/hf/...` |
-| Civitai | `civitai` | `https://civitai.com/...` | `https://proxies.pp.ua/civitai/...` |
-| npm | `npm` | `https://registry.npmjs.org/...` | `https://proxies.pp.ua/npm/...` |
-| PyPI | `pypi` | `https://pypi.org/...` | `https://proxies.pp.ua/pypi/...` |
-| conda | `conda` | `https://repo.anaconda.com/...` 和 `https://conda.anaconda.org/...` | `https://proxies.pp.ua/conda/...` 和 `https://proxies.pp.ua/conda/community/...` |
-| Maven | `maven` | `https://repo1.maven.org/...` | `https://proxies.pp.ua/maven/...` |
-| Apache | `apache` | `https://downloads.apache.org/...` | `https://proxies.pp.ua/apache/...` |
-| Gradle | `gradle` | `https://plugins.gradle.org/...` | `https://proxies.pp.ua/gradle/...` |
-| Homebrew | `homebrew` | `https://github.com/Homebrew/...` | `https://proxies.pp.ua/homebrew/...` |
-| RubyGems | `rubygems` | `https://rubygems.org/...` | `https://proxies.pp.ua/rubygems/...` |
-| CRAN | `cran` | `https://cran.r-project.org/...` | `https://proxies.pp.ua/cran/...` |
-| CPAN | `cpan` | `https://www.cpan.org/...` | `https://proxies.pp.ua/cpan/...` |
-| CTAN | `ctan` | `https://tug.ctan.org/...` | `https://proxies.pp.ua/ctan/...` |
-| Go 模块 | `golang` | `https://proxy.golang.org/...` | `https://proxies.pp.ua/golang/...` |
-| NuGet | `nuget` | `https://api.nuget.org/...` | `https://proxies.pp.ua/nuget/...` |
-| Rust Crates | `crates` | `https://crates.io/...` | `https://proxies.pp.ua/crates/...` |
-| Packagist | `packagist` | `https://repo.packagist.org/...` | `https://proxies.pp.ua/packagist/...` |
-| Debian | `debian` | `https://deb.debian.org/...` | `https://proxies.pp.ua/debian/...` |
-| Ubuntu | `ubuntu` | `https://archive.ubuntu.com/...` | `https://proxies.pp.ua/ubuntu/...` |
-| Fedora | `fedora` | `https://dl.fedoraproject.org/...` | `https://proxies.pp.ua/fedora/...` |
-| Rocky Linux | `rocky` | `https://download.rockylinux.org/...` | `https://proxies.pp.ua/rocky/...` |
-| openSUSE | `opensuse` | `https://download.opensuse.org/...` | `https://proxies.pp.ua/opensuse/...` |
-| Arch Linux | `arch` | `https://geo.mirror.pkgbuild.com/...` | `https://proxies.pp.ua/arch/...` |
-| arXiv | `arxiv` | `https://arxiv.org/...` | `https://proxies.pp.ua/arxiv/...` |
-| F-Droid | `fdroid` | `https://f-droid.org/...` | `https://proxies.pp.ua/fdroid/...` |
-| Jenkins 插件 | `jenkins` | `https://updates.jenkins.io/...` | `https://proxies.pp.ua/jenkins/...` |
+| GitHub | `gh` | `https://github.com/...` | `https://xget.pp.ua/gh/...` |
+| GitHub Gist | `gist` | `https://gist.github.com/...` | `https://xget.pp.ua/gist/...` |
+| GitLab | `gl` | `https://gitlab.com/...` | `https://xget.pp.ua/gl/...` |
+| Gitea | `gitea` | `https://gitea.com/...` | `https://xget.pp.ua/gitea/...` |
+| Codeberg | `codeberg` | `https://codeberg.org/...` | `https://xget.pp.ua/codeberg/...` |
+| SourceForge | `sf` | `https://sourceforge.net/...` | `https://xget.pp.ua/sf/...` |
+| AOSP | `aosp` | `https://android.googlesource.com/...` | `https://xget.pp.ua/aosp/...` |  
+| Hugging Face | `hf` | `https://huggingface.co/...` | `https://xget.pp.ua/hf/...` |
+| Civitai | `civitai` | `https://civitai.com/...` | `https://xget.pp.ua/civitai/...` |
+| npm | `npm` | `https://registry.npmjs.org/...` | `https://xget.pp.ua/npm/...` |
+| PyPI | `pypi` | `https://pypi.org/...` | `https://xget.pp.ua/pypi/...` |
+| conda | `conda` | `https://repo.anaconda.com/...` 和 `https://conda.anaconda.org/...` | `https://xget.pp.ua/conda/...` 和 `https://xget.pp.ua/conda/community/...` |
+| Maven | `maven` | `https://repo1.maven.org/...` | `https://xget.pp.ua/maven/...` |
+| Apache | `apache` | `https://downloads.apache.org/...` | `https://xget.pp.ua/apache/...` |
+| Gradle | `gradle` | `https://plugins.gradle.org/...` | `https://xget.pp.ua/gradle/...` |
+| Homebrew | `homebrew` | `https://github.com/Homebrew/...` | `https://xget.pp.ua/homebrew/...` |
+| RubyGems | `rubygems` | `https://rubygems.org/...` | `https://xget.pp.ua/rubygems/...` |
+| CRAN | `cran` | `https://cran.r-project.org/...` | `https://xget.pp.ua/cran/...` |
+| CPAN | `cpan` | `https://www.cpan.org/...` | `https://xget.pp.ua/cpan/...` |
+| CTAN | `ctan` | `https://tug.ctan.org/...` | `https://xget.pp.ua/ctan/...` |
+| Go 模块 | `golang` | `https://proxy.golang.org/...` | `https://xget.pp.ua/golang/...` |
+| NuGet | `nuget` | `https://api.nuget.org/...` | `https://xget.pp.ua/nuget/...` |
+| Rust Crates | `crates` | `https://crates.io/...` | `https://xget.pp.ua/crates/...` |
+| Packagist | `packagist` | `https://repo.packagist.org/...` | `https://xget.pp.ua/packagist/...` |
+| Debian | `debian` | `https://deb.debian.org/...` | `https://xget.pp.ua/debian/...` |
+| Ubuntu | `ubuntu` | `https://archive.ubuntu.com/...` | `https://xget.pp.ua/ubuntu/...` |
+| Fedora | `fedora` | `https://dl.fedoraproject.org/...` | `https://xget.pp.ua/fedora/...` |
+| Rocky Linux | `rocky` | `https://download.rockylinux.org/...` | `https://xget.pp.ua/rocky/...` |
+| openSUSE | `opensuse` | `https://download.opensuse.org/...` | `https://xget.pp.ua/opensuse/...` |
+| Arch Linux | `arch` | `https://geo.mirror.pkgbuild.com/...` | `https://xget.pp.ua/arch/...` |
+| arXiv | `arxiv` | `https://arxiv.org/...` | `https://xget.pp.ua/arxiv/...` |
+| F-Droid | `fdroid` | `https://f-droid.org/...` | `https://xget.pp.ua/fdroid/...` |
+| Jenkins 插件 | `jenkins` | `https://updates.jenkins.io/...` | `https://xget.pp.ua/jenkins/...` |
 | AI 推理提供商 | `ip` | 见 [AI 推理提供商](#ai-推理提供商) | 见 [AI 推理提供商](#ai-推理提供商) |
 | 容器注册表 | `cr` | 见[容器注册表](#容器注册表) | 见[容器注册表](#容器注册表) |  
 
@@ -191,7 +191,7 @@
 https://github.com/microsoft/vscode/archive/refs/heads/main.zip  
 
 # 转换后（添加 gh 前缀）
-https://proxies.pp.ua/gh/microsoft/vscode/archive/refs/heads/main.zip
+https://xget.pp.ua/gh/microsoft/vscode/archive/refs/heads/main.zip
 ```  
 
 #### GitHub Gist  
@@ -201,7 +201,7 @@ https://proxies.pp.ua/gh/microsoft/vscode/archive/refs/heads/main.zip
 https://gist.github.com/xixu-me/e2ea9db6b1f143892495f796fef18631/raw/3b8807172ee492d0da3a7e370b0fb88fc97b53e6/Free-ChatGPT-Paid-Plan.md  
 
 # 转换后（添加 gist 前缀）
-https://proxies.pp.ua/gist/xixu-me/e2ea9db6b1f143892495f796fef18631/raw/3b8807172ee492d0da3a7e370b0fb88fc97b53e6/Free-ChatGPT-Paid-Plan.md
+https://xget.pp.ua/gist/xixu-me/e2ea9db6b1f143892495f796fef18631/raw/3b8807172ee492d0da3a7e370b0fb88fc97b53e6/Free-ChatGPT-Paid-Plan.md
 ```  
 
 #### GitLab  
@@ -211,7 +211,7 @@ https://proxies.pp.ua/gist/xixu-me/e2ea9db6b1f143892495f796fef18631/raw/3b880717
 https://gitlab.com/gitlab-org/gitlab/-/archive/master/gitlab-master.zip  
 
 # 转换后（添加 gl 前缀）
-https://proxies.pp.ua/gl/gitlab-org/gitlab/-/archive/master/gitlab-master.zip
+https://xget.pp.ua/gl/gitlab-org/gitlab/-/archive/master/gitlab-master.zip
 ```  
 
 #### Gitea  
@@ -221,7 +221,7 @@ https://proxies.pp.ua/gl/gitlab-org/gitlab/-/archive/master/gitlab-master.zip
 https://gitea.com/gitea/gitea/archive/master.zip  
 
 # 转换后（添加 gitea 前缀）
-https://proxies.pp.ua/gitea/gitea/gitea/archive/master.zip
+https://xget.pp.ua/gitea/gitea/gitea/archive/master.zip
 ```  
 
 #### Codeberg  
@@ -231,7 +231,7 @@ https://proxies.pp.ua/gitea/gitea/gitea/archive/master.zip
 https://codeberg.org/forgejo/forgejo/archive/forgejo.zip  
 
 # 转换后（添加 codeberg 前缀）
-https://proxies.pp.ua/codeberg/forgejo/forgejo/archive/forgejo.zip
+https://xget.pp.ua/codeberg/forgejo/forgejo/archive/forgejo.zip
 ```  
 
 #### SourceForge  
@@ -241,7 +241,7 @@ https://proxies.pp.ua/codeberg/forgejo/forgejo/archive/forgejo.zip
 https://sourceforge.net/projects/sevenzip/files/7-Zip/23.01/7z2301-x64.exe/download  
 
 # 转换后（添加 sf 前缀）
-https://proxies.pp.ua/sf/projects/sevenzip/files/7-Zip/23.01/7z2301-x64.exe/download
+https://xget.pp.ua/sf/projects/sevenzip/files/7-Zip/23.01/7z2301-x64.exe/download
 ```  
 
 #### AOSP (Android 开源项目)
@@ -251,13 +251,13 @@ https://proxies.pp.ua/sf/projects/sevenzip/files/7-Zip/23.01/7z2301-x64.exe/down
 https://android.googlesource.com/platform/frameworks/base  
 
 # 转换后（添加 aosp 前缀）
-https://proxies.pp.ua/aosp/platform/frameworks/base  
+https://xget.pp.ua/aosp/platform/frameworks/base  
 
 # AOSP 设备树原始 URL
 https://android.googlesource.com/device/google/pixel  
 
 # 转换后（添加 aosp 前缀）
-https://proxies.pp.ua/aosp/device/google/pixel
+https://xget.pp.ua/aosp/device/google/pixel
 ```  
 
 #### Hugging Face  
@@ -267,13 +267,13 @@ https://proxies.pp.ua/aosp/device/google/pixel
 https://huggingface.co/microsoft/DialoGPT-medium/resolve/main/pytorch_model.bin  
 
 # 转换后（添加 hf 前缀）
-https://proxies.pp.ua/hf/microsoft/DialoGPT-medium/resolve/main/pytorch_model.bin  
+https://xget.pp.ua/hf/microsoft/DialoGPT-medium/resolve/main/pytorch_model.bin  
 
 # 数据集文件原始 URL
 https://huggingface.co/datasets/rajpurkar/squad/resolve/main/plain_text/train-00000-of-00001.parquet  
 
 # 转换后（添加 hf 前缀）
-https://proxies.pp.ua/hf/datasets/rajpurkar/squad/resolve/main/plain_text/train-00000-of-00001.parquet
+https://xget.pp.ua/hf/datasets/rajpurkar/squad/resolve/main/plain_text/train-00000-of-00001.parquet
 ```  
 
 #### Civitai  
@@ -283,19 +283,19 @@ https://proxies.pp.ua/hf/datasets/rajpurkar/squad/resolve/main/plain_text/train-
 https://civitai.com/api/download/models/128713  
 
 # 转换后（添加 civitai 前缀）
-https://proxies.pp.ua/civitai/api/download/models/128713  
+https://xget.pp.ua/civitai/api/download/models/128713  
 
 # 模型 API 原始 URL
 https://civitai.com/api/v1/models/7240  
 
 # 转换后（添加 civitai 前缀）
-https://proxies.pp.ua/civitai/api/v1/models/7240  
+https://xget.pp.ua/civitai/api/v1/models/7240  
 
 # 模型版本 API 原始 URL
 https://civitai.com/api/v1/model-versions/128713  
 
 # 转换后（添加 civitai 前缀）
-https://proxies.pp.ua/civitai/api/v1/model-versions/128713
+https://xget.pp.ua/civitai/api/v1/model-versions/128713
 ```  
 
 #### npm  
@@ -305,13 +305,13 @@ https://proxies.pp.ua/civitai/api/v1/model-versions/128713
 https://registry.npmjs.org/react/-/react-18.2.0.tgz  
 
 # 转换后（添加 npm 前缀）
-https://proxies.pp.ua/npm/react/-/react-18.2.0.tgz  
+https://xget.pp.ua/npm/react/-/react-18.2.0.tgz  
 
 # 包元数据原始 URL
 https://registry.npmjs.org/lodash  
 
 # 转换后（添加 npm 前缀）
-https://proxies.pp.ua/npm/lodash
+https://xget.pp.ua/npm/lodash
 ```  
 
 #### PyPI  
@@ -321,13 +321,13 @@ https://proxies.pp.ua/npm/lodash
 https://pypi.org/packages/source/r/requests/requests-2.31.0.tar.gz  
 
 # 转换后（添加 pypi 前缀）
-https://proxies.pp.ua/pypi/packages/source/r/requests/requests-2.31.0.tar.gz  
+https://xget.pp.ua/pypi/packages/source/r/requests/requests-2.31.0.tar.gz  
 
 # Wheel 文件原始 URL
 https://pypi.org/packages/py3/r/requests/requests-2.31.0-py3-none-any.whl  
 
 # 转换后（添加 pypi 前缀）
-https://proxies.pp.ua/pypi/packages/py3/r/requests/requests-2.31.0-py3-none-any.whl
+https://xget.pp.ua/pypi/packages/py3/r/requests/requests-2.31.0-py3-none-any.whl
 ```  
 
 #### conda  
@@ -337,13 +337,13 @@ https://proxies.pp.ua/pypi/packages/py3/r/requests/requests-2.31.0-py3-none-any.
 https://repo.anaconda.com/pkgs/main/linux-64/numpy-1.24.3-py311h08b1b3b_1.conda  
 
 # 转换后（添加 conda 前缀）
-https://proxies.pp.ua/conda/pkgs/main/linux-64/numpy-1.24.3-py311h08b1b3b_1.conda  
+https://xget.pp.ua/conda/pkgs/main/linux-64/numpy-1.24.3-py311h08b1b3b_1.conda  
 
 # 社区频道元数据原始 URL
 https://conda.anaconda.org/conda-forge/linux-64/repodata.json  
 
 # 转换后（添加 conda/community 前缀）
-https://proxies.pp.ua/conda/community/conda-forge/linux-64/repodata.json
+https://xget.pp.ua/conda/community/conda-forge/linux-64/repodata.json
 ```  
 
 #### Maven  
@@ -353,13 +353,13 @@ https://proxies.pp.ua/conda/community/conda-forge/linux-64/repodata.json
 https://repo1.maven.org/maven2/org/springframework/spring-core/5.3.21/spring-core-5.3.21.jar  
 
 # 转换后（添加 maven 前缀）
-https://proxies.pp.ua/maven/maven2/org/springframework/spring-core/5.3.21/spring-core-5.3.21.jar  
+https://xget.pp.ua/maven/maven2/org/springframework/spring-core/5.3.21/spring-core-5.3.21.jar  
 
 # Maven 元数据原始 URL
 https://repo1.maven.org/maven2/org/apache/commons/commons-lang3/maven-metadata.xml  
 
 # 转换后（添加 maven 前缀）
-https://proxies.pp.ua/maven/maven2/org/apache/commons/commons-lang3/maven-metadata.xml
+https://xget.pp.ua/maven/maven2/org/apache/commons/commons-lang3/maven-metadata.xml
 ```  
 
 #### Apache 软件下载
@@ -369,19 +369,19 @@ https://proxies.pp.ua/maven/maven2/org/apache/commons/commons-lang3/maven-metada
 https://downloads.apache.org/kafka/3.6.1/kafka_2.13-3.6.1.tgz  
 
 # 转换后（添加 apache 前缀）
-https://proxies.pp.ua/apache/kafka/3.6.1/kafka_2.13-3.6.1.tgz  
+https://xget.pp.ua/apache/kafka/3.6.1/kafka_2.13-3.6.1.tgz  
 
 # Apache Maven 下载原始 URL
 https://downloads.apache.org/maven/maven-3/3.9.5/binaries/apache-maven-3.9.5-bin.tar.gz  
 
 # 转换后（添加 apache 前缀）
-https://proxies.pp.ua/apache/maven/maven-3/3.9.5/binaries/apache-maven-3.9.5-bin.tar.gz  
+https://xget.pp.ua/apache/maven/maven-3/3.9.5/binaries/apache-maven-3.9.5-bin.tar.gz  
 
 # Apache Spark 下载原始 URL
 https://downloads.apache.org/spark/spark-3.5.0/spark-3.5.0-bin-hadoop3.tgz  
 
 # 转换后（添加 apache 前缀）
-https://proxies.pp.ua/apache/spark/spark-3.5.0/spark-3.5.0-bin-hadoop3.tgz
+https://xget.pp.ua/apache/spark/spark-3.5.0/spark-3.5.0-bin-hadoop3.tgz
 ```  
 
 #### Gradle  
@@ -391,13 +391,13 @@ https://proxies.pp.ua/apache/spark/spark-3.5.0/spark-3.5.0-bin-hadoop3.tgz
 https://plugins.gradle.org/m2/org/gradle/gradle-hello-world-plugin/0.2/gradle-hello-world-plugin-0.2.jar  
 
 # 转换后（添加 gradle 前缀）
-https://proxies.pp.ua/gradle/m2/org/gradle/gradle-hello-world-plugin/0.2/gradle-hello-world-plugin-0.2.jar  
+https://xget.pp.ua/gradle/m2/org/gradle/gradle-hello-world-plugin/0.2/gradle-hello-world-plugin-0.2.jar  
 
 # Gradle 插件元数据原始 URL
 https://plugins.gradle.org/m2/com/github/ben-manes/gradle-versions-plugin/0.51.0/gradle-versions-plugin-0.51.0.module  
 
 # 转换后（添加 gradle 前缀）
-https://proxies.pp.ua/gradle/m2/com/github/ben-manes/gradle-versions-plugin/0.51.0/gradle-versions-plugin-0.51.0.module
+https://xget.pp.ua/gradle/m2/com/github/ben-manes/gradle-versions-plugin/0.51.0/gradle-versions-plugin-0.51.0.module
 ```  
 
 #### Homebrew  
@@ -407,19 +407,19 @@ https://proxies.pp.ua/gradle/m2/com/github/ben-manes/gradle-versions-plugin/0.51
 https://github.com/Homebrew/homebrew-core/raw/HEAD/Formula/g/git.rb  
 
 # 转换后（添加 homebrew 前缀）
-https://proxies.pp.ua/homebrew/homebrew-core/raw/HEAD/Formula/g/git.rb  
+https://xget.pp.ua/homebrew/homebrew-core/raw/HEAD/Formula/g/git.rb  
 
 # Homebrew API 原始 URL
 https://formulae.brew.sh/api/formula/git.json  
 
 # 转换后（添加 homebrew/api 前缀）
-https://proxies.pp.ua/homebrew/api/formula/git.json  
+https://xget.pp.ua/homebrew/api/formula/git.json  
 
 # Homebrew Bottles 原始 URL
 https://ghcr.io/v2/homebrew/core/git/manifests/2.39.0  
 
 # 转换后（添加 homebrew/bottles 前缀）
-https://proxies.pp.ua/homebrew/bottles/v2/homebrew/core/git/manifests/2.39.0
+https://xget.pp.ua/homebrew/bottles/v2/homebrew/core/git/manifests/2.39.0
 ```  
 
 #### RubyGems  
@@ -429,13 +429,13 @@ https://proxies.pp.ua/homebrew/bottles/v2/homebrew/core/git/manifests/2.39.0
 https://rubygems.org/gems/rails-7.0.4.gem  
 
 # 转换后（添加 rubygems 前缀）
-https://proxies.pp.ua/rubygems/gems/rails-7.0.4.gem  
+https://xget.pp.ua/rubygems/gems/rails-7.0.4.gem  
 
 # RubyGems API 原始 URL
 https://rubygems.org/api/v1/gems/nokogiri.json  
 
 # 转换后（添加 rubygems 前缀）
-https://proxies.pp.ua/rubygems/api/v1/gems/nokogiri.json
+https://xget.pp.ua/rubygems/api/v1/gems/nokogiri.json
 ```  
 
 #### CRAN  
@@ -445,13 +445,13 @@ https://proxies.pp.ua/rubygems/api/v1/gems/nokogiri.json
 https://cran.r-project.org/src/contrib/ggplot2_3.5.2.tar.gz  
 
 # 转换后（添加 cran 前缀）
-https://proxies.pp.ua/cran/src/contrib/ggplot2_3.5.2.tar.gz  
+https://xget.pp.ua/cran/src/contrib/ggplot2_3.5.2.tar.gz  
 
 # CRAN 包元数据原始 URL
 https://cran.r-project.org/web/packages/dplyr/DESCRIPTION  
 
 # 转换后（添加 cran 前缀）
-https://proxies.pp.ua/cran/web/packages/dplyr/DESCRIPTION
+https://xget.pp.ua/cran/web/packages/dplyr/DESCRIPTION
 ```  
 
 #### CPAN (Perl 包管理)
@@ -461,13 +461,13 @@ https://proxies.pp.ua/cran/web/packages/dplyr/DESCRIPTION
 https://www.cpan.org/modules/by-module/DBI/DBI-1.643.tar.gz  
 
 # 转换后（添加 cpan 前缀）
-https://proxies.pp.ua/cpan/modules/by-module/DBI/DBI-1.643.tar.gz  
+https://xget.pp.ua/cpan/modules/by-module/DBI/DBI-1.643.tar.gz  
 
 # CPAN 作者包原始 URL
 https://www.cpan.org/authors/id/T/TI/TIMB/DBI-1.643.tar.gz  
 
 # 转换后（添加 cpan 前缀）
-https://proxies.pp.ua/cpan/authors/id/T/TI/TIMB/DBI-1.643.tar.gz
+https://xget.pp.ua/cpan/authors/id/T/TI/TIMB/DBI-1.643.tar.gz
 ```  
 
 #### CTAN (TeX/LaTeX 包管理)  
@@ -477,13 +477,13 @@ https://proxies.pp.ua/cpan/authors/id/T/TI/TIMB/DBI-1.643.tar.gz
 https://tug.ctan.org/tex-archive/macros/latex/contrib/beamer.zip  
 
 # 转换后（添加 ctan 前缀）
-https://proxies.pp.ua/ctan/tex-archive/macros/latex/contrib/beamer.zip  
+https://xget.pp.ua/ctan/tex-archive/macros/latex/contrib/beamer.zip  
 
 # CTAN 字体文件原始 URL
 https://tug.ctan.org/tex-archive/fonts/cm/pk/ljfour/public/cm/dpi600/cmr10.pk  
 
 # 转换后（添加 ctan 前缀）
-https://proxies.pp.ua/ctan/tex-archive/fonts/cm/pk/ljfour/public/cm/dpi600/cmr10.pk
+https://xget.pp.ua/ctan/tex-archive/fonts/cm/pk/ljfour/public/cm/dpi600/cmr10.pk
 ```  
 
 #### Go 模块
@@ -493,13 +493,13 @@ https://proxies.pp.ua/ctan/tex-archive/fonts/cm/pk/ljfour/public/cm/dpi600/cmr10
 https://proxy.golang.org/github.com/gin-gonic/gin/@v/v1.9.1.zip  
 
 # 转换后（添加 golang 前缀）
-https://proxies.pp.ua/golang/github.com/gin-gonic/gin/@v/v1.9.1.zip  
+https://xget.pp.ua/golang/github.com/gin-gonic/gin/@v/v1.9.1.zip  
 
 # Go 模块信息原始 URL
 https://proxy.golang.org/github.com/gorilla/mux/@v/list  
 
 # 转换后（添加 golang 前缀）
-https://proxies.pp.ua/golang/github.com/gorilla/mux/@v/list
+https://xget.pp.ua/golang/github.com/gorilla/mux/@v/list
 ```  
 
 #### NuGet  
@@ -509,13 +509,13 @@ https://proxies.pp.ua/golang/github.com/gorilla/mux/@v/list
 https://api.nuget.org/v3-flatcontainer/newtonsoft.json/13.0.3/newtonsoft.json.13.0.3.nupkg  
 
 # 转换后（添加 nuget 前缀）
-https://proxies.pp.ua/nuget/v3-flatcontainer/newtonsoft.json/13.0.3/newtonsoft.json.13.0.3.nupkg  
+https://xget.pp.ua/nuget/v3-flatcontainer/newtonsoft.json/13.0.3/newtonsoft.json.13.0.3.nupkg  
 
 # NuGet 包元数据原始 URL
 https://api.nuget.org/v3/registration5-semver1/microsoft.aspnetcore.app/index.json  
 
 # 转换后（添加 nuget 前缀）
-https://proxies.pp.ua/nuget/v3/registration5-semver1/microsoft.aspnetcore.app/index.json
+https://xget.pp.ua/nuget/v3/registration5-semver1/microsoft.aspnetcore.app/index.json
 ```  
 
 #### Rust Crates  
@@ -525,19 +525,19 @@ https://proxies.pp.ua/nuget/v3/registration5-semver1/microsoft.aspnetcore.app/in
 https://crates.io/api/v1/crates/serde/1.0.0/download  
 
 # 转换后（添加 crates 前缀）
-https://proxies.pp.ua/crates/serde/1.0.0/download  
+https://xget.pp.ua/crates/serde/1.0.0/download  
 
 # Crate 元数据原始 URL
 https://crates.io/api/v1/crates/serde  
 
 # 转换后（添加 crates 前缀）
-https://proxies.pp.ua/crates/serde  
+https://xget.pp.ua/crates/serde  
 
 # Crate 搜索原始 URL
 https://crates.io/api/v1/crates?q=serde  
 
 # 转换后（添加 crates 前缀）
-https://proxies.pp.ua/crates/?q=serde
+https://xget.pp.ua/crates/?q=serde
 ```  
 
 #### Packagist  
@@ -547,13 +547,13 @@ https://proxies.pp.ua/crates/?q=serde
 https://repo.packagist.org/p2/symfony/console.json  
 
 # 转换后（添加 packagist 前缀）
-https://proxies.pp.ua/packagist/p2/symfony/console.json  
+https://xget.pp.ua/packagist/p2/symfony/console.json  
 
 # Packagist 包列表原始 URL
 https://repo.packagist.org/packages/list.json  
 
 # 转换后（添加 packagist 前缀）
-https://proxies.pp.ua/packagist/packages/list.json
+https://xget.pp.ua/packagist/packages/list.json
 ```  
 
 #### Linux 发行版
@@ -563,37 +563,37 @@ https://proxies.pp.ua/packagist/packages/list.json
 https://deb.debian.org/debian/pool/main/c/curl/curl_7.88.1-10+deb12u4_amd64.deb  
 
 # 转换后（添加 debian 前缀）
-https://proxies.pp.ua/debian/debian/pool/main/c/curl/curl_7.88.1-10+deb12u4_amd64.deb  
+https://xget.pp.ua/debian/debian/pool/main/c/curl/curl_7.88.1-10+deb12u4_amd64.deb  
 
 # Ubuntu 包原始 URL
 https://archive.ubuntu.com/ubuntu/pool/main/g/git/git_2.34.1-1ubuntu1.9_amd64.deb  
 
 # 转换后（添加 ubuntu 前缀）
-https://proxies.pp.ua/ubuntu/ubuntu/pool/main/g/git/git_2.34.1-1ubuntu1.9_amd64.deb  
+https://xget.pp.ua/ubuntu/ubuntu/pool/main/g/git/git_2.34.1-1ubuntu1.9_amd64.deb  
 
 # Fedora 包原始 URL
 https://dl.fedoraproject.org/pub/fedora/linux/releases/39/Everything/x86_64/os/Packages/n/nginx-1.24.0-1.fc39.x86_64.rpm  
 
 # 转换后（添加 fedora 前缀）
-https://proxies.pp.ua/fedora/pub/fedora/linux/releases/39/Everything/x86_64/os/Packages/n/nginx-1.24.0-1.fc39.x86_64.rpm  
+https://xget.pp.ua/fedora/pub/fedora/linux/releases/39/Everything/x86_64/os/Packages/n/nginx-1.24.0-1.fc39.x86_64.rpm  
 
 # Rocky Linux 包原始 URL
 https://download.rockylinux.org/pub/rocky/9/BaseOS/x86_64/os/Packages/b/bash-5.1.8-6.el9.x86_64.rpm  
 
 # 转换后（添加 rocky 前缀）
-https://proxies.pp.ua/rocky/pub/rocky/9/BaseOS/x86_64/os/Packages/b/bash-5.1.8-6.el9.x86_64.rpm  
+https://xget.pp.ua/rocky/pub/rocky/9/BaseOS/x86_64/os/Packages/b/bash-5.1.8-6.el9.x86_64.rpm  
 
 # openSUSE 包原始 URL
 https://download.opensuse.org/distribution/leap/15.5/repo/oss/x86_64/vim-9.0.1572-150500.20.8.1.x86_64.rpm  
 
 # 转换后（添加 opensuse 前缀）
-https://proxies.pp.ua/opensuse/distribution/leap/15.5/repo/oss/x86_64/vim-9.0.1572-150500.20.8.1.x86_64.rpm  
+https://xget.pp.ua/opensuse/distribution/leap/15.5/repo/oss/x86_64/vim-9.0.1572-150500.20.8.1.x86_64.rpm  
 
 # Arch Linux 包原始 URL
 https://geo.mirror.pkgbuild.com/core/os/x86_64/linux-6.6.10.arch1-1-x86_64.pkg.tar.zst  
 
 # 转换后（添加 arch 前缀）
-https://proxies.pp.ua/arch/core/os/x86_64/linux-6.6.10.arch1-1-x86_64.pkg.tar.zst
+https://xget.pp.ua/arch/core/os/x86_64/linux-6.6.10.arch1-1-x86_64.pkg.tar.zst
 ```  
 
 #### arXiv  
@@ -603,13 +603,13 @@ https://proxies.pp.ua/arch/core/os/x86_64/linux-6.6.10.arch1-1-x86_64.pkg.tar.zs
 https://arxiv.org/pdf/2301.07041.pdf  
 
 # 转换后（添加 arxiv 前缀）
-https://proxies.pp.ua/arxiv/pdf/2301.07041.pdf  
+https://xget.pp.ua/arxiv/pdf/2301.07041.pdf  
 
 # arXiv 论文源码原始 URL
 https://arxiv.org/e-print/2301.07041  
 
 # 转换后（添加 arxiv 前缀）
-https://proxies.pp.ua/arxiv/e-print/2301.07041
+https://xget.pp.ua/arxiv/e-print/2301.07041
 ```  
 
 #### F-Droid  
@@ -619,13 +619,13 @@ https://proxies.pp.ua/arxiv/e-print/2301.07041
 https://f-droid.org/repo/org.fdroid.fdroid_1016050.apk  
 
 # 转换后（添加 fdroid 前缀）
-https://proxies.pp.ua/fdroid/repo/org.fdroid.fdroid_1016050.apk  
+https://xget.pp.ua/fdroid/repo/org.fdroid.fdroid_1016050.apk  
 
 # F-Droid 应用元数据原始 URL
 https://f-droid.org/api/v1/packages/org.fdroid.fdroid  
 
 # 转换后（添加 fdroid 前缀）
-https://proxies.pp.ua/fdroid/api/v1/packages/org.fdroid.fdroid
+https://xget.pp.ua/fdroid/api/v1/packages/org.fdroid.fdroid
 ```  
 
 #### Jenkins 插件
@@ -635,13 +635,13 @@ https://proxies.pp.ua/fdroid/api/v1/packages/org.fdroid.fdroid
 https://updates.jenkins.io/update-center.json  
 
 # 转换后（添加 jenkins 前缀）
-https://proxies.pp.ua/jenkins/update-center.json  
+https://xget.pp.ua/jenkins/update-center.json  
 
 # Jenkins 插件下载原始 URL
 https://updates.jenkins.io/download/plugins/maven-plugin/3.27/maven-plugin.hpi  
 
 # 转换后（添加 jenkins 前缀）
-https://proxies.pp.ua/jenkins/download/plugins/maven-plugin/3.27/maven-plugin.hpi
+https://xget.pp.ua/jenkins/download/plugins/maven-plugin/3.27/maven-plugin.hpi
 ```  
 
 #### AI 推理提供商
@@ -650,59 +650,59 @@ Xget 支持众多主流 AI 推理提供商的 API 加速，使用 `ip/[AI 推理
 
 | AI 推理提供商 | AI 推理提供商前缀 | 原始 URL 格式 | 加速 URL 格式 |
 |-------------|----------|-------------|-------------|
-| OpenAI | `openai` | `https://api.openai.com/...` | `https://proxies.pp.ua/ip/openai/...` |
-| Anthropic | `anthropic` | `https://api.anthropic.com/...` | `https://proxies.pp.ua/ip/anthropic/...` |
-| Gemini | `gemini` | `https://generativelanguage.googleapis.com/...` | `https://proxies.pp.ua/ip/gemini/...` |
-| Vertex AI | `vertexai` | `https://aiplatform.googleapis.com/...` | `https://proxies.pp.ua/ip/vertexai/...` |
-| Cohere | `cohere` | `https://api.cohere.ai/...` | `https://proxies.pp.ua/ip/cohere/...` |
-| Mistral AI | `mistralai` | `https://api.mistral.ai/...` | `https://proxies.pp.ua/ip/mistralai/...` |
-| xAI | `xai` | `https://api.x.ai/...` | `https://proxies.pp.ua/ip/xai/...` |
-| GitHub 模型 | `githubmodels` | `https://models.github.ai/...` | `https://proxies.pp.ua/ip/githubmodels/...` |
-| NVIDIA API | `nvidiaapi` | `https://integrate.api.nvidia.com/...` | `https://proxies.pp.ua/ip/nvidiaapi/...` |
-| Perplexity | `perplexity` | `https://api.perplexity.ai/...` | `https://proxies.pp.ua/ip/perplexity/...` |
-| Groq | `groq` | `https://api.groq.com/...` | `https://proxies.pp.ua/ip/groq/...` |
-| Cerebras | `cerebras` | `https://api.cerebras.ai/...` | `https://proxies.pp.ua/ip/cerebras/...` |
-| SambaNova | `sambanova` | `https://api.sambanova.ai/...` | `https://proxies.pp.ua/ip/sambanova/...` |
-| Siray | `siray` | `https://api.siray.ai/...` | `https://proxies.pp.ua/ip/siray/...` |
-| HF Inference | `huggingface` | `https://router.huggingface.co/...` | `https://proxies.pp.ua/ip/huggingface/...` |
-| Together | `together` | `https://api.together.xyz/...` | `https://proxies.pp.ua/ip/together/...` |
-| Replicate | `replicate` | `https://api.replicate.com/...` | `https://proxies.pp.ua/ip/replicate/...` |
-| Fireworks | `fireworks` | `https://api.fireworks.ai/...` | `https://proxies.pp.ua/ip/fireworks/...` |
-| Nebius | `nebius` | `https://api.studio.nebius.ai/...` | `https://proxies.pp.ua/ip/nebius/...` |
-| Jina | `jina` | `https://api.jina.ai/...` | `https://proxies.pp.ua/ip/jina/...` |
-| Voyage AI | `voyageai` | `https://api.voyageai.com/...` | `https://proxies.pp.ua/ip/voyageai/...` |
-| Fal AI | `falai` | `https://fal.run/...` | `https://proxies.pp.ua/ip/falai/...` |
-| Novita | `novita` | `https://api.novita.ai/...` | `https://proxies.pp.ua/ip/novita/...` |
-| Burncloud | `burncloud` | `https://ai.burncloud.com/...` | `https://proxies.pp.ua/ip/burncloud/...` |
-| OpenRouter | `openrouter` | `https://openrouter.ai/...` | `https://proxies.pp.ua/ip/openrouter/...` |
-| Poe | `poe` | `https://api.poe.com/...` | `https://proxies.pp.ua/ip/poe/...` |
-| Featherless AI | `featherlessai` | `https://api.featherless.ai/...` | `https://proxies.pp.ua/ip/featherlessai/...` |
-| Hyperbolic | `hyperbolic` | `https://api.hyperbolic.xyz/...` | `https://proxies.pp.ua/ip/hyperbolic/...` |  
+| OpenAI | `openai` | `https://api.openai.com/...` | `https://xget.pp.ua/ip/openai/...` |
+| Anthropic | `anthropic` | `https://api.anthropic.com/...` | `https://xget.pp.ua/ip/anthropic/...` |
+| Gemini | `gemini` | `https://generativelanguage.googleapis.com/...` | `https://xget.pp.ua/ip/gemini/...` |
+| Vertex AI | `vertexai` | `https://aiplatform.googleapis.com/...` | `https://xget.pp.ua/ip/vertexai/...` |
+| Cohere | `cohere` | `https://api.cohere.ai/...` | `https://xget.pp.ua/ip/cohere/...` |
+| Mistral AI | `mistralai` | `https://api.mistral.ai/...` | `https://xget.pp.ua/ip/mistralai/...` |
+| xAI | `xai` | `https://api.x.ai/...` | `https://xget.pp.ua/ip/xai/...` |
+| GitHub 模型 | `githubmodels` | `https://models.github.ai/...` | `https://xget.pp.ua/ip/githubmodels/...` |
+| NVIDIA API | `nvidiaapi` | `https://integrate.api.nvidia.com/...` | `https://xget.pp.ua/ip/nvidiaapi/...` |
+| Perplexity | `perplexity` | `https://api.perplexity.ai/...` | `https://xget.pp.ua/ip/perplexity/...` |
+| Groq | `groq` | `https://api.groq.com/...` | `https://xget.pp.ua/ip/groq/...` |
+| Cerebras | `cerebras` | `https://api.cerebras.ai/...` | `https://xget.pp.ua/ip/cerebras/...` |
+| SambaNova | `sambanova` | `https://api.sambanova.ai/...` | `https://xget.pp.ua/ip/sambanova/...` |
+| Siray | `siray` | `https://api.siray.ai/...` | `https://xget.pp.ua/ip/siray/...` |
+| HF Inference | `huggingface` | `https://router.huggingface.co/...` | `https://xget.pp.ua/ip/huggingface/...` |
+| Together | `together` | `https://api.together.xyz/...` | `https://xget.pp.ua/ip/together/...` |
+| Replicate | `replicate` | `https://api.replicate.com/...` | `https://xget.pp.ua/ip/replicate/...` |
+| Fireworks | `fireworks` | `https://api.fireworks.ai/...` | `https://xget.pp.ua/ip/fireworks/...` |
+| Nebius | `nebius` | `https://api.studio.nebius.ai/...` | `https://xget.pp.ua/ip/nebius/...` |
+| Jina | `jina` | `https://api.jina.ai/...` | `https://xget.pp.ua/ip/jina/...` |
+| Voyage AI | `voyageai` | `https://api.voyageai.com/...` | `https://xget.pp.ua/ip/voyageai/...` |
+| Fal AI | `falai` | `https://fal.run/...` | `https://xget.pp.ua/ip/falai/...` |
+| Novita | `novita` | `https://api.novita.ai/...` | `https://xget.pp.ua/ip/novita/...` |
+| Burncloud | `burncloud` | `https://ai.burncloud.com/...` | `https://xget.pp.ua/ip/burncloud/...` |
+| OpenRouter | `openrouter` | `https://openrouter.ai/...` | `https://xget.pp.ua/ip/openrouter/...` |
+| Poe | `poe` | `https://api.poe.com/...` | `https://xget.pp.ua/ip/poe/...` |
+| Featherless AI | `featherlessai` | `https://api.featherless.ai/...` | `https://xget.pp.ua/ip/featherlessai/...` |
+| Hyperbolic | `hyperbolic` | `https://api.hyperbolic.xyz/...` | `https://xget.pp.ua/ip/hyperbolic/...` |  
 
 ```url
 # OpenAI API 原始 URL
 https://api.openai.com/v1/chat/completions  
 
 # 转换后（添加 ip/openai 前缀）
-https://proxies.pp.ua/ip/openai/v1/chat/completions  
+https://xget.pp.ua/ip/openai/v1/chat/completions  
 
 # Anthropic API 原始 URL
 https://api.anthropic.com/v1/messages  
 
 # 转换后（添加 ip/anthropic 前缀）
-https://proxies.pp.ua/ip/anthropic/v1/messages  
+https://xget.pp.ua/ip/anthropic/v1/messages  
 
 # Gemini API 原始 URL
 https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent  
 
 # 转换后（添加 ip/gemini 前缀）
-https://proxies.pp.ua/ip/gemini/v1beta/models/gemini-2.5-flash:generateContent  
+https://xget.pp.ua/ip/gemini/v1beta/models/gemini-2.5-flash:generateContent  
 
 # HF Inference API 原始 URL
 https://router.huggingface.co/hf-inference/models/openai/whisper-large-v3  
 
 # 转换后（添加 ip/huggingface 前缀）
-https://proxies.pp.ua/ip/huggingface/hf-inference/models/openai/whisper-large-v3
+https://xget.pp.ua/ip/huggingface/hf-inference/models/openai/whisper-large-v3
 ```  
 
 应用场景见 [AI 推理 API 加速](#ai-推理-api-加速)。
@@ -713,48 +713,48 @@ Xget 支持多个容器注册表，使用 `cr/[容器注册表前缀]` 格式：
 
 | 容器注册表 | 容器注册表前缀 | 原始 URL 格式 | 加速 URL 格式 |
 |----------|------|--------------|--------------|
-| Docker Hub | `docker` | `https://registry-1.docker.io/...` | `https://proxies.pp.ua/cr/docker/...` |
-| Quay.io | `quay` | `https://quay.io/...` | `https://proxies.pp.ua/cr/quay/...` |
-| 谷歌容器注册表 | `gcr` | `https://gcr.io/...` | `https://proxies.pp.ua/cr/gcr/...` |
-| 微软容器注册表 | `mcr` | `https://mcr.microsoft.com/...` | `https://proxies.pp.ua/cr/mcr/...` |
-| 亚马逊公共弹性容器注册表 | `ecr` | `https://public.ecr.aws/...` | `https://proxies.pp.ua/cr/ecr/...` |
-| GitHub 容器注册表 | `ghcr` | `https://ghcr.io/...` | `https://proxies.pp.ua/cr/ghcr/...` |
-| GitLab 容器注册表 | `gitlab` | `https://registry.gitlab.com/...` | `https://proxies.pp.ua/cr/gitlab/...` |
-| 红帽注册表 | `redhat` | `https://registry.redhat.io/...` | `https://proxies.pp.ua/cr/redhat/...` |
-| 甲骨文容器注册表 | `oracle` | `https://container-registry.oracle.com/...` | `https://proxies.pp.ua/cr/oracle/...` |
-| Cloudsmith | `cloudsmith` | `https://docker.cloudsmith.io/...` | `https://proxies.pp.ua/cr/cloudsmith/...` |
-| DigitalOcean 注册表 | `digitalocean` | `https://registry.digitalocean.com/...` | `https://proxies.pp.ua/cr/digitalocean/...` |
-| VMware 注册表 | `vmware` | `https://projects.registry.vmware.com/...` | `https://proxies.pp.ua/cr/vmware/...` |
-| Kubernetes 注册表 | `k8s` | `https://registry.k8s.io/...` | `https://proxies.pp.ua/cr/k8s/...` |
-| Heroku 注册表 | `heroku` | `https://registry.heroku.com/...` | `https://proxies.pp.ua/cr/heroku/...` |
-| SUSE 注册表 | `suse` | `https://registry.suse.com/...` | `https://proxies.pp.ua/cr/suse/...` |
-| openSUSE 注册表 | `opensuse` | `https://registry.opensuse.org/...` | `https://proxies.pp.ua/cr/opensuse/...` |
-| Gitpod 注册表 | `gitpod` | `https://registry.gitpod.io/...` | `https://proxies.pp.ua/cr/gitpod/...` |  
+| Docker Hub | `docker` | `https://registry-1.docker.io/...` | `https://xget.pp.ua/cr/docker/...` |
+| Quay.io | `quay` | `https://quay.io/...` | `https://xget.pp.ua/cr/quay/...` |
+| 谷歌容器注册表 | `gcr` | `https://gcr.io/...` | `https://xget.pp.ua/cr/gcr/...` |
+| 微软容器注册表 | `mcr` | `https://mcr.microsoft.com/...` | `https://xget.pp.ua/cr/mcr/...` |
+| 亚马逊公共弹性容器注册表 | `ecr` | `https://public.ecr.aws/...` | `https://xget.pp.ua/cr/ecr/...` |
+| GitHub 容器注册表 | `ghcr` | `https://ghcr.io/...` | `https://xget.pp.ua/cr/ghcr/...` |
+| GitLab 容器注册表 | `gitlab` | `https://registry.gitlab.com/...` | `https://xget.pp.ua/cr/gitlab/...` |
+| 红帽注册表 | `redhat` | `https://registry.redhat.io/...` | `https://xget.pp.ua/cr/redhat/...` |
+| 甲骨文容器注册表 | `oracle` | `https://container-registry.oracle.com/...` | `https://xget.pp.ua/cr/oracle/...` |
+| Cloudsmith | `cloudsmith` | `https://docker.cloudsmith.io/...` | `https://xget.pp.ua/cr/cloudsmith/...` |
+| DigitalOcean 注册表 | `digitalocean` | `https://registry.digitalocean.com/...` | `https://xget.pp.ua/cr/digitalocean/...` |
+| VMware 注册表 | `vmware` | `https://projects.registry.vmware.com/...` | `https://xget.pp.ua/cr/vmware/...` |
+| Kubernetes 注册表 | `k8s` | `https://registry.k8s.io/...` | `https://xget.pp.ua/cr/k8s/...` |
+| Heroku 注册表 | `heroku` | `https://registry.heroku.com/...` | `https://xget.pp.ua/cr/heroku/...` |
+| SUSE 注册表 | `suse` | `https://registry.suse.com/...` | `https://xget.pp.ua/cr/suse/...` |
+| openSUSE 注册表 | `opensuse` | `https://registry.opensuse.org/...` | `https://xget.pp.ua/cr/opensuse/...` |
+| Gitpod 注册表 | `gitpod` | `https://registry.gitpod.io/...` | `https://xget.pp.ua/cr/gitpod/...` |  
 
 ```url
 # Docker Hub 原始 URL（官方镜像）
 https://registry-1.docker.io/v2/library/nginx/manifests/latest  
 
 # 转换后（添加 cr/docker 前缀）
-https://proxies.pp.ua/cr/docker/v2/nginx/manifests/latest  
+https://xget.pp.ua/cr/docker/v2/nginx/manifests/latest  
 
 # Docker Hub 原始 URL（用户镜像）
 https://registry-1.docker.io/v2/nginxinc/nginx-unprivileged/manifests/latest  
 
 # 转换后（添加 cr/docker 前缀）
-https://proxies.pp.ua/cr/docker/v2/nginxinc/nginx-unprivileged/manifests/latest  
+https://xget.pp.ua/cr/docker/v2/nginxinc/nginx-unprivileged/manifests/latest  
 
 # GitHub 容器注册表原始 URL
 https://ghcr.io/v2/nginxinc/nginx-unprivileged/manifests/latest  
 
 # 转换后（添加 cr/ghcr 前缀）
-https://proxies.pp.ua/cr/ghcr/v2/nginxinc/nginx-unprivileged/manifests/latest  
+https://xget.pp.ua/cr/ghcr/v2/nginxinc/nginx-unprivileged/manifests/latest  
 
 # 谷歌容器注册表原始 URL
 https://gcr.io/v2/distroless/base/manifests/latest  
 
 # 转换后（添加 cr/gcr 前缀）
-https://proxies.pp.ua/cr/gcr/v2/distroless/base/manifests/latest
+https://xget.pp.ua/cr/gcr/v2/distroless/base/manifests/latest
 ```  
 
 应用场景见[容器镜像加速](#容器镜像加速)。
@@ -767,49 +767,49 @@ https://proxies.pp.ua/cr/gcr/v2/distroless/base/manifests/latest
 
 ```bash
 # 克隆存储库
-git clone https://proxies.pp.ua/gh/microsoft/vscode.git  
+git clone https://xget.pp.ua/gh/microsoft/vscode.git  
 
 # 克隆指定分支
-git clone -b main https://proxies.pp.ua/gh/facebook/react.git  
+git clone -b main https://xget.pp.ua/gh/facebook/react.git  
 
 # 浅克隆（仅最新提交）
-git clone --depth 1 https://proxies.pp.ua/gh/torvalds/linux.git  
+git clone --depth 1 https://xget.pp.ua/gh/torvalds/linux.git  
 
 # 克隆 GitLab 存储库
-git clone https://proxies.pp.ua/gl/gitlab-org/gitlab.git  
+git clone https://xget.pp.ua/gl/gitlab-org/gitlab.git  
 
 # 克隆 Gitea 存储库
-git clone https://proxies.pp.ua/gitea/gitea/gitea.git  
+git clone https://xget.pp.ua/gitea/gitea/gitea.git  
 
 # 克隆 Codeberg 存储库
-git clone https://proxies.pp.ua/codeberg/forgejo/forgejo.git  
+git clone https://xget.pp.ua/codeberg/forgejo/forgejo.git  
 
 # 克隆 SourceForge 存储库
-git clone https://proxies.pp.ua/sf/projects/mingw-w64/code.git  
+git clone https://xget.pp.ua/sf/projects/mingw-w64/code.git  
 
 # 克隆 AOSP 存储库
-git clone https://proxies.pp.ua/aosp/platform/frameworks/base.git  
+git clone https://xget.pp.ua/aosp/platform/frameworks/base.git  
 
 # 添加远程存储库
-git remote add upstream https://proxies.pp.ua/gh/[所有者]/[存储库].git
+git remote add upstream https://xget.pp.ua/gh/[所有者]/[存储库].git
 
 # 拉取更新
-git pull https://proxies.pp.ua/gh/microsoft/vscode.git main  
+git pull https://xget.pp.ua/gh/microsoft/vscode.git main  
 
 # 子模块递归克隆
-git clone --recursive https://proxies.pp.ua/gh/[用户名]/[带子模块的存储库].git
+git clone --recursive https://xget.pp.ua/gh/[用户名]/[带子模块的存储库].git
 ```
 
 #### Git 全局加速配置
 
 ```bash
 # 为特定域名配置 Git 使用 Xget
-git config --global url."https://proxies.pp.ua/gh/".insteadOf "https://github.com/"
-git config --global url."https://proxies.pp.ua/gl/".insteadOf "https://gitlab.com/"
-git config --global url."https://proxies.pp.ua/gitea/".insteadOf "https://gitea.com/"
-git config --global url."https://proxies.pp.ua/codeberg/".insteadOf "https://codeberg.org/"
-git config --global url."https://proxies.pp.ua/sf/".insteadOf "https://sourceforge.net/"
-git config --global url."https://proxies.pp.ua/aosp/".insteadOf "https://android.googlesource.com/"  
+git config --global url."https://xget.pp.ua/gh/".insteadOf "https://github.com/"
+git config --global url."https://xget.pp.ua/gl/".insteadOf "https://gitlab.com/"
+git config --global url."https://xget.pp.ua/gitea/".insteadOf "https://gitea.com/"
+git config --global url."https://xget.pp.ua/codeberg/".insteadOf "https://codeberg.org/"
+git config --global url."https://xget.pp.ua/sf/".insteadOf "https://sourceforge.net/"
+git config --global url."https://xget.pp.ua/aosp/".insteadOf "https://android.googlesource.com/"  
 
 # 验证配置
 git config --global --get-regexp url  
@@ -827,10 +827,10 @@ git clone https://android.googlesource.com/platform/frameworks/base.git  # 自�
 
 ```bash
 # 下载单个文件
-wget https://proxies.pp.ua/gh/microsoft/vscode/archive/refs/heads/main.zip  
+wget https://xget.pp.ua/gh/microsoft/vscode/archive/refs/heads/main.zip  
 
 # 断点续传
-wget -c https://proxies.pp.ua/hf/microsoft/DialoGPT-large/resolve/main/pytorch_model.bin  
+wget -c https://xget.pp.ua/hf/microsoft/DialoGPT-large/resolve/main/pytorch_model.bin  
 
 # 批量下载
 wget -i urls.txt  # urls.txt 包含多个 Xget URL
@@ -840,23 +840,23 @@ wget -i urls.txt  # urls.txt 包含多个 Xget URL
 
 ```bash
 # 基本下载
-curl -L -O https://proxies.pp.ua/gh/golang/go/archive/refs/tags/go1.22.0.tar.gz  
+curl -L -O https://xget.pp.ua/gh/golang/go/archive/refs/tags/go1.22.0.tar.gz  
 
 # 显示进度条
-curl -L --progress-bar -o model.bin https://proxies.pp.ua/hf/openai/whisper-large-v3/resolve/main/pytorch_model.bin  
+curl -L --progress-bar -o model.bin https://xget.pp.ua/hf/openai/whisper-large-v3/resolve/main/pytorch_model.bin  
 
 # 设置用户代理
-curl -L -H "User-Agent: MyApp/1.0" https://proxies.pp.ua/gl/gitlab-org/gitlab-runner/-/archive/main/gitlab-runner-main.zip
+curl -L -H "User-Agent: MyApp/1.0" https://xget.pp.ua/gl/gitlab-org/gitlab-runner/-/archive/main/gitlab-runner-main.zip
 ```  
 
 #### aria2 多线程下载
 
 ```bash
 # 多线程下载大文件
-aria2c -x 16 -s 16 https://proxies.pp.ua/hf/microsoft/DialoGPT-large/resolve/main/pytorch_model.bin  
+aria2c -x 16 -s 16 https://xget.pp.ua/hf/microsoft/DialoGPT-large/resolve/main/pytorch_model.bin  
 
 # 断点续传
-aria2c -c https://proxies.pp.ua/gh/microsoft/vscode/archive/refs/heads/main.zip  
+aria2c -c https://xget.pp.ua/gh/microsoft/vscode/archive/refs/heads/main.zip  
 
 # 批量下载配置文件
 aria2c -i download-list.txt  # 包含多个 Xget URL 的文件
@@ -869,7 +869,7 @@ import os
 from transformers import AutoTokenizer, AutoModelForCausalLM  
 
 # 设置环境变量，让 transformers 库自动使用 Xget 镜像
-os.environ['HF_ENDPOINT'] = 'https://proxies.pp.ua/hf'
+os.environ['HF_ENDPOINT'] = 'https://xget.pp.ua/hf'
 
 # 定义模型名称
 model_name = 'microsoft/DialoGPT-medium'  
@@ -896,7 +896,7 @@ print("模型和分词器加载成功！")
 import requests  
 
 # 设置 API 基础 URL 使用 Xget
-base_url = "https://proxies.pp.ua/civitai"  
+base_url = "https://xget.pp.ua/civitai"  
 
 # 获取模型信息
 def get_model_info(model_id):
@@ -938,10 +938,10 @@ if model_info['modelVersions']:
 
 ```bash
 # 临时使用 Xget 镜像
-npm install --registry https://proxies.pp.ua/npm/  
+npm install --registry https://xget.pp.ua/npm/  
 
 # 全局配置 npm 镜像
-npm config set registry https://proxies.pp.ua/npm/  
+npm config set registry https://xget.pp.ua/npm/  
 
 # 验证配置
 npm config get registry
@@ -951,13 +951,13 @@ npm config get registry
 
 ```bash
 # 在 .npmrc 文件中配置项目级镜像
-echo "registry=https://proxies.pp.ua/npm/" > .npmrc  
+echo "registry=https://xget.pp.ua/npm/" > .npmrc  
 
 # 安装依赖
 npm install
 
 # 或者使用 yarn
-yarn config set registry https://proxies.pp.ua/npm/
+yarn config set registry https://xget.pp.ua/npm/
 yarn install
 ```  
 
@@ -967,11 +967,11 @@ yarn install
 
 ```bash
 # 临时使用 Xget 镜像
-pip install requests -i https://proxies.pp.ua/pypi/simple/  
+pip install requests -i https://xget.pp.ua/pypi/simple/  
 
 # 全局配置 pip 镜像
-pip config set global.index-url https://proxies.pp.ua/pypi/simple/
-pip config set global.trusted-host proxies.pp.ua  
+pip config set global.index-url https://xget.pp.ua/pypi/simple/
+pip config set global.trusted-host xget.pp.ua  
 
 # 验证配置
 pip config list
@@ -984,15 +984,15 @@ pip config list
 mkdir -p ~/.pip
 cat > ~/.pip/pip.conf << EOF
 [global]
-index-url = https://proxies.pp.ua/pypi/simple/
-trusted-host = proxies.pp.ua
+index-url = https://xget.pp.ua/pypi/simple/
+trusted-host = xget.pp.ua
 EOF  
 
 # 或在项目根目录创建 pip.conf
 cat > pip.conf << EOF
 [global]
-index-url = https://proxies.pp.ua/pypi/simple/
-trusted-host = proxies.pp.ua
+index-url = https://xget.pp.ua/pypi/simple/
+trusted-host = xget.pp.ua
 EOF  
 
 # 使用配置文件安装
@@ -1003,8 +1003,8 @@ pip install -r requirements.txt --config-file pip.conf
 
 ```txt
 # requirements.txt
---index-url https://proxies.pp.ua/pypi/simple/
---trusted-host proxies.pp.ua  
+--index-url https://xget.pp.ua/pypi/simple/
+--trusted-host xget.pp.ua  
 
 requests>=2.25.0
 numpy>=1.21.0
@@ -1018,16 +1018,16 @@ matplotlib>=3.4.0
 
 ```bash
 # 配置默认频道镜像
-conda config --add default_channels https://proxies.pp.ua/conda/pkgs/msys2
-conda config --add default_channels https://proxies.pp.ua/conda/pkgs/r
-conda config --add default_channels https://proxies.pp.ua/conda/pkgs/main  
+conda config --add default_channels https://xget.pp.ua/conda/pkgs/msys2
+conda config --add default_channels https://xget.pp.ua/conda/pkgs/r
+conda config --add default_channels https://xget.pp.ua/conda/pkgs/main  
 
 # 配置所有社区频道镜像（推荐）
-conda config --set channel_alias https://proxies.pp.ua/conda/community  
+conda config --set channel_alias https://xget.pp.ua/conda/community  
 
 # 或配置特定社区频道
-conda config --add channels https://proxies.pp.ua/conda/community/conda-forge
-conda config --add channels https://proxies.pp.ua/conda/community/bioconda  
+conda config --add channels https://xget.pp.ua/conda/community/conda-forge
+conda config --add channels https://xget.pp.ua/conda/community/bioconda  
 
 # 设置频道优先级
 conda config --set channel_priority strict  
@@ -1042,10 +1042,10 @@ conda config --show
 
 ```yaml
 default_channels:
-  - https://proxies.pp.ua/conda/pkgs/main
-  - https://proxies.pp.ua/conda/pkgs/r
-  - https://proxies.pp.ua/conda/pkgs/msys2
-channel_alias: https://proxies.pp.ua/conda/community
+  - https://xget.pp.ua/conda/pkgs/main
+  - https://xget.pp.ua/conda/pkgs/r
+  - https://xget.pp.ua/conda/pkgs/msys2
+channel_alias: https://xget.pp.ua/conda/community
 channel_priority: strict
 show_channel_urls: true
 ```  
@@ -1058,10 +1058,10 @@ show_channel_urls: true
 # environment.yml
 name: myproject
 channels:
-  - https://proxies.pp.ua/conda/pkgs/main
-  - https://proxies.pp.ua/conda/pkgs/r
-  - https://proxies.pp.ua/conda/community/bioconda
-  - https://proxies.pp.ua/conda/community/conda-forge
+  - https://xget.pp.ua/conda/pkgs/main
+  - https://xget.pp.ua/conda/pkgs/r
+  - https://xget.pp.ua/conda/community/bioconda
+  - https://xget.pp.ua/conda/community/conda-forge
 dependencies:
   - python=3.11
   - numpy>=1.24.0
@@ -1093,7 +1093,7 @@ conda env update -f environment.yml
       <id>xget-maven-central</id>
       <mirrorOf>central</mirrorOf>
       <name>Xget Maven Central Mirror</name>
-      <url>https://proxies.pp.ua/maven/maven2</url>
+      <url>https://xget.pp.ua/maven/maven2</url>
     </mirror>
   </mirrors>
 </settings>
@@ -1108,7 +1108,7 @@ conda env update -f environment.yml
     <repository>
       <id>xget-maven-central</id>
       <name>Xget Maven Central</name>
-      <url>https://proxies.pp.ua/maven/maven2</url>
+      <url>https://xget.pp.ua/maven/maven2</url>
     </repository>
   </repositories>  
 
@@ -1116,7 +1116,7 @@ conda env update -f environment.yml
     <pluginRepository>
       <id>xget-maven-central</id>
       <name>Xget Maven Central</name>
-      <url>https://proxies.pp.ua/maven/maven2</url>
+      <url>https://xget.pp.ua/maven/maven2</url>
     </pluginRepository>
   </pluginRepositories>
 </project>
@@ -1124,11 +1124,11 @@ conda env update -f environment.yml
 
 ```bash
 # 使用命令行指定镜像
-mvn clean install -Dmaven.repo.remote=https://proxies.pp.ua/maven/maven2  
+mvn clean install -Dmaven.repo.remote=https://xget.pp.ua/maven/maven2  
 
 # 下载特定依赖
 mvn dependency:get -Dartifact=org.springframework:spring-core:5.3.21 \
-  -DremoteRepositories=https://proxies.pp.ua/maven/maven2
+  -DremoteRepositories=https://xget.pp.ua/maven/maven2
 ```  
 
 ### Apache 软件下载加速
@@ -1137,36 +1137,36 @@ mvn dependency:get -Dartifact=org.springframework:spring-core:5.3.21 \
 
 ```bash
 # 下载 Apache Kafka
-wget https://proxies.pp.ua/apache/kafka/3.6.1/kafka_2.13-3.6.1.tgz  
+wget https://xget.pp.ua/apache/kafka/3.6.1/kafka_2.13-3.6.1.tgz  
 
 # 下载 Apache Maven
-curl -L -O https://proxies.pp.ua/apache/maven/maven-3/3.9.5/binaries/apache-maven-3.9.5-bin.tar.gz  
+curl -L -O https://xget.pp.ua/apache/maven/maven-3/3.9.5/binaries/apache-maven-3.9.5-bin.tar.gz  
 
 # 下载 Apache Spark
-aria2c https://proxies.pp.ua/apache/spark/spark-3.5.0/spark-3.5.0-bin-hadoop3.tgz  
+aria2c https://xget.pp.ua/apache/spark/spark-3.5.0/spark-3.5.0-bin-hadoop3.tgz  
 
 # 下载 Apache Hadoop
-wget https://proxies.pp.ua/apache/hadoop/common/hadoop-3.3.6/hadoop-3.3.6.tar.gz  
+wget https://xget.pp.ua/apache/hadoop/common/hadoop-3.3.6/hadoop-3.3.6.tar.gz  
 
 # 下载 Apache Flink
-curl -L -O https://proxies.pp.ua/apache/flink/flink-1.18.1/flink-1.18.1-bin-scala_2.12.tgz
+curl -L -O https://xget.pp.ua/apache/flink/flink-1.18.1/flink-1.18.1-bin-scala_2.12.tgz
 ```  
 
 #### 常用 Apache 软件下载
 
 ```bash
 # 大数据相关
-wget https://proxies.pp.ua/apache/hive/hive-3.1.3/apache-hive-3.1.3-bin.tar.gz
-wget https://proxies.pp.ua/apache/hbase/2.5.7/hbase-2.5.7-bin.tar.gz
-wget https://proxies.pp.ua/apache/zookeeper/zookeeper-3.8.4/apache-zookeeper-3.8.4-bin.tar.gz  
+wget https://xget.pp.ua/apache/hive/hive-3.1.3/apache-hive-3.1.3-bin.tar.gz
+wget https://xget.pp.ua/apache/hbase/2.5.7/hbase-2.5.7-bin.tar.gz
+wget https://xget.pp.ua/apache/zookeeper/zookeeper-3.8.4/apache-zookeeper-3.8.4-bin.tar.gz  
 
 # Web 服务器
-wget https://proxies.pp.ua/apache/httpd/httpd-2.4.59.tar.gz
-wget https://proxies.pp.ua/apache/tomcat/tomcat-10/v10.1.19/bin/apache-tomcat-10.1.19.tar.gz  
+wget https://xget.pp.ua/apache/httpd/httpd-2.4.59.tar.gz
+wget https://xget.pp.ua/apache/tomcat/tomcat-10/v10.1.19/bin/apache-tomcat-10.1.19.tar.gz  
 
 # 开发工具
-wget https://proxies.pp.ua/apache/ant/1.10.14/apache-ant-1.10.14-bin.tar.gz
-wget https://proxies.pp.ua/apache/netbeans/netbeans/20/netbeans-20-bin.zip
+wget https://xget.pp.ua/apache/ant/1.10.14/apache-ant-1.10.14-bin.tar.gz
+wget https://xget.pp.ua/apache/netbeans/netbeans/20/netbeans-20-bin.zip
 ```  
 
 ### Gradle 包管理加速
@@ -1177,10 +1177,10 @@ wget https://proxies.pp.ua/apache/netbeans/netbeans/20/netbeans-20-bin.zip
 // 在 build.gradle 中配置 Gradle 镜像
 repositories {
     maven {
-        url 'https://proxies.pp.ua/maven/maven2'
+        url 'https://xget.pp.ua/maven/maven2'
     }
     gradlePluginPortal {
-        url 'https://proxies.pp.ua/gradle/m2'
+        url 'https://xget.pp.ua/gradle/m2'
     }
 }  
 
@@ -1188,7 +1188,7 @@ repositories {
 pluginManagement {
     repositories {
         maven {
-            url 'https://proxies.pp.ua/gradle/m2'
+            url 'https://xget.pp.ua/gradle/m2'
         }
         gradlePluginPortal()
     }
@@ -1202,7 +1202,7 @@ pluginManagement {
 allprojects {
     repositories {
         maven {
-            url 'https://proxies.pp.ua/maven/maven2'
+            url 'https://xget.pp.ua/maven/maven2'
         }
     }
 }  
@@ -1211,7 +1211,7 @@ settingsEvaluated { settings ->
     settings.pluginManagement {
         repositories {
             maven {
-                url 'https://proxies.pp.ua/gradle/m2'
+                url 'https://xget.pp.ua/gradle/m2'
             }
             gradlePluginPortal()
         }
@@ -1221,7 +1221,7 @@ settingsEvaluated { settings ->
 
 ```bash
 # 使用命令行指定镜像
-gradle build -Dmaven.repo.remote=https://proxies.pp.ua/maven/maven2  
+gradle build -Dmaven.repo.remote=https://xget.pp.ua/maven/maven2  
 
 # 刷新依赖
 gradle build --refresh-dependencies
@@ -1233,10 +1233,10 @@ gradle build --refresh-dependencies
 
 ```bash
 # 设置 Homebrew 环境变量使用 Xget 镜像
-export HOMEBREW_BREW_GIT_REMOTE="https://proxies.pp.ua/homebrew/brew.git"
-export HOMEBREW_CORE_GIT_REMOTE="https://proxies.pp.ua/homebrew/homebrew-core.git"
-export HOMEBREW_API_DOMAIN="https://proxies.pp.ua/homebrew/api"
-export HOMEBREW_BOTTLE_DOMAIN="https://proxies.pp.ua/homebrew/bottles"  
+export HOMEBREW_BREW_GIT_REMOTE="https://xget.pp.ua/homebrew/brew.git"
+export HOMEBREW_CORE_GIT_REMOTE="https://xget.pp.ua/homebrew/homebrew-core.git"
+export HOMEBREW_API_DOMAIN="https://xget.pp.ua/homebrew/api"
+export HOMEBREW_BOTTLE_DOMAIN="https://xget.pp.ua/homebrew/bottles"  
 
 # 更新 Homebrew
 brew update
@@ -1246,16 +1246,16 @@ brew update
 
 ```bash
 # 为 bash 用户添加到 ~/.bash_profile
-echo 'export HOMEBREW_BREW_GIT_REMOTE="https://proxies.pp.ua/homebrew/brew.git"' >> ~/.bash_profile
-echo 'export HOMEBREW_CORE_GIT_REMOTE="https://proxies.pp.ua/homebrew/homebrew-core.git"' >> ~/.bash_profile
-echo 'export HOMEBREW_API_DOMAIN="https://proxies.pp.ua/homebrew/api"' >> ~/.bash_profile
-echo 'export HOMEBREW_BOTTLE_DOMAIN="https://proxies.pp.ua/homebrew/bottles"' >> ~/.bash_profile  
+echo 'export HOMEBREW_BREW_GIT_REMOTE="https://xget.pp.ua/homebrew/brew.git"' >> ~/.bash_profile
+echo 'export HOMEBREW_CORE_GIT_REMOTE="https://xget.pp.ua/homebrew/homebrew-core.git"' >> ~/.bash_profile
+echo 'export HOMEBREW_API_DOMAIN="https://xget.pp.ua/homebrew/api"' >> ~/.bash_profile
+echo 'export HOMEBREW_BOTTLE_DOMAIN="https://xget.pp.ua/homebrew/bottles"' >> ~/.bash_profile  
 
 # 为 zsh 用户添加到 ~/.zprofile
-echo 'export HOMEBREW_BREW_GIT_REMOTE="https://proxies.pp.ua/homebrew/brew.git"' >> ~/.zprofile
-echo 'export HOMEBREW_CORE_GIT_REMOTE="https://proxies.pp.ua/homebrew/homebrew-core.git"' >> ~/.zprofile
-echo 'export HOMEBREW_API_DOMAIN="https://proxies.pp.ua/homebrew/api"' >> ~/.zprofile
-echo 'export HOMEBREW_BOTTLE_DOMAIN="https://proxies.pp.ua/homebrew/bottles"' >> ~/.zprofile
+echo 'export HOMEBREW_BREW_GIT_REMOTE="https://xget.pp.ua/homebrew/brew.git"' >> ~/.zprofile
+echo 'export HOMEBREW_CORE_GIT_REMOTE="https://xget.pp.ua/homebrew/homebrew-core.git"' >> ~/.zprofile
+echo 'export HOMEBREW_API_DOMAIN="https://xget.pp.ua/homebrew/api"' >> ~/.zprofile
+echo 'export HOMEBREW_BOTTLE_DOMAIN="https://xget.pp.ua/homebrew/bottles"' >> ~/.zprofile
 ```  
 
 #### 在项目中使用
@@ -1291,10 +1291,10 @@ echo $HOMEBREW_BOTTLE_DOMAIN
 
 ```bash
 # 临时使用 Xget 镜像
-gem install rails --source https://proxies.pp.ua/rubygems/  
+gem install rails --source https://xget.pp.ua/rubygems/  
 
 # 全局配置 RubyGems 镜像
-gem sources --add https://proxies.pp.ua/rubygems/
+gem sources --add https://xget.pp.ua/rubygems/
 gem sources --remove https://rubygems.org/  
 
 # 验证配置
@@ -1305,7 +1305,7 @@ gem sources -l
 
 ```ruby
 # 在 Gemfile 中配置项目级镜像
-source 'https://proxies.pp.ua/rubygems/'  
+source 'https://xget.pp.ua/rubygems/'  
 
 gem 'rails', '~> 7.0.0'
 gem 'pg', '~> 1.1'
@@ -1314,7 +1314,7 @@ gem 'puma', '~> 5.0'
 
 ```bash
 # 使用 bundle 安装
-bundle config mirror.https://rubygems.org https://proxies.pp.ua/rubygems/
+bundle config mirror.https://rubygems.org https://xget.pp.ua/rubygems/
 bundle install
 ```  
 
@@ -1324,10 +1324,10 @@ bundle install
 
 ```r
 # 在 R 中临时使用 Xget CRAN 镜像
-install.packages("ggplot2", repos = "https://proxies.pp.ua/cran/")  
+install.packages("ggplot2", repos = "https://xget.pp.ua/cran/")  
 
 # 全局配置 CRAN 镜像
-options(repos = c(CRAN = "https://proxies.pp.ua/cran/"))  
+options(repos = c(CRAN = "https://xget.pp.ua/cran/"))  
 
 # 验证配置
 getOption("repos")
@@ -1338,7 +1338,7 @@ getOption("repos")
 ```r
 # 在用户主目录的 .Rprofile 文件中配置全局镜像
 options(repos = c(
-  CRAN = "https://proxies.pp.ua/cran/",
+  CRAN = "https://xget.pp.ua/cran/",
   BioCsoft = "https://bioconductor.org/packages/release/bioc",
   BioCann = "https://bioconductor.org/packages/release/data/annotation",
   BioCexp = "https://bioconductor.org/packages/release/data/experiment"
@@ -1353,22 +1353,22 @@ options(download.file.method = "libcurl")
 ```r
 # 在项目的 renv.lock 或脚本中指定镜像
 renv::init()
-renv::settings$repos.override(c(CRAN = "https://proxies.pp.ua/cran/"))  
+renv::settings$repos.override(c(CRAN = "https://xget.pp.ua/cran/"))  
 
 # 安装包
 install.packages(c("dplyr", "ggplot2", "tidyr"))  
 
 # 或使用 pak 包管理器
-pak::pkg_install("tidyverse", repos = "https://proxies.pp.ua/cran/")
+pak::pkg_install("tidyverse", repos = "https://xget.pp.ua/cran/")
 ```  
 
 ```bash
 # 在命令行中使用 R 脚本安装包
-Rscript -e "options(repos = c(CRAN = 'https://proxies.pp.ua/cran/')); install.packages('ggplot2')"  
+Rscript -e "options(repos = c(CRAN = 'https://xget.pp.ua/cran/')); install.packages('ggplot2')"  
 
 # 批量安装包
 Rscript -e "
-options(repos = c(CRAN = 'https://proxies.pp.ua/cran/'))
+options(repos = c(CRAN = 'https://xget.pp.ua/cran/'))
 packages <- c('dplyr', 'ggplot2', 'tidyr', 'readr')
 install.packages(packages)
 "
@@ -1380,12 +1380,12 @@ install.packages(packages)
 
 ```bash
 # 配置 CPAN 使用 Xget 镜像
-cpan o conf urllist push https://proxies.pp.ua/cpan/
+cpan o conf urllist push https://xget.pp.ua/cpan/
 cpan o conf commit  
 
 # 或者直接编辑配置文件 ~/.cpan/CPAN/MyConfig.pm
 # 添加：
-# 'urllist' => [q[https://proxies.pp.ua/cpan/]],
+# 'urllist' => [q[https://xget.pp.ua/cpan/]],
 ```
 
 #### 使用 cpanm 安装模块
@@ -1395,11 +1395,11 @@ cpan o conf commit
 curl -L https://cpanmin.us | perl - --sudo App::cpanminus  
 
 # 使用 Xget 镜像安装模块
-cpanm --mirror https://proxies.pp.ua/cpan/ DBI
-cpanm --mirror https://proxies.pp.ua/cpan/ Mojolicious  
+cpanm --mirror https://xget.pp.ua/cpan/ DBI
+cpanm --mirror https://xget.pp.ua/cpan/ Mojolicious  
 
 # 从 Makefile.PL 安装依赖
-cpanm --mirror https://proxies.pp.ua/cpan/ --installdeps .
+cpanm --mirror https://xget.pp.ua/cpan/ --installdeps .
 ```  
 
 #### 在项目中使用
@@ -1411,7 +1411,7 @@ requires 'Mojolicious';
 requires 'JSON';  
 
 # 然后使用 Xget 镜像安装
-cpanm --mirror https://proxies.pp.ua/cpan/ --installdeps .
+cpanm --mirror https://xget.pp.ua/cpan/ --installdeps .
 ```  
 
 ### TeX/LaTeX 包管理加速
@@ -1420,7 +1420,7 @@ cpanm --mirror https://proxies.pp.ua/cpan/ --installdeps .
 
 ```bash
 # 配置 tlmgr 使用 Xget CTAN 镜像
-tlmgr option repository https://proxies.pp.ua/ctan/systems/texlive/tlnet  
+tlmgr option repository https://xget.pp.ua/ctan/systems/texlive/tlnet  
 
 # 更新包数据库
 tlmgr update --self --all
@@ -1434,7 +1434,7 @@ tlmgr install tikz
 
 ```bash
 # Windows MiKTeX 配置
-mpm --set-repository=https://proxies.pp.ua/ctan/systems/win32/miktex  
+mpm --set-repository=https://xget.pp.ua/ctan/systems/win32/miktex  
 
 # 更新包数据库
 mpm --update-db
@@ -1462,11 +1462,11 @@ tlmgr install algorithm2e
 
 ```bash
 # 配置 Go 模块代理
-export GOPROXY=https://proxies.pp.ua/golang,direct
+export GOPROXY=https://xget.pp.ua/golang,direct
 export GOSUMDB=off  
 
 # 或者永久配置
-go env -w GOPROXY=https://proxies.pp.ua/golang,direct
+go env -w GOPROXY=https://xget.pp.ua/golang,direct
 go env -w GOSUMDB=off  
 
 # 验证配置
@@ -1492,13 +1492,13 @@ go clean -modcache
 
 ```bash
 # 添加 Xget 包源
-dotnet nuget add source https://proxies.pp.ua/nuget/v3/index.json -n xget  
+dotnet nuget add source https://xget.pp.ua/nuget/v3/index.json -n xget  
 
 # 列出包源
 dotnet nuget list source  
 
 # 在项目中使用
-dotnet restore --source https://proxies.pp.ua/nuget/v3/index.json
+dotnet restore --source https://xget.pp.ua/nuget/v3/index.json
 ```  
 
 #### 在 NuGet.Config 中配置
@@ -1508,7 +1508,7 @@ dotnet restore --source https://proxies.pp.ua/nuget/v3/index.json
 <?xml version="1.0" encoding="utf-8"?>
 <configuration>
   <packageSources>
-    <add key="xget" value="https://proxies.pp.ua/nuget/v3/index.json" />
+    <add key="xget" value="https://xget.pp.ua/nuget/v3/index.json" />
   </packageSources>
 </configuration>
 ```  
@@ -1525,7 +1525,7 @@ cat >> ~/.cargo/config.toml << EOF
 replace-with = "xget"  
 
 [source.xget]
-registry = "https://proxies.pp.ua/crates/"
+registry = "https://xget.pp.ua/crates/"
 EOF  
 
 # 验证配置
@@ -1559,10 +1559,10 @@ cargo add clap
 
 ```bash
 # 全局配置 Composer 镜像
-composer config -g repo.packagist composer https://proxies.pp.ua/packagist/  
+composer config -g repo.packagist composer https://xget.pp.ua/packagist/  
 
 # 项目级配置
-composer config repo.packagist composer https://proxies.pp.ua/packagist/  
+composer config repo.packagist composer https://xget.pp.ua/packagist/  
 
 # 验证配置
 composer config -l
@@ -1575,7 +1575,7 @@ composer config -l
   "repositories": [
     {
       "type": "composer",
-      "url": "https://proxies.pp.ua/packagist/"
+      "url": "https://xget.pp.ua/packagist/"
     }
   ],
   "require": {
@@ -1594,12 +1594,12 @@ composer config -l
 sudo cp /etc/apt/sources.list /etc/apt/sources.list.backup  
 
 # 配置 Debian 镜像
-echo "deb https://proxies.pp.ua/debian/debian bookworm main" | sudo tee /etc/apt/sources.list
-echo "deb https://proxies.pp.ua/debian/debian-security bookworm-security main" | sudo tee -a /etc/apt/sources.list  
+echo "deb https://xget.pp.ua/debian/debian bookworm main" | sudo tee /etc/apt/sources.list
+echo "deb https://xget.pp.ua/debian/debian-security bookworm-security main" | sudo tee -a /etc/apt/sources.list  
 
 # 配置 Ubuntu 镜像
-echo "deb https://proxies.pp.ua/ubuntu/ubuntu jammy main restricted universe multiverse" | sudo tee /etc/apt/sources.list
-echo "deb https://proxies.pp.ua/ubuntu/ubuntu jammy-updates main restricted universe multiverse" | sudo tee -a /etc/apt/sources.list  
+echo "deb https://xget.pp.ua/ubuntu/ubuntu jammy main restricted universe multiverse" | sudo tee /etc/apt/sources.list
+echo "deb https://xget.pp.ua/ubuntu/ubuntu jammy-updates main restricted universe multiverse" | sudo tee -a /etc/apt/sources.list  
 
 # 更新包列表
 sudo apt update
@@ -1610,7 +1610,7 @@ sudo apt update
 ```bash
 # 配置 Fedora 镜像
 sudo sed -i 's|^metalink=|#metalink=|g' /etc/yum.repos.d/fedora*.repo
-sudo sed -i 's|^#baseurl=http://download.example/pub/fedora/linux|baseurl=https://proxies.pp.ua/fedora/pub/fedora/linux|g' /etc/yum.repos.d/fedora*.repo  
+sudo sed -i 's|^#baseurl=http://download.example/pub/fedora/linux|baseurl=https://xget.pp.ua/fedora/pub/fedora/linux|g' /etc/yum.repos.d/fedora*.repo  
 
 # 更新包缓存
 sudo dnf makecache
@@ -1621,7 +1621,7 @@ sudo dnf makecache
 ```bash
 # 配置 Rocky Linux 镜像
 sudo sed -i 's|^mirrorlist=|#mirrorlist=|g' /etc/yum.repos.d/rocky*.repo
-sudo sed -i 's|^#baseurl=http://dl.rockylinux.org|baseurl=https://proxies.pp.ua/rocky|g' /etc/yum.repos.d/rocky*.repo  
+sudo sed -i 's|^#baseurl=http://dl.rockylinux.org|baseurl=https://xget.pp.ua/rocky|g' /etc/yum.repos.d/rocky*.repo  
 
 # 更新包缓存
 sudo dnf makecache
@@ -1632,11 +1632,11 @@ sudo dnf makecache
 ```bash
 # 配置 openSUSE Leap 镜像
 sudo zypper mr -d repo-oss
-sudo zypper ar -f https://proxies.pp.ua/opensuse/distribution/leap/15.5/repo/oss/ repo-oss-xget  
+sudo zypper ar -f https://xget.pp.ua/opensuse/distribution/leap/15.5/repo/oss/ repo-oss-xget  
 
 # 配置 openSUSE Tumbleweed 镜像
 sudo zypper mr -d repo-oss
-sudo zypper ar -f https://proxies.pp.ua/opensuse/tumbleweed/repo/oss/ repo-oss-xget  
+sudo zypper ar -f https://xget.pp.ua/opensuse/tumbleweed/repo/oss/ repo-oss-xget  
 
 # 刷新软件源
 sudo zypper refresh
@@ -1652,7 +1652,7 @@ sudo zypper lr -u
 sudo cp /etc/pacman.d/mirrorlist /etc/pacman.d/mirrorlist.backup  
 
 # 配置 Arch Linux 镜像
-echo 'Server = https://proxies.pp.ua/arch/$repo/os/$arch' | sudo tee /etc/pacman.d/mirrorlist  
+echo 'Server = https://xget.pp.ua/arch/$repo/os/$arch' | sudo tee /etc/pacman.d/mirrorlist  
 
 # 更新包数据库
 sudo pacman -Sy
@@ -1664,14 +1664,14 @@ sudo pacman -Sy
 
 ```bash
 # 下载 arXiv 论文 PDF
-wget https://proxies.pp.ua/arxiv/pdf/2301.07041.pdf  
+wget https://xget.pp.ua/arxiv/pdf/2301.07041.pdf  
 
 # 下载论文源码
-curl -L -O https://proxies.pp.ua/arxiv/e-print/2301.07041  
+curl -L -O https://xget.pp.ua/arxiv/e-print/2301.07041  
 
 # 批量下载多篇论文
 for id in 2301.07041 2302.13971 2303.08774; do
-  wget https://proxies.pp.ua/arxiv/pdf/${id}.pdf
+  wget https://xget.pp.ua/arxiv/pdf/${id}.pdf
 done
 ```  
 
@@ -1682,7 +1682,7 @@ done
 import requests
 
 def download_arxiv_paper(arxiv_id, output_path):
-    url = f"https://proxies.pp.ua/arxiv/pdf/{arxiv_id}.pdf"
+    url = f"https://xget.pp.ua/arxiv/pdf/{arxiv_id}.pdf"
     response = requests.get(url)  
 
     if response.status_code == 200:
@@ -1701,36 +1701,36 @@ download_arxiv_paper("2301.07041", "attention_is_all_you_need.pdf")
 #### 配置 F-Droid 客户端使用 Xget 镜像
 
 1. 在 F-Droid 应用中进入**设置** → **存储库**
-2. 点击 **+** 后输入存储库 URL：`https://proxies.pp.ua/fdroid/repo`
+2. 点击 **+** 后输入存储库 URL：`https://xget.pp.ua/fdroid/repo`
 3. 点击**添加**后再点击**添加镜像**
 
 #### 支持的 F-Droid 服务
 
 ```url
 # F-Droid 应用 APK 下载
-https://proxies.pp.ua/fdroid/repo/[包名]_[版本号].apk  
+https://xget.pp.ua/fdroid/repo/[包名]_[版本号].apk  
 
 # F-Droid 存储库索引
-https://proxies.pp.ua/fdroid/repo/index-v1.jar  
+https://xget.pp.ua/fdroid/repo/index-v1.jar  
 
 # F-Droid 应用图标
-https://proxies.pp.ua/fdroid/repo/icons-640/[包名].[版本号].png  
+https://xget.pp.ua/fdroid/repo/icons-640/[包名].[版本号].png  
 
 # F-Droid API 接口
-https://proxies.pp.ua/fdroid/api/v1/packages/[包名]
+https://xget.pp.ua/fdroid/api/v1/packages/[包名]
 ```  
 
 #### 使用示例
 
 ```bash
 # 直接下载 F-Droid 客户端 APK
-wget https://proxies.pp.ua/fdroid/repo/org.fdroid.fdroid_1016050.apk  
+wget https://xget.pp.ua/fdroid/repo/org.fdroid.fdroid_1016050.apk  
 
 # 下载其他开源应用
-curl -L -O https://proxies.pp.ua/fdroid/repo/org.mozilla.fennec_fdroid_1014000.apk  
+curl -L -O https://xget.pp.ua/fdroid/repo/org.mozilla.fennec_fdroid_1014000.apk  
 
 # 获取应用信息
-curl https://proxies.pp.ua/fdroid/api/v1/packages/org.fdroid.fdroid
+curl https://xget.pp.ua/fdroid/api/v1/packages/org.fdroid.fdroid
 ```  
 
 #### 批量应用管理
@@ -1754,7 +1754,7 @@ mkdir -p fdroid_apps
 # 批量下载应用
 for app in "${apps[@]}"; do
     echo "正在下载: $app"
-    wget -P fdroid_apps "https://proxies.pp.ua/fdroid/repo/$app"
+    wget -P fdroid_apps "https://xget.pp.ua/fdroid/repo/$app"
 done  
 
 echo "所有应用下载完成！"
@@ -1772,7 +1772,7 @@ chmod +x download_fdroid_apps.sh
 // 在 build.gradle 中配置 F-Droid 依赖检查
 task checkFDroidAvailability {
     doLast {
-        def fdroidUrl = "https://proxies.pp.ua/fdroid/api/v1/packages/${project.name}"
+        def fdroidUrl = "https://xget.pp.ua/fdroid/api/v1/packages/${project.name}"
         try {
             def connection = new URL(fdroidUrl).openConnection()
             connection.requestMethod = 'GET'
@@ -1799,7 +1799,7 @@ task checkFDroidAvailability {
 
 1. 登录 Jenkins 管理界面
 2. 进入 **Manage Jenkins** → **Plugins** → **Advanced**
-3. 在 **Update Site** 部分，将 URL 更改为 `https://proxies.pp.ua/jenkins/update-center.json`  
+3. 在 **Update Site** 部分，将 URL 更改为 `https://xget.pp.ua/jenkins/update-center.json`  
 
 4. 点击 **Submit** 保存配置
 
@@ -1811,7 +1811,7 @@ task checkFDroidAvailability {
 sudo nano /var/lib/jenkins/hudson.model.UpdateCenter.xml  
 
 # 将 URL 改为：
-# <url>https://proxies.pp.ua/jenkins/update-center.json</url>  
+# <url>https://xget.pp.ua/jenkins/update-center.json</url>  
 
 # 重启 Jenkins 服务
 sudo systemctl restart jenkins
@@ -1821,29 +1821,29 @@ sudo systemctl restart jenkins
 
 ```url
 # Jenkins 更新中心 JSON
-https://proxies.pp.ua/jenkins/update-center.json  
+https://xget.pp.ua/jenkins/update-center.json  
 
 # Jenkins 更新中心（实际 JSON 格式）
-https://proxies.pp.ua/jenkins/update-center.actual.json  
+https://xget.pp.ua/jenkins/update-center.actual.json  
 
 # Jenkins 插件下载
-https://proxies.pp.ua/jenkins/download/plugins/[插件名]/[版本]/[插件名].hpi  
+https://xget.pp.ua/jenkins/download/plugins/[插件名]/[版本]/[插件名].hpi  
 
 # 实验性插件更新中心
-https://proxies.pp.ua/jenkins/experimental/update-center.json
+https://xget.pp.ua/jenkins/experimental/update-center.json
 ```  
 
 #### 使用示例
 
 ```bash
 # 下载 Maven 插件
-wget https://proxies.pp.ua/jenkins/download/plugins/maven-plugin/3.27/maven-plugin.hpi  
+wget https://xget.pp.ua/jenkins/download/plugins/maven-plugin/3.27/maven-plugin.hpi  
 
 # 下载 Git 插件
-curl -L -O https://proxies.pp.ua/jenkins/download/plugins/git/5.2.1/git.hpi  
+curl -L -O https://xget.pp.ua/jenkins/download/plugins/git/5.2.1/git.hpi  
 
 # 获取更新中心信息
-curl https://proxies.pp.ua/jenkins/update-center.json  
+curl https://xget.pp.ua/jenkins/update-center.json  
 
 # 批量下载常用插件
 cat > download_jenkins_plugins.sh << 'EOF'
@@ -1866,7 +1866,7 @@ for plugin in "${plugins[@]}"; do
     name=$(echo $plugin | cut -d: -f1)
     version=$(echo $plugin | cut -d: -f2)
     echo "正在下载插件: $name v$version"
-    wget -P jenkins_plugins "https://proxies.pp.ua/jenkins/download/plugins/$name/$version/$name.hpi"
+    wget -P jenkins_plugins "https://xget.pp.ua/jenkins/download/plugins/$name/$version/$name.hpi"
 done  
 
 echo "所有插件下载完成！"
@@ -1882,7 +1882,7 @@ chmod +x download_jenkins_plugins.sh
 
 ```bash
 # 1. 下载 Jenkins 核心文件
-wget https://proxies.pp.ua/jenkins/war/jenkins.war  
+wget https://xget.pp.ua/jenkins/war/jenkins.war  
 
 # 2. 创建插件打包脚本
 cat > prepare_jenkins_offline.sh << 'EOF'
@@ -1893,7 +1893,7 @@ mkdir -p jenkins_offline/{plugins,update_center}
 
 # 下载更新中心配置
 curl -o jenkins_offline/update_center/update-center.json \
-    https://proxies.pp.ua/jenkins/update-center.json  
+    https://xget.pp.ua/jenkins/update-center.json  
 
 # 必备插件列表
 essential_plugins=(
@@ -1921,7 +1921,7 @@ for plugin in "${essential_plugins[@]}"; do
     version=$(echo $plugin | cut -d: -f2)
     echo "下载 $name:$version"
     wget -P jenkins_offline/plugins \
-        "https://proxies.pp.ua/jenkins/download/plugins/$name/$version/$name.hpi"
+        "https://xget.pp.ua/jenkins/download/plugins/$name/$version/$name.hpi"
 done  
 
 # 创建部署说明
@@ -1954,7 +1954,7 @@ pipeline {
             steps {
                 script {
                     // 检查 Maven 插件可用性
-                    def pluginUrl = "https://proxies.pp.ua/jenkins/download/plugins/maven-plugin/3.27/maven-plugin.hpi"  
+                    def pluginUrl = "https://xget.pp.ua/jenkins/download/plugins/maven-plugin/3.27/maven-plugin.hpi"  
 
                     try {
                         def response = httpRequest url: pluginUrl, httpMode: 'HEAD'
@@ -1988,7 +1988,7 @@ import openai
 # 使用 Xget 的 OpenAI API
 client = openai.OpenAI(
     api_key="your-api-key",
-    base_url="https://proxies.pp.ua/ip/openai/v1"  # 使用 Xget
+    base_url="https://xget.pp.ua/ip/openai/v1"  # 使用 Xget
 )  
 
 # 聊天完成
@@ -2010,7 +2010,7 @@ import anthropic
 # 使用 Xget 的 Anthropic API
 client = anthropic.Anthropic(
     api_key="your-api-key",
-    base_url="https://proxies.pp.ua/ip/anthropic"  # 使用 Xget
+    base_url="https://xget.pp.ua/ip/anthropic"  # 使用 Xget
 )  
 
 # 创建消息
@@ -2043,7 +2043,7 @@ class XgetTransport:
     def request(self, method, url, **kwargs):
         # 将请求转发到 Xget
         accelerated_url = url.replace("https://generativelanguage.googleapis.com",
-                                    "https://proxies.pp.ua/ip/gemini")
+                                    "https://xget.pp.ua/ip/gemini")
         return requests.request(method, accelerated_url, **kwargs)  
 
 # 创建模型实例
@@ -2070,7 +2070,7 @@ def call_ai_api(provider, endpoint, data, api_key):
     }  
 
     # 使用 Xget 的加速 URL
-    url = f"https://proxies.pp.ua/ip/{provider}/{endpoint}"  
+    url = f"https://xget.pp.ua/ip/{provider}/{endpoint}"  
 
     response = requests.post(url, headers=headers, json=data)
     return response.json()  
@@ -2124,7 +2124,7 @@ import OpenAI from 'openai';
 
 const openai = new OpenAI({
   apiKey: 'your-api-key',
-  baseURL: 'https://proxies.pp.ua/ip/openai',  // 使用 Xget
+  baseURL: 'https://xget.pp.ua/ip/openai',  // 使用 Xget
 });  
 
 async function chatWithGPT() {
@@ -2141,7 +2141,7 @@ import Anthropic from '@anthropic-ai/sdk';
 
 const anthropic = new Anthropic({
   apiKey: 'your-api-key',
-  baseURL: 'https://proxies.pp.ua/ip/anthropic',  // 使用 Xget
+  baseURL: 'https://xget.pp.ua/ip/anthropic',  // 使用 Xget
 });  
 
 async function chatWithClaude() {
@@ -2159,12 +2159,12 @@ async function chatWithClaude() {
 
 ```bash
 # 在 .env 文件中配置
-OPENAI_BASE_URL=https://proxies.pp.ua/ip/openai
-ANTHROPIC_BASE_URL=https://proxies.pp.ua/ip/anthropic
-GEMINI_BASE_URL=https://proxies.pp.ua/ip/gemini
-COHERE_BASE_URL=https://proxies.pp.ua/ip/cohere
-MISTRAL_AI_BASE_URL=https://proxies.pp.ua/ip/mistralai
-GROQ_BASE_URL=https://proxies.pp.ua/ip/groq
+OPENAI_BASE_URL=https://xget.pp.ua/ip/openai
+ANTHROPIC_BASE_URL=https://xget.pp.ua/ip/anthropic
+GEMINI_BASE_URL=https://xget.pp.ua/ip/gemini
+COHERE_BASE_URL=https://xget.pp.ua/ip/cohere
+MISTRAL_AI_BASE_URL=https://xget.pp.ua/ip/mistralai
+GROQ_BASE_URL=https://xget.pp.ua/ip/groq
 ```  
 
 然后在代码中使用：
@@ -2189,7 +2189,7 @@ client = OpenAI(
 # 编辑 /etc/docker/daemon.json（Linux）或 ~/.docker/daemon.json（macOS/Windows）
 {
   "registry-mirrors": [
-    "https://proxies.pp.ua/cr/ghcr"
+    "https://xget.pp.ua/cr/ghcr"
   ]
 }  
 
@@ -2205,13 +2205,13 @@ docker info | grep -A 10 "Registry Mirrors"
 
 ```bash
 # 拉取 GitHub 容器注册表镜像
-docker pull proxies.pp.ua/cr/ghcr/nginxinc/nginx-unprivileged:latest  
+docker pull xget.pp.ua/cr/ghcr/nginxinc/nginx-unprivileged:latest  
 
 # 拉取谷歌容器注册表镜像
-docker pull proxies.pp.ua/cr/gcr/distroless/base:latest  
+docker pull xget.pp.ua/cr/gcr/distroless/base:latest  
 
 # 拉取微软容器注册表镜像
-docker pull proxies.pp.ua/cr/mcr/dotnet/runtime:8.0
+docker pull xget.pp.ua/cr/mcr/dotnet/runtime:8.0
 ```
 
 #### Kubernetes 部署配置  
@@ -2234,11 +2234,11 @@ spec:
     spec:
       containers:
       - name: nginx
-        image: proxies.pp.ua/cr/ghcr/nginxinc/nginx-unprivileged:latest
+        image: xget.pp.ua/cr/ghcr/nginxinc/nginx-unprivileged:latest
         ports:
         - containerPort: 80
       - name: redis
-        image: proxies.pp.ua/cr/ghcr/bitnami/redis:alpine
+        image: xget.pp.ua/cr/ghcr/bitnami/redis:alpine
         ports:
         - containerPort: 6379
 ```  
@@ -2250,14 +2250,14 @@ spec:
 version: '3.8'
 services:
   web:
-    image: proxies.pp.ua/cr/ghcr/nginxinc/nginx-unprivileged:latest
+    image: xget.pp.ua/cr/ghcr/nginxinc/nginx-unprivileged:latest
     ports:
       - "80:80"
     volumes:
       - ./html:/usr/share/nginx/html  
 
   database:
-    image: proxies.pp.ua/cr/mcr/mssql/server:2022-latest
+    image: xget.pp.ua/cr/mcr/mssql/server:2022-latest
     environment:
       ACCEPT_EULA: Y
       SA_PASSWORD: "MyStrongPassword123!"
@@ -2265,7 +2265,7 @@ services:
       - mssql_data:/var/opt/mssql  
 
   cache:
-    image: proxies.pp.ua/cr/ghcr/bitnami/redis:alpine
+    image: xget.pp.ua/cr/ghcr/bitnami/redis:alpine
     ports:
       - "6379:6379"  
 
@@ -2277,7 +2277,7 @@ volumes:
 
 ```dockerfile
 # 在 Dockerfile 中使用 Xget 加速基础镜像
-FROM proxies.pp.ua/cr/ghcr/nodejs/node:18-alpine AS builder  
+FROM xget.pp.ua/cr/ghcr/nodejs/node:18-alpine AS builder  
 
 WORKDIR /app
 COPY package*.json ./
@@ -2287,11 +2287,11 @@ COPY . .
 RUN npm run build  
 
 # 生产阶段
-FROM proxies.pp.ua/cr/ghcr/nginxinc/nginx-unprivileged:latest
+FROM xget.pp.ua/cr/ghcr/nginxinc/nginx-unprivileged:latest
 COPY --from=builder /app/dist /usr/share/nginx/html  
 
 # 使用微软容器注册表的 .NET 镜像
-FROM proxies.pp.ua/cr/mcr/dotnet/aspnet:8.0 AS runtime
+FROM xget.pp.ua/cr/mcr/dotnet/aspnet:8.0 AS runtime
 WORKDIR /app
 COPY --from=builder /app/publish .
 ENTRYPOINT ["dotnet", "MyApp.dll"]
@@ -2314,13 +2314,13 @@ jobs:
         run: |
           # 构建时使用 Xget 的基础镜像
           docker build -t myapp:latest \
-            --build-arg BASE_IMAGE=proxies.pp.ua/cr/ghcr/nodejs/node:18-alpine .  
+            --build-arg BASE_IMAGE=xget.pp.ua/cr/ghcr/nodejs/node:18-alpine .  
 
       - name: Test with accelerated images
         run: |
           # 使用加速镜像进行测试
           docker run --rm \
-            proxies.pp.ua/cr/mcr/dotnet/runtime:8.0 \
+            xget.pp.ua/cr/mcr/dotnet/runtime:8.0 \
             dotnet --version
 ```  
 
@@ -2331,11 +2331,11 @@ jobs:
 # 编辑 /etc/containers/registries.conf
 [[registry]]
 prefix = "ghcr.io"
-location = "proxies.pp.ua/cr/ghcr"  
+location = "xget.pp.ua/cr/ghcr"  
 
 # 或者直接拉取
-podman pull proxies.pp.ua/cr/ghcr/alpine/alpine:latest
-podman pull proxies.pp.ua/cr/ghcr/nginxinc/nginx-unprivileged:latest
+podman pull xget.pp.ua/cr/ghcr/alpine/alpine:latest
+podman pull xget.pp.ua/cr/ghcr/nginxinc/nginx-unprivileged:latest
 ```  
 
 #### containerd 配置  
@@ -2345,9 +2345,9 @@ podman pull proxies.pp.ua/cr/ghcr/nginxinc/nginx-unprivileged:latest
 # 编辑 /etc/containerd/config.toml
 [plugins."io.containerd.grpc.v1.cri".registry.mirrors]
   [plugins."io.containerd.grpc.v1.cri".registry.mirrors."ghcr.io"]
-    endpoint = ["https://proxies.pp.ua/cr/ghcr"]
+    endpoint = ["https://xget.pp.ua/cr/ghcr"]
   [plugins."io.containerd.grpc.v1.cri".registry.mirrors."gcr.io"]
-    endpoint = ["https://proxies.pp.ua/cr/gcr"]
+    endpoint = ["https://xget.pp.ua/cr/gcr"]
 ```  
 
 ```bash
