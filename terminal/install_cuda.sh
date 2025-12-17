@@ -2,288 +2,282 @@
 
 # ==============================================================================
 #
-# NVIDIA CUDA Toolkit 全自动静默安装脚本
+# NVIDIA CUDA Toolkit 全自动安装脚本 (支持自动禁用 Nouveau 并断点续传)
 #
 # 功能:
 #   1. 自动检测系统信息。
-#   2. 从 NVIDIA 官网获取所有可用的 CUDA Toolkit 版本。 (已优化为并行获取)
-#   3. 提供一个菜单供用户选择要安装的版本。
-#   4. [新] 询问用户是否要一并安装驱动程序。
-#   5. 下载选择的版本并以静默模式自动安装。
-#   6. 自动将新安装的 CUDA 环境变量添加到 ~/.bashrc。
-#
-# 使用方法:
-#   1. 保存此脚本为 install_cuda.sh
-#   2. 赋予执行权限: chmod +x install_cuda.sh  
-#   3. 运行脚本: ./install_cuda.sh   
+#   2. 并行获取 NVIDIA 官网所有 CUDA 版本。
+#   3. 用户菜单选择版本及是否安装驱动。
+#   4. [核心功能] 自动检测 Nouveau 驱动：
+#      - 如存在，自动写入黑名单，生成状态文件，并提示重启。
+#      - 重启后再次运行脚本，会自动读取状态，跳过选单，继续安装。
+#   5. 静默安装 CUDA 和 驱动。
+#   6. 配置环境变量。
 #
 # ==============================================================================
+
+# --- 全局配置 ---
+STATE_FILE="./.cuda_install_state.conf" # 用于存储重启前状态的文件
+NVIDIA_BLACKLIST_FILE="/etc/modprobe.d/blacklist-nouveau.conf"
+
 # --- 辅助函数 ---
-log_info() {
-	echo -e "${GREEN}[INFO] $1${NC}"
-}
-
-log_warn() {
-	echo -e "${YELLOW}[WARN] $1${NC}"
-}
-
-log_error() {
-	echo -e "${RED}[ERROR] $1${NC}"
-}
-
-log_debug() {
-	echo -e "${BLUE}[DEBUG] $1${NC}"
-}
-
-log_step() {
-	echo -e "${CYAN}[STEP] $1${NC}"
-}
-# --- 设置清理陷阱 ---
-cleanup() {
-	local exit_code=$?
-	log_info "正在清理脚本文件..."
-	
-	# 删除脚本自身
-	if [[ -f "$SCRIPT_PATH" ]]; then
-		rm -f "$SCRIPT_PATH" 2>/dev/null || log_warn "无法删除脚本文件 $SCRIPT_PATH"
-		log_info "脚本文件已删除: $SCRIPT_NAME"
-	fi
-	exit $exit_code
-}
-
-# 设置陷阱：脚本退出时执行清理
-trap cleanup EXIT
+log_info() { echo -e "${GREEN}[INFO] $1${NC}"; }
+log_warn() { echo -e "${YELLOW}[WARN] $1${NC}"; }
+log_error() { echo -e "${RED}[ERROR] $1${NC}"; }
+log_success() { echo -e "${GREEN}[SUCCESS] $1${NC}"; }
 
 # --- 颜色定义 ---
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[0;33m'
 BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+NC='\033[0m'
 
-# --- 脚本初始化 ---
-set -e # 如果任何命令失败，则立即退出
+set -e
 
 echo -e "${BLUE}=====================================================${NC}"
-echo -e "${BLUE}    NVIDIA CUDA Toolkit 全自动静默安装脚本         ${NC}"
+echo -e "${BLUE}    NVIDIA CUDA Toolkit 智能安装脚本 (含驱动处理)   ${NC}"
 echo -e "${BLUE}=====================================================${NC}"
 echo
 
 # --- 1. 依赖与权限检查 ---
 if ! command -v wget &> /dev/null; then
-    echo -e "${RED}错误: 'wget' 未安装。请先安装 wget。${NC}"
-    exit 1  
+    echo -e "${RED}错误: 'wget' 未安装。请先安装: sudo apt install wget 或 sudo yum install wget${NC}"
+    exit 1
 fi
-#if [[ $EUID -eq 0 ]]; then    
-#   echo -e "${RED}错误：请不要使用 root 用户或 'sudo' 来运行此脚本。${NC}"
-#   echo "脚本会在需要时自动请求 sudo 密码。"
-#   exit 1
-#fi
 
 # --- 2. 判断系统版本 ---
-echo -e "${YELLOW}--- 正在检测系统信息 ---${NC}"
 if [ -f /etc/os-release ]; then
     . /etc/os-release
     OS=$NAME
     VER=$VERSION_ID
-    echo -e "操作系统: ${GREEN}${OS} ${VER}${NC}"
 else
     echo -e "${RED}无法确定操作系统版本。${NC}"
     exit 1
 fi
-echo
 
-# --- 3. 获取所有可用的CUDA版本 ---
-echo -e "${YELLOW}--- 正在从 NVIDIA 官网获取可用的 CUDA 版本列表 (已优化)... ---${NC}"
-CUDA_ARCHIVE_URL="https://developer.nvidia.com/cuda-toolkit-archive"
+# ==============================================================================
+# 核心逻辑：断点续传与状态检测
+# ==============================================================================
 
-# 临时存储未排序的结果
-mapfile -t temp_versions < <(
-    # 1. 获取所有版本号
-    wget -qO- "$CUDA_ARCHIVE_URL" | \
-    grep -oE "CUDA Toolkit [0-9]+\.[0-9]+(\.[0-9]+)?" | \
-    sed 's/CUDA Toolkit //' | \
-    uniq | \
-    while read -r version; do
-        # 2. 为每个版本启动一个并行的子 shell
-        (
-            # driver_version 变量仅在此 () 子 shell 中有效
-            driver_version=$(wget -qO- "https://docs.nvidia.com/cuda/archive/${version}/cuda-toolkit-release-notes/index.html" 2>/dev/null | \
-                grep -A2 "NVIDIA Linux Driver" | \
-                grep -oE "[0-9]+\.[0-9]+\.[0-9]+" | head -1)
-            
-            # 3. 输出 "版本号[TAB]文件名" 格式，以便后续排序
-            # 使用制表符 \t 作为分隔符，避免版本号或文件名中可能出现的空格
-            if [[ -n "$driver_version" ]]; then
-                echo -e "${version}\tcuda_${version}_${driver_version}_linux.run"
-            else
-                echo -e "${version}\tcuda_${version}_linux.run"
-            fi
-        ) & # 关键：& 将任务放入后台并行执行
-    done
+# 函数：禁用 Nouveau 并更新 Initramfs
+disable_nouveau_and_reboot() {
+    local filename=$1
+    local driver_choice=$2
     
-    # 4. 关键：等待所有后台启动的 wget 子任务完成
-    wait
-)
+    log_warn "检测到 Nouveau 驱动正在运行，必须将其禁用并重启系统才能安装 NVIDIA 驱动。"
+    echo -e "${YELLOW}正在创建黑名单文件: ${NVIDIA_BLACKLIST_FILE}...${NC}"
 
-# 5. 对并行获取的乱序结果，按版本号(第1字段)进行反向版本排序
-mapfile -t CUDA_VERSIONS < <(
-    printf "%s\n" "${temp_versions[@]}" | \
-    # -k1,1 按第一个字段排序, -t $'\t' 指定分隔符为Tab
-    sort -rV -k1,1 -t $'\t' | \
-    # 提取第二个字段及之后的所有内容 (即文件名)
-    cut -f2- -d $'\t'
-)
+    # 1. 写入黑名单
+    sudo bash -c "cat > ${NVIDIA_BLACKLIST_FILE}" <<EOF
+blacklist nouveau
+options nouveau modeset=0
+EOF
 
-if [ ${#CUDA_VERSIONS[@]} -eq 0 ]; then
-    echo -e "${RED}错误: 无法从 NVIDIA 官网获取 CUDA 版本列表。${NC}"
-    exit 1
-fi
-echo -e "${GREEN}成功获取版本列表！${NC}"
-echo
-
-# --- 4. 提供选择菜单 ---
-echo -e "${YELLOW}--- 请选择您要安装的 CUDA Toolkit 版本 ---${NC}"
-PS3="请输入选项编号: "
-select FILENAME in "${CUDA_VERSIONS[@]}"; do
-    if [[ -n "$FILENAME" ]]; then
-        echo -e "您选择了: ${GREEN}${FILENAME}${NC}"  
-        break
+    # 2. 更新内核 Initramfs (区分 OS)
+    echo -e "${YELLOW}正在重新生成内核引导镜像 (initramfs)... 这可能需要一分钟...${NC}"
+    if [[ "$ID" == "ubuntu" || "$ID" == "debian" ]]; then
+        sudo update-initramfs -u
+    elif [[ "$ID" == "centos" || "$ID" == "rhel" || "$ID" == "fedora" || "$ID" == "ol" ]]; then
+        sudo dracut --force
     else
-        echo -e "${RED}无效选项，请重新输入。${NC}"
+        log_warn "未知的操作系统类型，尝试通用的 update-initramfs..."
+        sudo update-initramfs -u || log_error "无法更新 initramfs，请手动执行！"
     fi
-done
-echo
 
-# --- 5. 下载并准备安装 ---
+    # 3. 保存当前状态到文件
+    echo -e "${YELLOW}正在保存当前安装状态...${NC}"
+    cat > "${STATE_FILE}" <<EOF
+# CUDA Install State Saved
+SAVED_FILENAME="${filename}"
+SAVED_DRIVER_CHOICE="${driver_choice}"
+EOF
+
+    log_success "配置已完成！"
+    echo -e "${RED}======================================================${NC}"
+    echo -e "${RED}系统必须立即重启以应用更改。${NC}"
+    echo -e "${RED}重启后，请重新运行此脚本，它将自动检测进度并继续安装。${NC}"
+    echo -e "${RED}======================================================${NC}"
+    
+    read -p "是否立即重启? (y/N): " REBOOT_NOW
+    if [[ "$REBOOT_NOW" =~ ^[yY] ]]; then
+        sudo reboot
+    else
+        echo "请稍后手动重启，并在重启后再次运行 ./install_cuda.sh"
+        exit 0
+    fi
+}
+
+# 变量初始化
+FILENAME=""
+CONFIRM_DRIVER=""
+
+# --- 检查是否存在状态文件 (意味着这是重启后的运行) ---
+if [ -f "$STATE_FILE" ]; then
+    echo -e "${GREEN}检测到上次未完成的安装状态文件。${NC}"
+    source "$STATE_FILE"
+    
+    FILENAME="$SAVED_FILENAME"
+    CONFIRM_DRIVER="$SAVED_DRIVER_CHOICE"
+    
+    echo -e "恢复的目标版本: ${GREEN}${FILENAME}${NC}"
+    echo -e "恢复的驱动选项: ${GREEN}${CONFIRM_DRIVER}${NC}"
+    
+    # 再次检查 Nouveau 是否真的没了
+    if lsmod | grep -q nouveau; then
+        log_error "Nouveau 驱动仍然存在！可能重启未成功或配置未生效。"
+        echo "请检查 ${NVIDIA_BLACKLIST_FILE} 是否正确。"
+        exit 1
+    else
+        log_success "Nouveau 已成功禁用。准备继续安装。"
+    fi
+    
+else
+    # ==============================================================================
+    # 正常流程：如果没有状态文件，则执行正常的选择菜单
+    # ==============================================================================
+
+    # --- 3. 获取所有可用的CUDA版本 ---
+    echo -e "${YELLOW}--- 正在从 NVIDIA 官网获取可用的 CUDA 版本列表... ---${NC}"
+    CUDA_ARCHIVE_URL="https://developer.nvidia.com/cuda-toolkit-archive"
+
+    # (优化版的并行获取逻辑保持不变)
+    mapfile -t temp_versions < <(
+        wget -qO- "$CUDA_ARCHIVE_URL" | \
+        grep -oE "CUDA Toolkit [0-9]+\.[0-9]+(\.[0-9]+)?" | \
+        sed 's/CUDA Toolkit //' | \
+        uniq | \
+        while read -r version; do
+            (
+                driver_version=$(wget -qO- "https://docs.nvidia.com/cuda/archive/${version}/cuda-toolkit-release-notes/index.html" 2>/dev/null | \
+                    grep -A2 "NVIDIA Linux Driver" | \
+                    grep -oE "[0-9]+\.[0-9]+\.[0-9]+" | head -1)
+                
+                if [[ -n "$driver_version" ]]; then
+                    echo -e "${version}\tcuda_${version}_${driver_version}_linux.run"
+                else
+                    echo -e "${version}\tcuda_${version}_linux.run"
+                fi
+            ) & 
+        done
+        wait
+    )
+
+    mapfile -t CUDA_VERSIONS < <(
+        printf "%s\n" "${temp_versions[@]}" | \
+        sort -rV -k1,1 -t $'\t' | \
+        cut -f2- -d $'\t'
+    )
+
+    if [ ${#CUDA_VERSIONS[@]} -eq 0 ]; then
+        echo -e "${RED}错误: 无法从 NVIDIA 官网获取版本列表。${NC}"
+        exit 1
+    fi
+
+    # --- 4. 提供选择菜单 ---
+    echo -e "${YELLOW}--- 请选择您要安装的 CUDA Toolkit 版本 ---${NC}"
+    PS3="请输入选项编号: "
+    select FILE_SELECT in "${CUDA_VERSIONS[@]}"; do
+        if [[ -n "$FILE_SELECT" ]]; then
+            FILENAME="$FILE_SELECT"
+            echo -e "您选择了: ${GREEN}${FILENAME}${NC}" 
+            break
+        else
+            echo -e "${RED}无效选项。${NC}"
+        fi
+    done
+    echo
+
+    # --- 5.1. 询问是否安装驱动 ---
+    echo -e "${YELLOW}--- 是否安装 NVIDIA 驱动程序? ---${NC}"
+    echo -e "注意：安装驱动通常需要禁用 Nouveau 并重启。"
+    read -p "是否安装驱动? (y/N): " DRIVER_INPUT
+    
+    if [[ "$DRIVER_INPUT" =~ ^[yY] ]]; then
+        CONFIRM_DRIVER="yes"
+    else
+        CONFIRM_DRIVER="no"
+    fi
+
+    # --- 检查 Nouveau 状态 (仅当用户选择安装驱动时) ---
+    if [[ "$CONFIRM_DRIVER" == "yes" ]]; then
+        if lsmod | grep -q nouveau; then
+            # 触发禁用逻辑，并退出脚本等待重启
+            disable_nouveau_and_reboot "$FILENAME" "$CONFIRM_DRIVER"
+        else
+            log_info "Nouveau 未加载或已禁用。可以直接安装。"
+        fi
+    fi
+fi
+
+# ==============================================================================
+# 安装执行阶段 (无论是首次运行还是重启后恢复，都会汇聚到这里)
+# ==============================================================================
+
 CUDA_MAJOR_VERSION=$(echo "$FILENAME" | cut -d'_' -f2)
 DOWNLOAD_URL="https://developer.download.nvidia.com/compute/cuda/${CUDA_MAJOR_VERSION}/local_installers/${FILENAME}"
 
+# --- 下载 ---
 if [ -f "./${FILENAME}" ]; then
-    echo -e "${YELLOW}文件 '${FILENAME}' 已存在。跳过下载。${NC}"
+    echo -e "${YELLOW}文件已存在，跳过下载。${NC}"
 else
-    echo -e "${YELLOW}--- 开始下载 (这可能需要一些时间)... ---${NC}"
+    echo -e "${YELLOW}--- 开始下载... ---${NC}"
     wget --progress=bar:force "${DOWNLOAD_URL}"
-    echo -e "${GREEN}下载完成！${NC}"
 fi
-echo
-
-echo -e "${YELLOW}--- 添加执行权限 ---${NC}"
 chmod +x "${FILENAME}"
-echo -e "${GREEN}权限添加成功！${NC}"
-echo
 
-# --- 5.1. [新] 询问是否安装驱动 ---
-echo -e "${YELLOW}--- 您是否要在此过程中一并安装 NVIDIA 驱动程序? ---${NC}"
-echo -e "  - ${GREEN}(Y)es${NC}:  选择 'y' 将会安装与 ${CUDA_MAJOR_VERSION} 匹配的驱动。"
-echo -e "  - ${RED}(N)o${NC}:   选择 'n' (默认) 将跳过驱动安装 (推荐)。"
-echo
-read -p "是否安装驱动? (y/N): " CONFIRM_DRIVER
-
-DRIVER_ARG="" # 默认参数
-DRIVER_MSG="无驱动程序" # 默认消息
-
-if [[ "$CONFIRM_DRIVER" =~ ^[yY]([eE][sS])?$ ]]; then
+# --- 准备参数 ---
+DRIVER_ARG=""
+DRIVER_MSG="无驱动"
+if [[ "$CONFIRM_DRIVER" == "yes" ]]; then
     DRIVER_ARG="--driver"
-    DRIVER_MSG="包含驱动程序"
-    log_warn "您已选择安装驱动。这可能会覆盖您现有的驱动程序。"
-else
-    DRIVER_ARG=""
-    DRIVER_MSG="无驱动程序 (推荐)"
-    log_info "您已选择不安装驱动。"
+    DRIVER_MSG="包含驱动"
 fi
-echo
 
-
-# --- 6. 执行静默安装 ---
-# 从文件名中提取版本号，例如 "cuda_12.5.1_..." -> "12.5"
-CUDA_INSTALL_VERSION=$(echo "$CUDA_MAJOR_VERSION" | awk -F. '{print $1"."$2}')  
+CUDA_INSTALL_VERSION=$(echo "$CUDA_MAJOR_VERSION" | awk -F. '{print $1"."$2}') 
 INSTALL_PATH="/usr/local/cuda-${CUDA_INSTALL_VERSION}"
 
-echo -e "${RED}===================== 最终确认 =======================${NC}"
-echo -e "${YELLOW}脚本即将以静默模式进行安装，这将不会有任何交互提示。${NC}"
-echo
-echo -e "将要安装的版本: ${GREEN}${CUDA_MAJOR_VERSION}${NC}"
-echo -e "预计安装路径:   ${GREEN}${INSTALL_PATH}${NC}"
-echo -e "安装的组件:     ${GREEN}Toolkit, Samples (${DRIVER_MSG})${NC}" # <-- 动态消息
-echo -e "${YELLOW}环境变量将被自动添加到: ${GREEN}~/.bashrc${NC}"
-echo -e "${RED}========================================================${NC}"
-echo
+echo -e "${YELLOW}--- 开始静默安装 (${DRIVER_MSG})... ---${NC}"
+echo -e "这可能需要几分钟，请不要关闭终端..."
 
-read -p "您确定要继续吗？ (y/N): " CONFIRM
-if [[ ! "$CONFIRM" =~ ^[yY]([eE][sS])?$ ]]; then
-    echo -e "${YELLOW}安装已取消。${NC}"
-    exit 0
-fi
-
-echo -e "${GREEN}开始静默安装，请稍候...${NC}"
-# 使用 sudo 权限执行静默安装
-# --silent: 完整静默模式
-# --toolkit: 安装CUDA Toolkit
-# --samples: 安装示例代码
-# ${DRIVER_ARG}: --driver 或 --no-driver
-# --installpath: 指定安装目录
+# 执行安装
 sudo "./${FILENAME}" --silent --toolkit --samples ${DRIVER_ARG} --installpath="${INSTALL_PATH}"
- 
 INSTALL_EXIT_CODE=$?
 
 if [ $INSTALL_EXIT_CODE -ne 0 ]; then
-    echo -e "${RED}NVIDIA 安装程序执行失败 (退出码: $INSTALL_EXIT_CODE)。请检查日志。${NC}"
+    echo -e "${RED}安装失败 (Code: $INSTALL_EXIT_CODE)。请查看 /var/log/cuda-installer.log${NC}"
+    # 注意：如果失败了，我们不删除状态文件，以便用户排查后重新运行
     exit 1
 fi
 
-echo -e "${GREEN}CUDA Toolkit ${CUDA_MAJOR_VERSION} 静默安装成功！${NC}"
-echo
+echo -e "${GREEN}CUDA 安装成功！${NC}"
 
-# --- 7. 自动配置环境变量 ---
-echo -e "${YELLOW}--- 正在配置环境变量... ---${NC}"
+# --- 7. 环境变量配置 (保持原逻辑) ---
 BASHRC_FILE="$HOME/.bashrc"
 SYMLINK_PATH="/usr/local/cuda"
-# 创建或更新 /usr/local/cuda 符号链接，指向新安装的版本
-echo "正在创建符号链接 ${SYMLINK_PATH} -> ${INSTALL_PATH}"
+
 sudo ln -sfn "${INSTALL_PATH}" "${SYMLINK_PATH}"
 
-# 要添加的配置行
 PATH_VAR="export PATH=${SYMLINK_PATH}/bin\${PATH:+:\${PATH}}"
 LD_VAR="export LD_LIBRARY_PATH=${SYMLINK_PATH}/lib64\${LD_LIBRARY_PATH:+:\${LD_LIBRARY_PATH}}"
 
-# 检查并添加 PATH
-if grep -q "export PATH=${SYMLINK_PATH}/bin" "$BASHRC_FILE"; then
-    echo "PATH 变量已存在于 ${BASHRC_FILE}，无需更改。"
-else
-    echo "Adding PATH to ${BASHRC_FILE}"
+if ! grep -q "export PATH=${SYMLINK_PATH}/bin" "$BASHRC_FILE"; then
     echo -e "\n# Added by CUDA installer script" >> "$BASHRC_FILE"
     echo "${PATH_VAR}" >> "$BASHRC_FILE"
 fi
 
-# 检查并添加 LD_LIBRARY_PATH
-if grep -q "export LD_LIBRARY_PATH=${SYMLINK_PATH}/lib64" "$BASHRC_FILE"; then
-    echo "LD_LIBRARY_PATH 变量已存在于 ${BASHRC_FILE}，无需更改。"
-else
-    echo "Adding LD_LIBRARY_PATH to ${BASHRC_FILE}"
-    # 如果是第一次添加，也加上注释
-    if ! grep -q "# Added by CUDA installer script" "$BASHRC_FILE"; then
-        echo -e "\n# Added by CUDA installer script" >> "$BASHRC_FILE"
-    fi
+if ! grep -q "export LD_LIBRARY_PATH=${SYMLINK_PATH}/lib64" "$BASHRC_FILE"; then
     echo "${LD_VAR}" >> "$BASHRC_FILE"
 fi
 
-echo -e "${GREEN}环境变量配置完成！${NC}"
-echo
+# --- 8. 清理与完成 ---
+# 安装成功，删除状态文件
+if [ -f "$STATE_FILE" ]; then
+    rm "$STATE_FILE"
+    log_debug "已清理安装状态文件。"
+fi
 
-# --- 8. 最终总结 ---
 echo -e "${BLUE}=====================================================${NC}"
 echo -e "${GREEN}                所有操作已成功完成！               ${NC}"
 echo -e "${BLUE}=====================================================${NC}"
-echo
-echo -e "文件 ${YELLOW}${BASHRC_FILE}${NC} 已被更新。"
-echo -e "${RED}请务必执行以下命令，或重新打开一个新的终端来使配置生效:${NC}"
-echo
-echo -e "   ${GREEN}source ~/.bashrc${NC}"
-echo
-echo "然后，您可以通过运行以下命令来验证 CUDA 是否安装成功:"
-echo -e "   ${GREEN}nvcc -V${NC}"
-echo
-
-# 恢复正常退出
-set +e
+echo -e "请执行: ${GREEN}source ~/.bashrc${NC} 并运行 ${GREEN}nvcc -V${NC} 验证。"
