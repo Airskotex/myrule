@@ -2,7 +2,7 @@
 
 #====================================================
 # 并行下载加速工具安装脚本
-# 支持: Ubuntu, Debian, CentOS, Fedora, Arch, openSUSE  
+# 支持: Ubuntu, Debian, CentOS, Fedora, Arch, openSUSE
 # 工具: aria2, apt-fast (Debian系)
 #====================================================
 
@@ -43,7 +43,7 @@ detect_os() {
         OS="centos"
     elif [ -f /etc/debian_version ]; then
         OS="debian"
-    elif [ -f /etc/arch-release ]; then  
+    elif [ -f /etc/arch-release ]; then
         OS="arch"
     else
         OS=$(uname -s)
@@ -66,7 +66,7 @@ install_aria2() {
     
     case $OS in
         ubuntu|debian|linuxmint|pop)
-            apt-get update  
+            apt-get update
             apt-get install -y aria2
             ;;
         centos|rhel|rocky|almalinux)
@@ -198,7 +198,7 @@ enable-peer-exchange=true
 bt-max-peers=100
 
 # 用户代理
-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36  
+user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36
 
 # 日志设置
 log-level=notice
