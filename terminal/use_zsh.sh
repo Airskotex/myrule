@@ -511,6 +511,12 @@ alias ll='ls -lh'
 alias la='ls -lah'
 alias grep='grep --color=auto'
 alias diff='diff --color=auto'
+alias ip='ip -c'
+alias dmesg='dmesg --color=always -T'
+alias tree='tree -C'
+export LESS='-R --use-color'
+alias less='less -R'
+alias watch='watch --color'
 
 # Directory navigation
 alias ..='cd ..'
