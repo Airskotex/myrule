@@ -816,7 +816,22 @@ EOF
 	if systemctl enable gdm3; then log_info "GDM3 服务已启用自启动"; else log_error "GDM3 服务启用失败"; fi
 	if systemctl enable xrdp; then log_info "XRDP 服务已启用自启动"; else log_error "XRDP 服务启用失败"; fi
 	if systemctl start xrdp; then log_info "XRDP 服务启动成功"; else log_error "XRDP 服务启动失败"; fi
-
+	log_info "优化 GNOME 桌面性能设置..."
+	# 禁用动画效果以提升远程桌面性能
+	# 需要在图形会话中执行，这里为 root 用户预设配置
+	# 创建 dconf 数据库覆盖配置（系统级别，对所有用户生效）
+	mkdir -p /etc/dconf/db/local.d
+	cat > /etc/dconf/db/local.d/00-animations << EOF
+[org/gnome/desktop/interface]
+enable-animations=false
+[org/gnome/shell/extensions/dash-to-dock]
+animate-show-apps=false
+EOF
+	
+	# 更新 dconf 数据库
+	dconf update 2>/dev/null || log_warn "dconf 数据库更新失败，动画设置将在首次登录后生效"
+	log_info "GNOME 动画效果已禁用（提升远程桌面性能）"
+	
 	log_info "XRDP 配置完成！"
 	log_info "备份文件位于各原文件同目录下，以 .backup.时间戳 结尾"
 	log_info "XRDP 默认端口: 3389"
