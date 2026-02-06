@@ -630,9 +630,9 @@ install_nvidia_driver() {
 		esac
 		log_warn "nouveau 驱动已禁用，需要重启后生效"
 		read -p "是否现在重启？(建议选择 y) (y/n): " choice
-		case "$choice" in   
-			y|Y )   
-				terminal_close_warning  
+		case "$choice" in
+			y|Y )
+				terminal_close_warning
 				reboot
 				;;
 			* ) log_warn "继续安装，但可能会有冲突...";;
