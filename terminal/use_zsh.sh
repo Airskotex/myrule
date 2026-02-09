@@ -517,7 +517,6 @@ alias tree='tree -C'
 export LESS='-R --use-color'
 alias less='less -R'
 alias watch='watch --color'
-alias cman='man -M /usr/share/man/zh_CN'
 
 # Directory navigation
 alias ..='cd ..'
