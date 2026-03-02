@@ -573,12 +573,12 @@ extract() {
 
 # 快速查找文件
 ff() {
-    find . -type f -iname "*\$1*" 2>/dev/null
+    find / -type f -iname "*\$1*" 2>/dev/null
 }
 
 # 快速查找目录
 fd() {
-    find . -type d -iname "*\$1*" 2>/dev/null
+    find / -type d -iname "*\$1*" 2>/dev/null
 }
 
 # Load Powerlevel10k configuration
