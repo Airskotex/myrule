@@ -259,11 +259,24 @@ get_system_info() {
     PROC_COUNT=$(ps aux 2>/dev/null | wc -l | xargs)
     PROC_MAX=$(ulimit -u 2>/dev/null || echo "N/A")
 
-    # 负载
+    # 负载（带状态判断）
     if [ -f /proc/loadavg ]; then
-        LOAD_AVG=$(cat /proc/loadavg | awk '{print $1, $2, $3}')
-    else
-        LOAD_AVG=$(sysctl -n vm.loadavg 2>/dev/null | tr -d '{}')
+      read LOAD1 LOAD5 LOAD15 _ < /proc/loadavg
+      CPU_CORES=$(nproc 2>/dev/null || grep -c ^processor /proc/cpuinfo)
+  
+      # 计算负载百分比（基于1分钟负载）
+      LOAD_PCT=$(awk "BEGIN {printf \"%.0f\", ($LOAD1/$CPU_CORES)*100}")
+  
+      # 状态判断
+      if [ "$LOAD_PCT" -lt 70 ]; then
+        LOAD_STATUS="正常"
+      elif [ "$LOAD_PCT" -lt 100 ]; then
+        LOAD_STATUS="较高"
+      else
+        LOAD_STATUS="过载"
+      fi
+  
+      LOAD_AVG="$LOAD1 $LOAD5 $LOAD15 (${LOAD_PCT}% - ${LOAD_STATUS})"
     fi
 
     # 网络 IP
@@ -304,7 +317,7 @@ main() {
     echo -e " ${ACCENT_COLOR}${BOLD}=[ 资源使用 ]=${RESET}"
 
     # CPU
-    printf "       ${BOLD}CPU:${RESET} "
+    printf "        ${BOLD}CPU:${RESET} "
     progress_bar "${CPU_USAGE:-0}"
     echo -e "            (${CPU_MODEL:-N/A} × ${CPU_CORES:-?} cores)"
 
