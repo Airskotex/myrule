@@ -193,7 +193,7 @@ else
     echo -e "注意：安装驱动通常需要禁用 Nouveau 并重启。"
     read -p "是否安装NVIDIA驱动? (y=驱动+CUDA / N=仅CUDA): " DRIVER_INPUT
     
-    if [[ "$DRIVER_INPUT" =~ ^[yY] ]]; then  
+    if [[ "$DRIVER_INPUT" =~ ^[yY] ]]; then
         CONFIRM_DRIVER="yes"
     else
         CONFIRM_DRIVER="no"
