@@ -288,7 +288,6 @@ fmt_mb() {
 main() {
     detect_os
     get_system_info
-
     echo ""
     print_logo
 
