@@ -152,8 +152,29 @@ get_system_info() {
     KERNEL=$(uname -r)
 
     # 运行时间
+    # 运行时间（转换为月/天/小时/分钟格式）
     if command -v uptime &>/dev/null; then
-        UPTIME=$(uptime -p 2>/dev/null || uptime | sed 's/.*up //' | sed 's/,.*load.*//')
+    # 获取运行秒数
+        if [[ -f /proc/uptime ]]; then
+            UPTIME_SECS=$(cut -d. -f1 /proc/uptime)
+        else
+            # macOS 兼容
+            UPTIME_SECS=$(sysctl -n kern.boottime | awk '{print systime() - $4}' | tr -d ',')
+        fi
+    
+        # 计算各时间单位
+        MONTHS=$((UPTIME_SECS / 2592000))      # 30天算1月
+        DAYS=$(((UPTIME_SECS % 2592000) / 86400))
+        HOURS=$(((UPTIME_SECS % 86400) / 3600))
+        MINS=$(((UPTIME_SECS % 3600) / 60))
+    
+        # 拼接显示字符串（只显示非零部分）
+        UPTIME=""
+        [[ $MONTHS -gt 0 ]] && UPTIME+="${MONTHS}月"
+        [[ $DAYS -gt 0 ]] && UPTIME+="${DAYS}天"
+        [[ $HOURS -gt 0 ]] && UPTIME+="${HOURS}小时"
+        [[ $MINS -gt 0 ]] && UPTIME+="${MINS}分钟"
+        [[ -z "$UPTIME" ]] && UPTIME="刚刚启动"
     fi
 
     # 登录用户
