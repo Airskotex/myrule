@@ -191,9 +191,9 @@ else
     # --- 5.1. 询问是否安装驱动 ---
     echo -e "${YELLOW}--- 是否安装 NVIDIA 驱动程序? ---${NC}"
     echo -e "注意：安装驱动通常需要禁用 Nouveau 并重启。"
-    read -p "是否安装驱动? (y/N): " DRIVER_INPUT
+    read -p "是否安装NVIDIA驱动? (y=驱动+CUDA / N=仅CUDA): " DRIVER_INPUT
     
-    if [[ "$DRIVER_INPUT" =~ ^[yY] ]]; then
+    if [[ "$DRIVER_INPUT" =~ ^[yY] ]]; then  
         CONFIRM_DRIVER="yes"
     else
         CONFIRM_DRIVER="no"
