@@ -1,6 +1,11 @@
 #!/bin/bash
-# /etc/profile.d/motd.sh
-# 登录后显示系统资源信息（支持 Ubuntu / Debian / OpenEuler / FreeBSD）
+# /etc/profile.d/sysinfo.sh
+# 登录后显示系统资源信息（最终修复版）
+
+# ========== 仅在交互式 shell 中执行 ==========
+if [[ $- != *i* ]]; then
+    return 0 2>/dev/null || exit 0
+fi
 
 # ========== 颜色定义 ==========
 RED='\033[0;31m'
@@ -33,7 +38,7 @@ print_logo() {
     case "$OS_ID" in
         ubuntu)
             echo -e "${YELLOW}"
-            cat << 'EOF'
+            command cat << 'EOF'
              _
          ---(_)
      _/  ---  \
@@ -46,7 +51,7 @@ EOF
             ;;
         debian)
             echo -e "${RED}"
-            cat << 'EOF'
+            command cat << 'EOF'
        _____
       /  __ \
      |  /    |
@@ -59,7 +64,7 @@ EOF
             ;;
         openeuler|openEuler)
             echo -e "${BLUE}"
-            cat << 'EOF'
+            command cat << 'EOF'
                __
           ____/ /
          / __  /
@@ -75,7 +80,7 @@ EOF
             ;;
         freebsd)
             echo -e "${RED}"
-            cat << 'EOF'
+            command cat << 'EOF'
   ,        ,
  /(        )`
  \ \___   / |
@@ -101,7 +106,7 @@ EOF
             ;;
         *)
             echo -e "${GREEN}"
-            cat << 'EOF'
+            command cat << 'EOF'
     ___
    (.. |
    (<> |
@@ -116,11 +121,14 @@ EOF
     esac
 }
 
-# ========== 进度条函数 ==========
-# 参数: $1=已用百分比(整数)  $2=条形总长度
+# ========== 进度条函数（动态宽度） ==========
 progress_bar() {
     local percent=$1
-    local bar_len=${2:-37}
+    local term_width=$(tput cols 2>/dev/null || echo 80)
+    local bar_len=$((term_width - 25))
+    [ $bar_len -lt 10 ] && bar_len=10
+    [ -n "$2" ] && bar_len=$2
+
     local filled=$(( percent * bar_len / 100 ))
     local empty=$(( bar_len - filled ))
 
@@ -143,32 +151,63 @@ progress_bar() {
     echo -e "${color}${bar}${RESET} ${BOLD}${percent}%${RESET}"
 }
 
+# ========== 获取 CPU 使用率（快速） ==========
+get_cpu_usage() {
+    if [ -f /proc/stat ]; then
+        # 第一次读取
+        local prev_idle prev_total
+        read -r _ _ _ _ idle _ < /proc/stat
+        prev_idle=$idle
+        read -r _ user nice system idle iowait irq softirq steal _ < /proc/stat
+        prev_total=$((user + nice + system + idle + iowait + irq + softirq + steal))
+
+        sleep 0.1
+
+        # 第二次读取
+        read -r _ user nice system idle iowait irq softirq steal _ < /proc/stat
+        now_total=$((user + nice + system + idle + iowait + irq + softirq + steal))
+        now_idle=$idle
+
+        diff_total=$((now_total - prev_total))
+        diff_idle=$((now_idle - prev_idle))
+
+        if [ $diff_total -gt 0 ]; then
+            usage=$((100 * (diff_total - diff_idle) / diff_total))
+        else
+            usage=0
+        fi
+        echo "$usage"
+        return
+    fi
+
+    # 回退：使用 top
+    if command -v top &>/dev/null; then
+        if [ "$OS_ID" = "freebsd" ]; then
+            top -b -d1 | grep 'CPU:' | head -1 | awk '{print int(100 - $NF)}'
+        else
+            top -bn1 | grep 'Cpu(s)' | awk '{print int($2 + $4)}'
+        fi
+    else
+        echo "0"
+    fi
+}
+
 # ========== 获取系统信息 ==========
 get_system_info() {
-    # 主机名
     HOSTNAME_STR=$(hostname)
-
-    # 内核版本
     KERNEL=$(uname -r)
 
     # 运行时间
-    # 运行时间（转换为月/天/小时/分钟格式）
     if command -v uptime &>/dev/null; then
-    # 获取运行秒数
         if [[ -f /proc/uptime ]]; then
             UPTIME_SECS=$(cut -d. -f1 /proc/uptime)
         else
-            # macOS 兼容
-            UPTIME_SECS=$(sysctl -n kern.boottime | awk '{print systime() - $4}' | tr -d ',')
+            UPTIME_SECS=$(sysctl -n kern.boottime 2>/dev/null | awk '{print systime() - $4}' | tr -d ',')
         fi
-    
-        # 计算各时间单位
-        MONTHS=$((UPTIME_SECS / 2592000))      # 30天算1月
+        MONTHS=$((UPTIME_SECS / 2592000))
         DAYS=$(((UPTIME_SECS % 2592000) / 86400))
         HOURS=$(((UPTIME_SECS % 86400) / 3600))
         MINS=$(((UPTIME_SECS % 3600) / 60))
-    
-        # 拼接显示字符串（只显示非零部分）
         UPTIME=""
         [[ $MONTHS -gt 0 ]] && UPTIME+="${MONTHS}月"
         [[ $DAYS -gt 0 ]] && UPTIME+="${DAYS}天"
@@ -177,11 +216,7 @@ get_system_info() {
         [[ -z "$UPTIME" ]] && UPTIME="刚刚启动"
     fi
 
-    # 登录用户
     USER_NAME=$(whoami)
-
-    # 最后登录
-    LAST_LOGIN=$(last -1 "$USER_NAME" 2>/dev/null | head -1 | awk '{for(i=3;i<=NF;i++) printf $i" "; print ""}' | sed 's/still logged in.*//')
 
     # CPU 信息
     if [ -f /proc/cpuinfo ]; then
@@ -192,20 +227,10 @@ get_system_info() {
         CPU_CORES=$(sysctl -n hw.ncpu 2>/dev/null)
     fi
 
-    # CPU 使用率
-    if command -v mpstat &>/dev/null; then
-        CPU_IDLE=$(mpstat 1 1 2>/dev/null | tail -1 | awk '{print $NF}')
-        CPU_USAGE=$(echo "100 - ${CPU_IDLE:-0}" | bc 2>/dev/null | cut -d. -f1)
-    elif command -v top &>/dev/null; then
-        if [ "$OS_ID" = "freebsd" ]; then
-            CPU_USAGE=$(top -b -d1 | grep 'CPU:' | head -1 | awk '{print 100-$NF}' | cut -d. -f1)
-        else
-            CPU_USAGE=$(top -bn1 | grep 'Cpu(s)' | awk '{print int($2 + $4)}')
-        fi
-    fi
+    CPU_USAGE=$(get_cpu_usage)
     CPU_USAGE=${CPU_USAGE:-0}
 
-    # 内存信息
+    # 内存
     if [ -f /proc/meminfo ]; then
         MEM_TOTAL_KB=$(grep MemTotal /proc/meminfo | awk '{print $2}')
         MEM_AVAIL_KB=$(grep MemAvailable /proc/meminfo | awk '{print $2}')
@@ -227,11 +252,11 @@ get_system_info() {
         MEM_PERCENT=$(( MEM_USED_MB * 100 / MEM_TOTAL_MB ))
     fi
 
-    # SWAP 信息
+    # SWAP（清理可能的单位字符）
     if command -v free &>/dev/null; then
-        SWAP_TOTAL=$(free -m | awk '/Swap:/{print $2}')
-        SWAP_USED=$(free -m | awk '/Swap:/{print $3}')
-        if [ "${SWAP_TOTAL:-0}" -gt 0 ]; then
+        SWAP_TOTAL=$(free -m | awk '/Swap:/{print $2}' | sed 's/[^0-9]//g')
+        SWAP_USED=$(free -m | awk '/Swap:/{print $3}' | sed 's/[^0-9]//g')
+        if [ -n "$SWAP_TOTAL" ] && [ "$SWAP_TOTAL" -gt 0 ] 2>/dev/null; then
             SWAP_PERCENT=$(( SWAP_USED * 100 / SWAP_TOTAL ))
         else
             SWAP_PERCENT=0
@@ -240,60 +265,69 @@ get_system_info() {
         fi
     elif [ "$OS_ID" = "freebsd" ]; then
         SWAP_INFO=$(swapinfo -m 2>/dev/null | tail -1)
-        SWAP_TOTAL=$(echo "$SWAP_INFO" | awk '{print $2}')
-        SWAP_USED=$(echo "$SWAP_INFO" | awk '{print $3}')
-        if [ "${SWAP_TOTAL:-0}" -gt 0 ]; then
+        SWAP_TOTAL=$(echo "$SWAP_INFO" | awk '{print $2}' | sed 's/[^0-9]//g')
+        SWAP_USED=$(echo "$SWAP_INFO" | awk '{print $3}' | sed 's/[^0-9]//g')
+        if [ -n "$SWAP_TOTAL" ] && [ "$SWAP_TOTAL" -gt 0 ] 2>/dev/null; then
             SWAP_PERCENT=$(( SWAP_USED * 100 / SWAP_TOTAL ))
         else
             SWAP_PERCENT=0
+            SWAP_TOTAL=0
+            SWAP_USED=0
         fi
     fi
 
-    # 磁盘信息
+    # 磁盘
     DISK_INFO=$(df -h / 2>/dev/null | tail -1)
     DISK_TOTAL=$(echo "$DISK_INFO" | awk '{print $2}')
     DISK_USED=$(echo "$DISK_INFO" | awk '{print $3}')
     DISK_PERCENT=$(echo "$DISK_INFO" | awk '{print $5}' | tr -d '%')
 
-    # 进程数
+    # 进程
     PROC_COUNT=$(ps aux 2>/dev/null | wc -l | xargs)
-    PROC_MAX=$(ulimit -u 2>/dev/null || echo "N/A")
 
-    # 负载（带状态判断）
+    # 负载（使用浮点运算）
     if [ -f /proc/loadavg ]; then
-      read LOAD1 LOAD5 LOAD15 _ < /proc/loadavg
-      CPU_CORES=$(nproc 2>/dev/null || grep -c ^processor /proc/cpuinfo)
-  
-      # 计算负载百分比（基于1分钟负载）
-      LOAD_PCT=$(awk "BEGIN {printf \"%.0f\", ($LOAD1/$CPU_CORES)*100}")
-  
-      # 状态判断
-      if [ "$LOAD_PCT" -lt 70 ]; then
-        LOAD_STATUS="正常"
-      elif [ "$LOAD_PCT" -lt 100 ]; then
-        LOAD_STATUS="较高"
-      else
-        LOAD_STATUS="过载"
-      fi
-  
-      LOAD_AVG="$LOAD1 $LOAD5 $LOAD15 (${LOAD_PCT}% - ${LOAD_STATUS})"
+        read LOAD1 LOAD5 LOAD15 _ < /proc/loadavg
+        CPU_CORES=${CPU_CORES:-$(nproc 2>/dev/null || grep -c ^processor /proc/cpuinfo)}
+        # 使用 awk 计算负载百分比（保留一位小数）
+        LOAD_PCT=$(awk "BEGIN {printf \"%.1f\", ($LOAD1/$CPU_CORES)*100}")
+        # 将浮点数转换为整数用于比较（向下取整）
+        LOAD_PCT_INT=${LOAD_PCT%.*}
+        if [ -z "$LOAD_PCT_INT" ]; then
+            LOAD_PCT_INT=0
+        fi
+        if [ "$LOAD_PCT_INT" -lt 70 ]; then
+            LOAD_STATUS="正常"
+        elif [ "$LOAD_PCT_INT" -lt 100 ]; then
+            LOAD_STATUS="较高"
+        else
+            LOAD_STATUS="过载"
+        fi
+        LOAD_AVG="$LOAD1 $LOAD5 $LOAD15 (${LOAD_PCT}% - ${LOAD_STATUS})"
     fi
 
-    # 网络 IP
-    if command -v ip &>/dev/null; then
+    # IP
+    if command -v hostname &>/dev/null && hostname -I &>/dev/null 2>&1; then
+        IP_ADDR=$(hostname -I 2>/dev/null | awk '{print $1}')
+    elif command -v ip &>/dev/null; then
         IP_ADDR=$(ip -4 addr show scope global 2>/dev/null | grep inet | head -1 | awk '{print $2}' | cut -d/ -f1)
     elif command -v ifconfig &>/dev/null; then
         IP_ADDR=$(ifconfig 2>/dev/null | grep 'inet ' | grep -v '127.0.0.1' | head -1 | awk '{print $2}')
     fi
 }
 
-# ========== 格式化输出函数 ==========
-fmt_mb() {
-    local mb=$1
-    if [ "$mb" -ge 1024 ]; then
-        echo "$(echo "scale=1; $mb/1024" | bc)G"
+# ========== 格式化内存/磁盘大小为易读单位 ==========
+fmt_size() {
+    local size=$1
+    local unit=$2
+    if [ "$unit" = "M" ]; then
+        if [ "$size" -ge 1024 ]; then
+            printf "%.1fG" "$(awk "BEGIN {printf \"%.1f\", $size/1024}")"
+        else
+            echo "${size}M"
+        fi
     else
-        echo "${mb}M"
+        echo "${size}${unit}"
     fi
 }
 
@@ -301,7 +335,7 @@ fmt_mb() {
 main() {
     detect_os
     get_system_info
-    echo ""
+    echo   # 可选空行，若不需要可注释或删除
     print_logo
 
     echo -e " ${ACCENT_COLOR}${BOLD}=[ 系统信息 ]=${RESET}"
@@ -324,12 +358,12 @@ main() {
     # 内存
     printf "     ${BOLD}内  存:${RESET} "
     progress_bar "${MEM_PERCENT:-0}"
-    echo -e "            ($(fmt_mb ${MEM_USED_MB:-0}) / $(fmt_mb ${MEM_TOTAL_MB:-0}))"
+    echo -e "            ($(fmt_size $MEM_USED_MB M) / $(fmt_size $MEM_TOTAL_MB M))"
 
     # SWAP
     printf "     ${BOLD}交换区:${RESET} "
     progress_bar "${SWAP_PERCENT:-0}"
-    echo -e "            (${SWAP_USED:-0}M / ${SWAP_TOTAL:-0}M)"
+    echo -e "            ($(fmt_size $SWAP_USED M) / $(fmt_size $SWAP_TOTAL M))"
 
     # 磁盘
     printf "     ${BOLD}磁  盘:${RESET} "
