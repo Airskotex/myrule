@@ -252,34 +252,38 @@ get_system_info() {
         MEM_PERCENT=$(( MEM_USED_MB * 100 / MEM_TOTAL_MB ))
     fi
 
-    # SWAP（清理可能的单位字符）
-	if command -v free &>/dev/null; then
-		SWAP_TOTAL=$(free -m | awk '/Swap:/{print $2}')
-		SWAP_USED=$(free -m | awk '/Swap:/{print $3}')
-    # 确保是纯数字，去除可能存在的非数字字符（如换行、空格、单位字母等）
-		SWAP_TOTAL=${SWAP_TOTAL//[^0-9]/}
-		SWAP_USED=${SWAP_USED//[^0-9]/}
-		if [ -n "$SWAP_TOTAL" ] && [ "$SWAP_TOTAL" -gt 0 ] 2>/dev/null; then
-			SWAP_PERCENT=$(( SWAP_USED * 100 / SWAP_TOTAL ))
+	# SWAP（直接从 /proc/meminfo 读取，避免 free 命令别名或格式干扰）
+		if [ -f /proc/meminfo ]; then
+			SWAP_TOTAL_KB=$(grep -i '^SwapTotal:' /proc/meminfo | awk '{print $2}')
+			SWAP_FREE_KB=$(grep -i '^SwapFree:' /proc/meminfo | awk '{print $2}')
+			if [ -n "$SWAP_TOTAL_KB" ] && [ "$SWAP_TOTAL_KB" -gt 0 ]; then
+				SWAP_TOTAL=$(( SWAP_TOTAL_KB / 1024 ))
+				SWAP_FREE=$(( SWAP_FREE_KB / 1024 ))
+				SWAP_USED=$(( SWAP_TOTAL - SWAP_FREE ))
+				SWAP_PERCENT=$(( SWAP_USED * 100 / SWAP_TOTAL ))
+			else
+				SWAP_TOTAL=0
+				SWAP_USED=0
+				SWAP_PERCENT=0
+			fi
+		elif [ "$OS_ID" = "freebsd" ]; then
+			SWAP_INFO=$(swapinfo -m 2>/dev/null | tail -1)
+			SWAP_TOTAL=$(echo "$SWAP_INFO" | awk '{print $2}')
+			SWAP_USED=$(echo "$SWAP_INFO" | awk '{print $3}')
+			SWAP_TOTAL=${SWAP_TOTAL//[^0-9]/}
+			SWAP_USED=${SWAP_USED//[^0-9]/}
+			if [ -n "$SWAP_TOTAL" ] && [ "$SWAP_TOTAL" -gt 0 ] 2>/dev/null; then
+				SWAP_PERCENT=$(( SWAP_USED * 100 / SWAP_TOTAL ))
+			else
+				SWAP_PERCENT=0
+				SWAP_TOTAL=0
+				SWAP_USED=0
+			fi
 		else
 			SWAP_PERCENT=0
 			SWAP_TOTAL=0
 			SWAP_USED=0
 		fi
-	elif [ "$OS_ID" = "freebsd" ]; then
-		SWAP_INFO=$(swapinfo -m 2>/dev/null | tail -1)
-		SWAP_TOTAL=$(echo "$SWAP_INFO" | awk '{print $2}')
-		SWAP_USED=$(echo "$SWAP_INFO" | awk '{print $3}')
-		SWAP_TOTAL=${SWAP_TOTAL//[^0-9]/}
-		SWAP_USED=${SWAP_USED//[^0-9]/}
-		if [ -n "$SWAP_TOTAL" ] && [ "$SWAP_TOTAL" -gt 0 ] 2>/dev/null; then
-			SWAP_PERCENT=$(( SWAP_USED * 100 / SWAP_TOTAL ))
-		else
-			SWAP_PERCENT=0
-			SWAP_TOTAL=0
-			SWAP_USED=0
-		fi
-	fi
 
     # 磁盘
     DISK_INFO=$(df -h / 2>/dev/null | tail -1)
