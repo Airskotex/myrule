@@ -554,39 +554,39 @@ cat > "$HOME/.config/fastfetch/config.jsonc" << 'EOF'
     },
     {
       "type": "os",
-      "key": "  系    统:",
+      "key": " 系    统:",
       "keyColor": "black"
     },
     {
       "type": "kernel",
-      "key": "  内    核:",
+      "key": " 内    核:",
       "keyColor": "black"
     },
     {
       "type": "host",
-      "key": " 󰌢 主 机 名:",
+      "key": "󰌢 主 机 名:",
       "keyColor": "black"
     },
     {
       "type": "command",
-      "key": "  用 户 名:",
+      "key": " 用 户 名:",
       "keyColor": "black",
       "text": "whoami"
     },
     {
       "type": "uptime",
-      "key": " 󰅐 运行时间:",
-      "keyColor": "black"
+      "key": "󰅐 运行时间:",
+      "keyColor": "black",
+      "format": "{1}天{2}时{3}分"
     },
     {
       "type": "loadavg",
-      "key": "  负    载:",
-      "keyColor": "black",
-      "format": "{1}天 {2}时 {3}分"
+      "key": " 负    载:",
+      "keyColor": "black"
     },
     {
       "type": "localip",
-      "key": " 󰩟 IPv4地址:",
+      "key": "󰩟 IPv4地址:",
       "keyColor": "black",
       "showIpv4": true,
       "showIpv6": false,
@@ -594,7 +594,7 @@ cat > "$HOME/.config/fastfetch/config.jsonc" << 'EOF'
     },
     {
       "type": "localip",
-      "key": " 󰩟 IPv6地址:",
+      "key": "󰩟 IPv6地址:",
       "keyColor": "black",
       "showIpv4": false,
       "showIpv6": true,
@@ -607,28 +607,28 @@ cat > "$HOME/.config/fastfetch/config.jsonc" << 'EOF'
     },
     {
       "type": "cpu",
-      "key": "  C  P  U:", 
+      "key": "  C  P  U:", 
       "keyColor": "black",
       "format": "{1} ({4} × {5} cores)"
     },
     {
       "type": "memory",
-      "key": "  内    存:",
+      "key": " 内    存:",
       "keyColor": "black"
     },
     {
       "type": "swap",
-      "key": " 󰓡 交 换 区:",
+      "key": "󰓡 交 换 区:",
       "keyColor": "black"
     },
     {
       "type": "disk",
-      "key": "  磁    盘:",
+      "key": " 磁    盘:",
       "keyColor": "black"
     },
     {
       "type": "processes",
-      "key": "  进 程 数:",
+      "key": " 进 程 数:",
       "keyColor": "black"
     },
     "break"
