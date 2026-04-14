@@ -527,7 +527,7 @@ cat > "$HOME/.config/fastfetch/config.jsonc" << 'EOF'
   "$schema": "https://github.com/fastfetch-cli/fastfetch/raw/dev/doc/json_schema.json", // 用于IDE补全提示，不需要改动
   
   "logo": {
-    "source": "debian_small", // 系统Logo样式。可以换成 "ubuntu_small", "arch_small", "linux", "tux" 等简单的图标，或者 "debian" 恢复完整大版
+    "type": "small", // 系统Logo样式。可以换成 "ubuntu_small", "arch_small", "linux", "tux" 等简单的图标，或者 "debian" 恢复完整大版
     "position": "top", // Logo显示位置。手机端强烈推荐 "top" (顶部居中)，如果你横屏空间很大，可以改回 "left" (左侧) 或 "right" (右侧)
     "color": {
       "1": "red" // Logo主色调。可以换成 "blue"(蓝), "green"(绿), "yellow"(黄), "magenta"(洋红/紫), "cyan"(青色)
