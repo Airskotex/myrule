@@ -524,114 +524,116 @@ EOF
 echo -e "${GREEN}[INFO]${NC} 生成 Fastfetch 配置..."
 cat > "$HOME/.config/fastfetch/config.jsonc" << 'EOF'
 {
-  "$schema": "https://github.com/fastfetch-cli/fastfetch/raw/dev/doc/json_schema.json",
+  "$schema": "https://github.com/fastfetch-cli/fastfetch/raw/dev/doc/json_schema.json", // 用于IDE补全提示，不需要改动
   
   "logo": {
-    "source": "debian_small",
-    "position": "top",
+    "source": "debian_small", // 系统Logo样式。可以换成 "ubuntu_small", "arch_small", "linux", "tux" 等简单的图标，或者 "debian" 恢复完整大版
+    "position": "top", // Logo显示位置。手机端强烈推荐 "top" (顶部居中)，如果你横屏空间很大，可以改回 "left" (左侧) 或 "right" (右侧)
     "color": {
-      "1": "red"
+      "1": "red" // Logo主色调。可以换成 "blue"(蓝), "green"(绿), "yellow"(黄), "magenta"(洋红/紫), "cyan"(青色)
     },
     "padding": {
-      "top": 1,
-      "left": 1,
-      "right": 1
+      "top": 1, // 顶部留白行数。如果觉得距离屏幕顶端太近，可以改成 2 或 3
+      "left": 1, // 左侧边缘留白字符数。手机端推荐 1 节省空间
+      "right": 1 // 右侧边缘留白字符数。手机端推荐 1 节省空间
     }
   },
 
   "display": {
-    "color": "red",
-    "separator": " ",
+    "color": "red", // 模块图标和进度条的全局强调色。可以换成 "blue", "green", "yellow", "cyan" 等
+    "separator": " ", // 左侧Key和右侧Value之间的分隔符。可以改成 " ➜ ", " : ", " = " 增加设计感
     "percent": {
-      "type": 3
+      "type": 3 // 进度条样式。3为经典方块[███  ]；9为紧凑圆点 󰪥󰪣；11为圆环饼图；1为极简模式仅显示数字%。如果在手机上因为方块太长导致换行，强烈建议改为 9 或 1
     }
   },
 
   "modules": [
     {
-      "type": "custom",
-      "format": "\u001b[1m\u001b[31m=[ 系统信息 ]=\u001b[0m"
+      "type": "custom", // 自定义模块，通常用来做分类标题或空行
+      "format": "\u001b[1m\u001b[31m=[ 系统信息 ]=\u001b[0m" // \u001b[31m 代表红色。如果想换颜色，32m是绿，33m是黄，34m是蓝，35m是紫，36m是青
     },
     {
       "type": "os",
-      "key": " 系    统:",
-      "keyColor": "black"
+      "key": "  系    统:", // 左侧显示的名称，可以自由增删空格来控制对齐，或者删掉 Nerd 图标
+      "keyColor": "black" // 标题文本颜色。如果你用的终端背景是纯黑色的，"black"可能会看不清，建议改成 "white"(白), "default"(默认) 或 "dark_gray"(深灰)
     },
     {
       "type": "kernel",
-      "key": " 内    核:",
-      "keyColor": "black"
+      "key": "  内    核:", // 可以改成 "  Linux内核:" 
+      "keyColor": "black" // 同上，可替换为 "white", "blue" 等
     },
     {
-      "type": "host",
-      "key": "󰌢 主 机 名:",
-      "keyColor": "black"
+      "type": "title",
+      "key": " 󰌢 主 机 名:", // 可以改成 "  设 备 名:"
+      "keyColor": "black",
+      "format": "{2}"
     },
     {
       "type": "command",
-      "key": " 用 户 名:",
-      "keyColor": "black",
-      "text": "whoami"
+      "key": "  用 户 名:", // 可以改成 "  当前用户:"
+      "text": "u=$(whoami); if [ \"$u\" = \"root\" ]; then printf '\\033[1;31m%s\\033[0m' \"$u\"; else printf '\\033[1;32m%s\\033[0m' \"$u\"; fi",
+      "keyColor": "black"
+      //"format": "{1}"
     },
     {
       "type": "uptime",
-      "key": "󰅐 运行时间:",
+      "key": " 󰅐 运行时间:", // 原来的"运行"改成了更完整的中文
       "keyColor": "black",
-      "format": "{1}天{2}时{3}分"
+      "format": "{1}天{2}时{3}分" // 强制使用中文格式输出
     },
     {
       "type": "loadavg",
-      "key": " 负    载:",
+      "key": "  负    载:", // 可以改成 "  系统压力:"
       "keyColor": "black"
     },
     {
       "type": "localip",
-      "key": "󰩟 IPv4地址:",
+      "key": " 󰩟 IPv4地址:", // 可以改成 "  局域网IP:"
       "keyColor": "black",
       "showIpv4": true,
-      "showIpv6": false,
-      "defaultRouteOnly": true
+      "showIpv6": false, // 是否显示 IPv6。如果你的机器有且你需要看 IPv6，可以改成 true/false
+      "defaultRouteOnly": true // 推荐加上，只显示主要联网网卡的IP，避免输出一堆虚拟网卡
     },
     {
       "type": "localip",
-      "key": "󰩟 IPv6地址:",
+      "key": " 󰩟 IPv6地址:", // 可以改成 "  局域网IP:"
       "keyColor": "black",
       "showIpv4": false,
-      "showIpv6": true,
-      "defaultRouteOnly": true
+      "showIpv6": true, // 是否显示 IPv6。如果你的机器有且你需要看 IPv6，可以改成 true/false
+      "defaultRouteOnly": true // 推荐加上，只显示主要联网网卡的IP，避免输出一堆虚拟网卡
     },
-    "break",
+    "break", // 强制插入一个空行。如果觉得太占屏幕，可以直接把这行删掉
     {
       "type": "custom",
-      "format": "\u001b[1m\u001b[31m=[ 资源使用 ]=\u001b[0m"
+      "format": "\u001b[1m\u001b[31m=[ 资源使用 ]=\u001b[0m" // \u001b[31m 为红色。同上可改颜色代码
     },
     {
       "type": "cpu",
-      "key": "  C  P  U:", 
+      "key": "  C  P  U:", 
       "keyColor": "black",
-      "format": "{1} ({4} × {5} cores)"
+      "format": "{1} ({4} × {5} cores)" // 自定义 CPU 显示格式。{1}是型号，{4}是架构，{5}是核心数。如果手机屏幕显示不下这一长串，可以直接改成 "{1}" 或删掉 format 这一行
     },
     {
       "type": "memory",
-      "key": " 内    存:",
+      "key": "  内    存:", // 可以改成 "  物理内存:"
       "keyColor": "black"
     },
     {
       "type": "swap",
-      "key": "󰓡 交 换 区:",
+      "key": " 󰓡 交 换 区:", // 可以改成 "  虚拟内存:"
       "keyColor": "black"
     },
     {
       "type": "disk",
-      "key": " 磁    盘:",
+      "key": "  磁    盘:", // 可以改成 "  存储空间:"
       "keyColor": "black"
     },
     {
       "type": "processes",
-      "key": " 进 程 数:",
+      "key": "  进 程 数:", // 可以改成 "  活跃进程:"
       "keyColor": "black"
     },
-    "break"
+    "break" // 底部收尾空行，不需要可以删去
   ]
 }
 EOF
