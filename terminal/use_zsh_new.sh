@@ -614,6 +614,13 @@ cat > "$HOME/.config/fastfetch/config.jsonc" << 'EOF'
       "format": "{1} ({4} × {5} cores)" // 自定义 CPU 显示格式。{1}是型号，{4}是架构，{5}是核心数。如果手机屏幕显示不下这一长串，可以直接改成 "{1}" 或删掉 format 这一行
     },
     {
+      "type": "cpuusage",
+      "key": "  占 用 率:",
+      "waitTime": 500,
+      "keyColor": "black",
+      "format": "{avg-bar} {avg}"
+    },
+    {
       "type": "memory",
       "key": "  内    存:", // 可以改成 "  物理内存:"
       "keyColor": "black"
