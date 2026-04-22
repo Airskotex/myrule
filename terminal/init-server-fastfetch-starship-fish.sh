@@ -10,7 +10,7 @@ set -euo pipefail
 #
 # Optional environment variables:
 #   TARGET_USER=alice             # Target user to configure; defaults to sudo invoker/current user, else root
-#   SET_DEFAULT_SHELL=1           # Change login shell to fish for TARGET_USER
+#   SET_DEFAULT_SHELL=0           # Set to 0 to skip changing login shell to fish; default is to enable
 #   FORCE_INSTALL_STARSHIP=1      # Reinstall/upgrade starship even if already present
 #   FORCE_INSTALL_FASTFETCH=1     # Reinstall/upgrade fastfetch even if already present
 #   SKIP_LOCALE=1                 # Skip Linux locale generation/update
@@ -31,9 +31,9 @@ OS_ID=''
 OS_NAME=''
 PKG_MANAGER=''
 SUDO_CMD=''
-TARGET_USER=''
-TARGET_GROUP=''
-TARGET_HOME=''
+TARGET_USER="${TARGET_USER:-}"
+TARGET_GROUP="${TARGET_GROUP:-}"
+TARGET_HOME="${TARGET_HOME:-}"
 CONFIG_ROOT=''
 FISH_CONFIG_DIR=''
 FASTFETCH_DIR=''
@@ -113,7 +113,14 @@ detect_target_user() {
         TARGET_USER="$(id -un)"
     fi
 
-    if [ "$OS_FAMILY" = 'linux' ]; then
+    if [ -n "${TARGET_HOME:-}" ]; then
+        TARGET_HOME="${TARGET_HOME}"
+        if [ "$OS_FAMILY" = 'linux' ]; then
+            TARGET_GROUP="$(id -gn "$TARGET_USER" 2>/dev/null || echo "$TARGET_USER")"
+        else
+            TARGET_GROUP="$(id -gn "$TARGET_USER" 2>/dev/null || echo 'staff')"
+        fi
+    elif [ "$OS_FAMILY" = 'linux' ]; then
         TARGET_HOME="$(getent passwd "$TARGET_USER" | cut -d: -f6 || true)"
         TARGET_GROUP="$(id -gn "$TARGET_USER" 2>/dev/null || echo "$TARGET_USER")"
     else
@@ -228,6 +235,69 @@ brew_ensure() {
     command -v brew >/dev/null 2>&1 || die "macOS 未检测到 Homebrew，请先安装 Homebrew：https://brew.sh"
 }
 
+map_common_arch() {
+    case "$(uname -m)" in
+        x86_64|amd64) echo 'x86_64' ;;
+        aarch64|arm64) echo 'aarch64' ;;
+        armv7l) echo 'armv7l' ;;
+        armv6l) echo 'armv6l' ;;
+        i386|i686) echo 'i686' ;;
+        ppc64le) echo 'ppc64le' ;;
+        riscv64) echo 'riscv64' ;;
+        s390x) echo 's390x' ;;
+        *) return 1 ;;
+    esac
+}
+
+map_fastfetch_arch() {
+    local arch
+    arch="$(map_common_arch)" || return 1
+    case "$arch" in
+        x86_64) echo 'amd64' ;;
+        *) echo "$arch" ;;
+    esac
+}
+
+install_archive_binary() {
+    local url="$1"
+    local binary_name="$2"
+    local tmp_dir archive_path extracted_path
+
+    tmp_dir="$(mktemp -d)"
+    archive_path="$tmp_dir/archive"
+
+    curl -fL "$url" -o "$archive_path" || {
+        rm -rf "$tmp_dir"
+        return 1
+    }
+
+    case "$url" in
+        *.tar.gz|*.tgz)
+            tar -xzf "$archive_path" -C "$tmp_dir"
+            ;;
+        *.tar.xz)
+            tar -xJf "$archive_path" -C "$tmp_dir"
+            ;;
+        *.zip)
+            unzip -q "$archive_path" -d "$tmp_dir"
+            ;;
+        *)
+            rm -rf "$tmp_dir"
+            die "不支持的归档格式：$url"
+            ;;
+    esac
+
+    extracted_path="$(find "$tmp_dir" -type f -name "$binary_name" | head -n 1 || true)"
+    [ -n "$extracted_path" ] || {
+        rm -rf "$tmp_dir"
+        die "归档中未找到可执行文件：$binary_name"
+    }
+
+    run_privileged install -m 0755 "$extracted_path" "/usr/local/bin/$binary_name"
+    rm -rf "$tmp_dir"
+}
+
+
 install_base_packages() {
     case "$PKG_MANAGER" in
         apt)
@@ -235,7 +305,7 @@ install_base_packages() {
             run_privileged apt-get update -y
 
             log "安装 Linux 基础依赖"
-            apt_install ca-certificates curl locales fish bat tree unzip p7zip-full unrar-free procps
+            apt_install ca-certificates curl locales bat tree unzip p7zip-full unrar-free procps xz-utils
             ;;
         brew)
             brew_ensure
@@ -243,7 +313,7 @@ install_base_packages() {
             brew update
 
             log "安装 macOS 基础依赖"
-            brew install fish starship fastfetch bat tree p7zip unar watch grep diffutils coreutils findutils gnu-sed
+            brew install bat tree p7zip unar watch grep diffutils coreutils findutils gnu-sed
             ;;
         *)
             die "未知包管理器：$PKG_MANAGER"
@@ -251,6 +321,119 @@ install_base_packages() {
     esac
 
     ok "基础包安装完成"
+}
+
+install_fish_from_github_release() {
+    local arch version url tmp_dir extracted_dir tmp_pkg
+
+    arch="$(map_common_arch)" || die "fish GitHub fallback 不支持当前架构：$(uname -m)"
+
+    case "$OS_FAMILY" in
+        linux)
+            case "$arch" in
+                x86_64|aarch64) ;;
+                *) die "fish GitHub fallback 暂不支持当前 Linux 架构：$(uname -m)" ;;
+            esac
+
+            version="$(python3 - <<'PY'
+import json, urllib.request
+with urllib.request.urlopen('https://api.github.com/repos/fish-shell/fish-shell/releases/latest', timeout=20) as r:
+    print(json.load(r)['tag_name'])
+PY
+)"
+            url="https://github.com/fish-shell/fish-shell/releases/download/${version}/fish-${version}-linux-${arch}.tar.xz"
+            log "fish 包管理器安装失败，尝试 GitHub Release 回退安装：$(basename "$url")"
+
+            tmp_dir="$(mktemp -d)"
+            curl -fL "$url" -o "$tmp_dir/fish.tar.xz" || {
+                rm -rf "$tmp_dir"
+                die "GitHub Release fish 下载失败"
+            }
+            tar -xJf "$tmp_dir/fish.tar.xz" -C "$tmp_dir"
+            extracted_dir="$(find "$tmp_dir" -mindepth 1 -maxdepth 1 -type d -name 'fish-*' | head -n 1 || true)"
+            [ -n "$extracted_dir" ] || die "fish 归档解压失败"
+            [ -d "$extracted_dir/bin" ] || die "fish 归档缺少 bin 目录"
+
+            run_privileged cp -a "$extracted_dir"/. /usr/local/
+            rm -rf "$tmp_dir"
+            ;;
+        macos)
+            version="$(python3 - <<'PY'
+import json, urllib.request
+with urllib.request.urlopen('https://api.github.com/repos/fish-shell/fish-shell/releases/latest', timeout=20) as r:
+    print(json.load(r)['tag_name'])
+PY
+)"
+            url="https://github.com/fish-shell/fish-shell/releases/download/${version}/fish-${version}.pkg"
+            log "brew 安装 fish 失败，尝试 GitHub Release pkg 回退安装：$(basename "$url")"
+            tmp_pkg="$(mktemp -t fish-release).pkg"
+            curl -fL "$url" -o "$tmp_pkg" || die "GitHub Release fish 下载失败"
+            run_privileged installer -pkg "$tmp_pkg" -target /
+            rm -f "$tmp_pkg"
+            ;;
+        *)
+            die "未知系统类型：$OS_FAMILY"
+            ;;
+    esac
+}
+
+install_fish_if_needed() {
+    if command -v fish >/dev/null 2>&1; then
+        ok "fish 已存在：$(command -v fish)"
+        return 0
+    fi
+
+    case "$PKG_MANAGER" in
+        apt)
+            log "安装 fish（apt）"
+            apt_install fish || install_fish_from_github_release
+            ;;
+        brew)
+            log "安装 fish（brew）"
+            brew install fish || brew upgrade fish || install_fish_from_github_release
+            ;;
+        *)
+            die "未知包管理器：$PKG_MANAGER"
+            ;;
+    esac
+
+    command -v fish >/dev/null 2>&1 || die "fish 安装失败"
+    ok "fish 可用：$(command -v fish)"
+}
+
+install_starship_from_github_release() {
+    local arch target triple url
+
+    arch="$(map_common_arch)" || die "starship GitHub fallback 不支持当前架构：$(uname -m)"
+
+    case "$OS_FAMILY" in
+        linux)
+            case "$arch" in
+                x86_64) target='x86_64' ;;
+                aarch64) target='aarch64' ;;
+                armv7l) target='arm' ;;
+                i686) target='i686' ;;
+                *) die "starship GitHub fallback 暂不支持当前 Linux 架构：$(uname -m)" ;;
+            esac
+            triple='unknown-linux-gnu'
+            ;;
+        macos)
+            case "$arch" in
+                x86_64) target='x86_64' ;;
+                aarch64) target='aarch64' ;;
+                *) die "starship GitHub fallback 暂不支持当前 macOS 架构：$(uname -m)" ;;
+            esac
+            triple='apple-darwin'
+            ;;
+        *)
+            die "未知系统类型：$OS_FAMILY"
+            ;;
+    esac
+
+    url="https://github.com/starship/starship/releases/latest/download/starship-${target}-${triple}.tar.gz"
+    log "尝试 GitHub Release 回退安装 starship：$(basename "$url")"
+    install_archive_binary "$url" starship
+    command -v starship >/dev/null 2>&1 || ln -sf /usr/local/bin/starship /usr/bin/starship 2>/dev/null || true
 }
 
 install_starship_if_needed() {
@@ -264,13 +447,26 @@ install_starship_if_needed() {
             log "安装/更新 starship（官方安装脚本）"
             local installer
             installer="$(mktemp)"
-            curl -fsSL https://starship.rs/install.sh -o "$installer"
-            run_privileged sh "$installer" -y -b /usr/local/bin
+            if curl -fsSL https://starship.rs/install.sh -o "$installer"; then
+                if ! run_privileged sh "$installer" -y -b /usr/local/bin; then
+                    warn "starship 官方安装脚本执行失败，改用 GitHub Release"
+                    install_starship_from_github_release
+                fi
+            else
+                warn "starship 官方安装脚本下载失败，改用 GitHub Release"
+                install_starship_from_github_release
+            fi
             rm -f "$installer"
             ;;
         brew)
             log "安装/更新 starship（brew）"
-            brew install starship || brew upgrade starship
+            if ! brew install starship && ! brew upgrade starship; then
+                warn "brew 安装 starship 失败，改用 GitHub Release"
+                install_starship_from_github_release
+            fi
+            ;;
+        *)
+            die "未知包管理器：$PKG_MANAGER"
             ;;
     esac
 
@@ -278,36 +474,39 @@ install_starship_if_needed() {
     ok "starship 可用：$(command -v starship)"
 }
 
-map_fastfetch_arch() {
-    case "$(uname -m)" in
-        x86_64|amd64) echo 'amd64' ;;
-        aarch64|arm64) echo 'aarch64' ;;
-        armv7l) echo 'armv7l' ;;
-        armv6l) echo 'armv6l' ;;
-        i386|i686) echo 'i686' ;;
-        ppc64le) echo 'ppc64le' ;;
-        riscv64) echo 'riscv64' ;;
-        s390x) echo 's390x' ;;
-        *) return 1 ;;
-    esac
-}
-
-install_fastfetch_from_github_deb() {
-    local arch url tmp_deb
+install_fastfetch_from_github_release() {
+    local arch url
     arch="$(map_fastfetch_arch)" || die "fastfetch GitHub fallback 不支持当前架构：$(uname -m)"
 
-    tmp_deb="$(mktemp --suffix=.deb)"
-    url="https://github.com/fastfetch-cli/fastfetch/releases/latest/download/fastfetch-linux-${arch}.deb"
+    case "$OS_FAMILY" in
+        linux)
+            local tmp_deb
+            tmp_deb="$(mktemp --suffix=.deb)"
+            url="https://github.com/fastfetch-cli/fastfetch/releases/latest/download/fastfetch-linux-${arch}.deb"
 
-    log "apt 源无 fastfetch，尝试 GitHub Release 回退安装：$(basename "$url")"
-    if ! curl -fL "$url" -o "$tmp_deb"; then
-        url="https://github.com/fastfetch-cli/fastfetch/releases/latest/download/fastfetch-linux-${arch}-polyfilled.deb"
-        log "普通包下载失败，尝试 polyfilled 包：$(basename "$url")"
-        curl -fL "$url" -o "$tmp_deb" || die "GitHub Release fastfetch 下载失败"
-    fi
+            log "尝试 GitHub Release 回退安装 fastfetch：$(basename "$url")"
+            if ! curl -fL "$url" -o "$tmp_deb"; then
+                url="https://github.com/fastfetch-cli/fastfetch/releases/latest/download/fastfetch-linux-${arch}-polyfilled.deb"
+                log "普通包下载失败，尝试 polyfilled 包：$(basename "$url")"
+                curl -fL "$url" -o "$tmp_deb" || die "GitHub Release fastfetch 下载失败"
+            fi
 
-    run_privileged dpkg -i "$tmp_deb" || run_privileged env DEBIAN_FRONTEND=noninteractive apt-get install -f -y
-    rm -f "$tmp_deb"
+            run_privileged dpkg -i "$tmp_deb" || run_privileged env DEBIAN_FRONTEND=noninteractive apt-get install -f -y
+            rm -f "$tmp_deb"
+            ;;
+        macos)
+            case "$arch" in
+                amd64|aarch64) ;;
+                *) die "fastfetch GitHub fallback 暂不支持当前 macOS 架构：$(uname -m)" ;;
+            esac
+            url="https://github.com/fastfetch-cli/fastfetch/releases/latest/download/fastfetch-macos-${arch}.tar.gz"
+            log "尝试 GitHub Release 回退安装 fastfetch：$(basename "$url")"
+            install_archive_binary "$url" fastfetch
+            ;;
+        *)
+            die "未知系统类型：$OS_FAMILY"
+            ;;
+    esac
 }
 
 install_fastfetch_if_needed() {
@@ -320,14 +519,20 @@ install_fastfetch_if_needed() {
         apt)
             if apt-cache show fastfetch >/dev/null 2>&1; then
                 log "安装/更新 fastfetch（apt）"
-                apt_install fastfetch
+                if ! apt_install fastfetch; then
+                    warn "apt 安装 fastfetch 失败，改用 GitHub Release"
+                    install_fastfetch_from_github_release
+                fi
             else
-                install_fastfetch_from_github_deb
+                install_fastfetch_from_github_release
             fi
             ;;
         brew)
             log "安装/更新 fastfetch（brew）"
-            brew install fastfetch || brew upgrade fastfetch
+            if ! brew install fastfetch && ! brew upgrade fastfetch; then
+                warn "brew 安装 fastfetch 失败，改用 GitHub Release"
+                install_fastfetch_from_github_release
+            fi
             ;;
         *)
             die "未知包管理器：$PKG_MANAGER"
@@ -375,14 +580,14 @@ render_fish_config() {
 # Generated by Hermes
 # Cross-platform fish config v2 for Debian / Ubuntu / macOS
 
-set __hermes_os (uname)
+set current_os (uname)
 
 fish_add_path -m $HOME/.local/bin
 
 # Locale / language handling
 # Linux: use GNU locale variables directly.
 # macOS: avoid forcing LANGUAGE / LC_ALL globally; prefer LANG + LC_CTYPE.
-if test "$__hermes_os" = 'Darwin'
+if test "$current_os" = 'Darwin'
     set -gx LANG zh_CN.UTF-8
     set -gx LC_CTYPE zh_CN.UTF-8
     if set -q LANGUAGE
@@ -431,7 +636,7 @@ alias ln='ln -i'
 alias mkdir='mkdir -pv'
 
 # Platform-specific aliases
-if test "$__hermes_os" = 'Darwin'
+if test "$current_os" = 'Darwin'
     if command -q gls
         alias ls='gls --color=auto'
     else
@@ -556,7 +761,7 @@ function cman --description 'Open man with Chinese-friendly locale settings'
         return 1
     end
 
-    if test "$__hermes_os" = 'Darwin'
+    if test "$current_os" = 'Darwin'
         env LANG=zh_CN.UTF-8 LC_CTYPE=zh_CN.UTF-8 man $argv
     else
         man -L zh_CN $argv
@@ -567,8 +772,19 @@ if status is-interactive
     bind '\\e[A' history-search-backward
     bind '\\e[B' history-search-forward
 
-    if command -q fastfetch
-        fastfetch --config $HOME/.config/fastfetch/config.jsonc
+    set -l should_show_fastfetch 1
+
+    if set -q FASTFETCH_SHOWN_IN_SESSION
+        set should_show_fastfetch 0
+    else if set -q SSH_TTY; or set -q SSH_CONNECTION; or set -q SSH_CLIENT
+        set -gx FASTFETCH_SHOWN_IN_SESSION 1
+    end
+
+    if test $should_show_fastfetch -eq 1
+        if command -q fastfetch
+            fastfetch --config $HOME/.config/fastfetch/config.jsonc
+            set -gx FASTFETCH_SHOWN_IN_SESSION 1
+        end
     end
 
     if command -q starship
@@ -641,90 +857,94 @@ EOF
 render_fastfetch_config() {
     cat <<'EOF'
 {
-  "$schema": "https://github.com/fastfetch-cli/fastfetch/raw/dev/doc/json_schema.json",
+  "$schema": "https://github.com/fastfetch-cli/fastfetch/raw/dev/doc/json_schema.json", // 用于IDE补全提示，不需要改动
+  
   "logo": {
-    "type": "small",
-    "position": "top",
+    "type": "Small", // 系统Logo样式。可以换成 "ubuntu_small", "arch_small", "linux", "tux" 等简单的图标，或者 "debian" 恢复完整大版
+    "position": "top", // Logo显示位置。手机端强烈推荐 "top" (顶部居中)，如果你横屏空间很大，可以改回 "left" (左侧) 或 "right" (右侧)
     "color": {
-      "1": "red"
+      "1": "red" // Logo主色调。可以换成 "blue"(蓝), "green"(绿), "yellow"(黄), "magenta"(洋红/紫), "cyan"(青色)
     },
     "padding": {
-      "top": 1,
-      "left": 1,
-      "right": 1
+      "top": 1, // 顶部留白行数。如果觉得距离屏幕顶端太近，可以改成 2 或 3
+      "left": 1, // 左侧边缘留白字符数。手机端推荐 1 节省空间
+      "right": 1 // 右侧边缘留白字符数。手机端推荐 1 节省空间
     }
   },
+
   "display": {
-    "color": "red",
-    "separator": " ",
+    "color": "red", // 模块图标和进度条的全局强调色。可以换成 "blue", "green", "yellow", "cyan" 等
+    "separator": " ", // 左侧Key和右侧Value之间的分隔符。可以改成 " ➜ ", " : ", " = " 增加设计感
     "percent": {
-      "type": 3
+      "type": 3 // 进度条样式。3为经典方块[███  ]；9为紧凑圆点 󰪥󰪣；11为圆环饼图；1为极简模式仅显示数字%。如果在手机上因为方块太长导致换行，强烈建议改为 9 或 1
     }
   },
+
   "modules": [
     {
-      "type": "custom",
-      "format": "\\u001b[1m\\u001b[31m=[ 系统信息 ]=\\u001b[0m"
+      "type": "custom", // 自定义模块，通常用来做分类标题或空行
+      "format": "\u001b[1m\u001b[31m=[ 系统信息 ]=\u001b[0m" // \u001b[31m 代表红色。如果想换颜色，32m是绿，33m是黄，34m是蓝，35m是紫，36m是青
     },
     {
       "type": "os",
-      "key": "  系    统:",
-      "keyColor": "black"
+      "key": "  系    统:", // 左侧显示的名称，可以自由增删空格来控制对齐，或者删掉 Nerd 图标
+      "keyColor": "black" // 标题文本颜色。如果你用的终端背景是纯黑色的，"black"可能会看不清，建议改成 "white"(白), "default"(默认) 或 "dark_gray"(深灰)
     },
     {
       "type": "kernel",
-      "key": "  内    核:",
-      "keyColor": "black"
+      "key": "  内    核:", // 可以改成 "  Linux内核:" 
+      "keyColor": "black" // 同上，可替换为 "white", "blue" 等
     },
     {
       "type": "title",
-      "key": " 󰌢 主 机 名:",
+      "key": " 󰌢 主 机 名:", // 可以改成 "  设 备 名:"
       "keyColor": "black",
       "format": "{2}"
     },
     {
       "type": "command",
-      "key": "  用 户 名:",
-      "text": "u=$(whoami); if [ \\\"$u\\\" = \\\"root\\\" ]; then printf '\\\\033[1;31m%s\\\\033[0m' \\\"$u\\\"; else printf '\\\\033[1;32m%s\\\\033[0m' \\\"$u\\\"; fi",
+      "key": "  用 户 名:", // 可以改成 "  当前用户:"
+      "text": "u=$(whoami); if [ \"$u\" = \"root\" ]; then printf '\\033[1;31m%s\\033[0m' \"$u\"; else printf '\\033[1;32m%s\\033[0m' \"$u\"; fi",
       "keyColor": "black"
+      //"format": "{1}"
     },
     {
       "type": "uptime",
-      "key": " 󰅐 运行时间:",
+      "key": " 󰅐 运行时间:", // 原来的"运行"改成了更完整的中文
       "keyColor": "black",
-      "format": "{1}天{2}时{3}分"
+      "format": "{1}天{2}时{3}分" // 强制使用中文格式输出
     },
     {
       "type": "loadavg",
-      "key": "  负    载:",
+      "key": "  负    载:", // 可以改成 "  系统压力:"
       "keyColor": "black"
     },
     {
       "type": "localip",
-      "key": " 󰩟 IPv4地址:",
+      "key": " 󰩟 IPv4地址:", // 可以改成 "  局域网IP:"
       "keyColor": "black",
       "showIpv4": true,
-      "showIpv6": false,
-      "defaultRouteOnly": true
+      "showIpv6": false, // 是否显示 IPv6。如果你的机器有且你需要看 IPv6，可以改成 true/false
+      "defaultRouteOnly": true // 推荐加上，只显示主要联网网卡的IP，避免输出一堆虚拟网卡
     },
     {
       "type": "localip",
-      "key": " 󰩟 IPv6地址:",
+      "key": " 󰩟 IPv6地址:", // 可以改成 "  局域网IP:"
       "keyColor": "black",
       "showIpv4": false,
-      "showIpv6": true,
-      "defaultRouteOnly": true
+      "showIpv6": true, // 是否显示 IPv6。如果你的机器有且你需要看 IPv6，可以改成 true/false
+      "defaultRouteOnly": true // 推荐加上，只显示主要联网网卡的IP，避免输出一堆虚拟网卡
     },
-    "break",
+    "break", // 强制插入一个空行。如果觉得太占屏幕，可以直接把这行删掉
     {
       "type": "custom",
-      "format": "\\u001b[1m\\u001b[31m=[ 资源使用 ]=\\u001b[0m"
+      "format": "\u001b[1m\u001b[31m=[ 资源使用 ]=\u001b[0m" // \u001b[31m 为红色。同上可改颜色代码
     },
     {
       "type": "cpu",
-      "key": "  C  P  U:",
+      "key": "  C  P  U:", 
       "keyColor": "black",
-      "format": "{1} ({4} × {5} cores)"
+      "format": "{1} ({4} × {5} cores)" // 自定义 CPU 显示格式。{1}是型号，{4}是架构，{5}是核心数。如果手机屏幕显示不下这一长串，可以直接改成 "{1}" 或删掉 format 这一行
     },
     {
       "type": "cpuusage",
@@ -735,25 +955,25 @@ render_fastfetch_config() {
     },
     {
       "type": "memory",
-      "key": "  内    存:",
+      "key": "  内    存:", // 可以改成 "  物理内存:"
       "keyColor": "black"
     },
     {
       "type": "swap",
-      "key": " 󰓡 交 换 区:",
+      "key": " 󰓡 交 换 区:", // 可以改成 "  虚拟内存:"
       "keyColor": "black"
     },
     {
       "type": "disk",
-      "key": "  磁    盘:",
+      "key": "  磁    盘:", // 可以改成 "  存储空间:"
       "keyColor": "black"
     },
     {
       "type": "processes",
-      "key": "  进 程 数:",
+      "key": "  进 程 数:", // 可以改成 "  活跃进程:"
       "keyColor": "black"
     },
-    "break"
+    "break" // 底部收尾空行，不需要可以删去
   ]
 }
 EOF
@@ -775,8 +995,8 @@ write_configs() {
 }
 
 set_default_shell_if_needed() {
-    if [ "${SET_DEFAULT_SHELL:-0}" != '1' ]; then
-        warn "未修改默认 shell；如需切换，请设置 SET_DEFAULT_SHELL=1"
+    if [ "${SET_DEFAULT_SHELL:-1}" = '0' ]; then
+        warn "已按设置跳过默认 shell 修改；如需切换，请保持 SET_DEFAULT_SHELL 不为 0"
         return 0
     fi
 
@@ -853,6 +1073,7 @@ main() {
     detect_target_user
     prepare_backup
     install_base_packages
+    install_fish_if_needed
     install_starship_if_needed
     install_fastfetch_if_needed
     configure_locale_if_needed
