@@ -7,7 +7,7 @@
 
 # 启用严格的错误处理
 set -euo pipefail
-trap 'error_handler $? $LINENO "$BASH_COMMAND"' ERR    
+trap 'error_handler $? $LINENO "$BASH_COMMAND"' ERR
 
 # 全局变量
 SCRIPT_VERSION="0.6.1-starship"
