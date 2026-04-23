@@ -8,7 +8,7 @@ set -euo pipefail
 #   2) Reuse the current Linux-oriented style while fixing cross-platform incompatibilities
 #   3) Backup first, then modify, then verify
 #
-# Optional environment variables:
+# Optional environment variables
 #   TARGET_USER=alice             # Target user to configure; defaults to sudo invoker/current user, else root
 #   SET_DEFAULT_SHELL=0           # Set to 0 to skip changing login shell to fish; default is to enable
 #   FORCE_INSTALL_STARSHIP=1      # Reinstall/upgrade starship even if already present
@@ -961,7 +961,8 @@ render_fastfetch_config() {
     {
       "type": "swap",
       "key": " 󰓡 交 换 区:", // 可以改成 "  虚拟内存:"
-      "keyColor": "black"
+      "keyColor": "black",
+      "separate": true
     },
     {
       "type": "disk",
