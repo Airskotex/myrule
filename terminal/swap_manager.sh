@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ==========================================
-# 内存 ZRAM & SWAP 动态管理脚本 (修复版 v4)
+# 内存 ZRAM & SWAP 动态管理脚本 (修复版 v5)
 # ==========================================
 
 if [ "$EUID" -ne 0 ]; then
@@ -40,25 +40,53 @@ remove_all() {
     echo "=> 清理完毕！"
 }
 
-# 检测 ZRAM 内核配置类型
+# 读取内核编译配置中 ZRAM 的编译方式
 get_zram_kernel_config() {
     local cfg="/boot/config-$(uname -r)"
-    if [ ! -f "$cfg" ]; then
-        echo "unknown"
-        return
-    fi
+    [ ! -f "$cfg" ] && echo "unknown" && return
     local val
     val=$(grep '^CONFIG_ZRAM=' "$cfg" | cut -d= -f2)
     case "$val" in
         y) echo "builtin" ;;
-        m) echo "module" ;;
+        m) echo "module"  ;;
         *) echo "unsupported" ;;
     esac
 }
 
-# 确保 zram 模块可用，返回 0=成功 1=失败
+# 尝试直接 modprobe，成功返回 0
+try_modprobe_zram() {
+    modprobe zram 2>/dev/null || return 1
+    for i in $(seq 1 10); do
+        ls /sys/block/zram* &>/dev/null && return 0
+        sleep 0.5
+    done
+    return 1
+}
+
+# 尝试安装 linux-modules-extra 后再 modprobe
+# 适用于 Ubuntu/Debian 提供此包的场景；若包不存在则静默跳过
+try_install_modules_extra() {
+    local pkg="linux-modules-extra-$(uname -r)"
+    echo "=> ZRAM .ko 文件缺失，尝试安装 ${pkg}..."
+
+    # 先检查包是否存在于软件源，避免无意义等待
+    if ! apt-cache show "$pkg" &>/dev/null; then
+        echo "=> 软件源中未找到 ${pkg}，跳过安装。"
+        return 1
+    fi
+
+    if apt-get install -y "$pkg" >/dev/null 2>&1; then
+        echo "=> ✓ ${pkg} 安装完成，重新加载 ZRAM 模块..."
+        try_modprobe_zram && return 0
+    fi
+
+    echo "=> ✗ 安装 ${pkg} 后仍无法加载 ZRAM 模块。"
+    return 1
+}
+
+# 主检测函数：确保 zram 设备就绪，返回 0=成功 1=失败
 ensure_zram_ready() {
-    # 已经有设备节点，直接返回成功
+    # 设备已存在（built-in 或已加载）
     if ls /sys/block/zram* &>/dev/null; then
         echo "=> ZRAM 设备已就绪。"
         return 0
@@ -69,53 +97,43 @@ ensure_zram_ready() {
 
     case "$kconfig" in
         builtin)
-            # 内置但设备不存在，异常情况
             echo "=> ✗ 内核内置了 ZRAM 但设备节点不存在，系统异常。"
             return 1
             ;;
         module)
-            # 是模块，尝试 modprobe
             echo "=> ZRAM 编译为内核模块，尝试加载..."
-            if modprobe zram 2>/dev/null; then
-                sleep 1
-                if ls /sys/block/zram* &>/dev/null; then
-                    echo "=> ✓ ZRAM 模块加载成功。"
-                    return 0
-                fi
+            # 第一步：直接 modprobe
+            if try_modprobe_zram; then
+                echo "=> ✓ ZRAM 模块加载成功。"
+                return 0
             fi
-
-            # modprobe 失败，说明 .ko 文件缺失，尝试安装 linux-modules-extra
-            local pkg="linux-modules-extra-$(uname -r)"
-            echo "=> ZRAM .ko 文件缺失，尝试安装 ${pkg}..."
-            if ! apt-get install -y "$pkg" >/dev/null 2>&1; then
-                echo "=> ✗ 安装 ${pkg} 失败，请检查网络或软件源。"
-                return 1
+            # 第二步：.ko 缺失，尝试安装 linux-modules-extra（仅 Ubuntu/部分 Debian）
+            if try_install_modules_extra; then
+                echo "=> ✓ ZRAM 模块加载成功。"
+                return 0
             fi
-            echo "=> ✓ ${pkg} 安装完成，重新加载 ZRAM 模块..."
-            if modprobe zram 2>/dev/null; then
-                sleep 1
-                if ls /sys/block/zram* &>/dev/null; then
-                    echo "=> ✓ ZRAM 模块加载成功。"
-                    return 0
-                fi
-            fi
-
-            echo "=> ✗ 安装后仍无法加载 ZRAM 模块。"
+            # 两步均失败
+            echo "=> ✗ 无法加载 ZRAM 模块。"
+            echo "   当前内核: $(uname -r)"
+            echo "   该内核的模块包可能不在官方源中（如 Debian cloud 内核）。"
+            echo "   可尝试切换为标准内核后重试："
+            echo "     apt install linux-image-amd64 linux-modules-extra-amd64"
+            echo "     reboot"
             return 1
             ;;
         unsupported)
             echo "=> ✗ 当前内核 ($(uname -r)) 不支持 ZRAM（未编译）。"
-            echo "   建议安装标准内核："
-            echo "     apt install linux-image-generic linux-modules-extra-generic"
+            echo "   可尝试安装标准内核："
+            echo "     apt install linux-image-generic linux-modules-extra-generic  # Ubuntu"
+            echo "     apt install linux-image-amd64                                 # Debian"
             echo "     reboot"
             return 1
             ;;
         unknown)
-            # 找不到内核配置文件，直接试 modprobe
             echo "=> 内核配置文件未找到，直接尝试加载 ZRAM 模块..."
-            if modprobe zram 2>/dev/null; then
-                sleep 1
-                ls /sys/block/zram* &>/dev/null && return 0
+            if try_modprobe_zram; then
+                echo "=> ✓ ZRAM 模块加载成功。"
+                return 0
             fi
             echo "=> ✗ 无法加载 ZRAM 模块。"
             return 1
@@ -167,10 +185,8 @@ install_all() {
         echo "⚠ 警告：ZRAM 不可用，仅启用磁盘 SWAP。"
         echo "=========================================="
     else
-        # ── 卸载 zram 让 systemd 服务来管理 ──
-        if ls /sys/block/zram* &>/dev/null; then
-            modprobe -r zram 2>/dev/null || true
-        fi
+        # 卸载，交由 systemd 服务统一管理
+        modprobe -r zram 2>/dev/null || true
 
         # ── 生成 ZRAM 启动脚本 ──
         echo "=> 正在生成 ZRAM 配置脚本..."
@@ -178,20 +194,29 @@ install_all() {
 #!/bin/bash
 set -e
 
-KERNEL_PKG="linux-modules-extra-\$(uname -r)"
+_zram_ready() {
+    ls /sys/block/zram* &>/dev/null
+}
 
-# 如果设备不存在，尝试加载模块
-if ! ls /sys/block/zram* &>/dev/null; then
-    if ! modprobe zram 2>/dev/null; then
-        echo "modprobe zram 失败，尝试安装 \${KERNEL_PKG}..." >&2
-        apt-get install -y "\$KERNEL_PKG" >/dev/null 2>&1 || true
-        modprobe zram || { echo "ERROR: 无法加载 zram 模块" >&2; exit 1; }
-    fi
-    # 等待设备节点就绪（最多5秒）
+_wait_device() {
     for i in \$(seq 1 10); do
-        [ -b /dev/zram0 ] && break
+        [ -b /dev/zram0 ] && return 0
         sleep 0.5
     done
+    return 1
+}
+
+# 若设备不存在则尝试加载模块
+if ! _zram_ready; then
+    if ! modprobe zram 2>/dev/null; then
+        # 尝试安装 linux-modules-extra（仅在包存在时）
+        PKG="linux-modules-extra-\$(uname -r)"
+        if apt-cache show "\$PKG" &>/dev/null; then
+            apt-get install -y "\$PKG" >/dev/null 2>&1 || true
+        fi
+        modprobe zram || { echo "ERROR: 无法加载 zram 模块" >&2; exit 1; }
+    fi
+    _wait_device || { echo "ERROR: /dev/zram0 设备未就绪" >&2; exit 1; }
 fi
 
 if [ ! -b /dev/zram0 ]; then
@@ -199,7 +224,7 @@ if [ ! -b /dev/zram0 ]; then
     exit 1
 fi
 
-# 设置压缩算法（读取支持列表后再写，优先 zstd > lz4 > 默认）
+# 设置压缩算法（优先 zstd > lz4 > 内核默认）
 ALGO_FILE=/sys/block/zram0/comp_algorithm
 if [ -f "\$ALGO_FILE" ]; then
     if grep -qw zstd "\$ALGO_FILE"; then
