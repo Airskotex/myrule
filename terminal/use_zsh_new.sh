@@ -609,7 +609,7 @@ cat > "$HOME/.config/fastfetch/config.jsonc" << 'EOF'
     },
     {
       "type": "cpu",
-      "key": "  处 理 器:",   
+      "key": "  处 理 器:",
       "keyColor": "black",
       "format": "{1} ({4} × {5} cores)" // 自定义 CPU 显示格式。{1}是型号，{4}是架构，{5}是核心数。如果手机屏幕显示不下这一长串，可以直接改成 "{1}" 或删掉 format 这一行
     },
@@ -629,7 +629,7 @@ cat > "$HOME/.config/fastfetch/config.jsonc" << 'EOF'
       "type": "swap",
       "key": " 󰓡 交换分区:", // 可以改成 "  虚拟内存:"
       "keyColor": "black",
-      "separate": true  
+      "separate": true
     },
     {
       "type": "disk",
