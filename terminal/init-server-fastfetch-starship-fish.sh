@@ -1020,8 +1020,8 @@ function cman --description '使用更友好的中文环境打开 man'
 end
 
 if status is-interactive
-    bind '\\e[A' history-search-backward
-    bind '\\e[B' history-search-forward
+    bind -k up history-search-backward
+    bind -k down history-search-forward
 
     set -l should_show_fastfetch 1
 
