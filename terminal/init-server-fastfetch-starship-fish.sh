@@ -1,19 +1,20 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Cross-platform server/shell init v2
-# Supports: Debian / Ubuntu / macOS
-# Goals:
-#   1) Install and configure fish + starship + fastfetch
-#   2) Reuse the current Linux-oriented style while fixing cross-platform incompatibilities
-#   3) Backup first, then modify, then verify
+# 跨平台服务器 / Shell 初始化脚本 v2
+# 支持：Debian / Ubuntu / macOS
+# 目标：
+#   1) 安装并配置 fish + starship + fastfetch
+#   2) 尽量复用当前 Linux 风格，同时修复跨平台兼容问题
+#   3) 先备份，再修改，最后验证
+#   4) 为 bat 配置 *.jsonc 使用 JSON 语法高亮
 #
-# Optional environment variables
-#   TARGET_USER=alice             # Target user to configure; defaults to sudo invoker/current user, else root
-#   SET_DEFAULT_SHELL=0           # Set to 0 to skip changing login shell to fish; default is to enable
-#   FORCE_INSTALL_STARSHIP=1      # Reinstall/upgrade starship even if already present
-#   FORCE_INSTALL_FASTFETCH=1     # Reinstall/upgrade fastfetch even if already present
-#   SKIP_LOCALE=1                 # Skip Linux locale generation/update
+# 可选环境变量：
+#   TARGET_USER=alice             # 要配置的目标用户；默认优先取 sudo 调用者，否则取当前用户
+#   SET_DEFAULT_SHELL=0           # 设为 0 则跳过把默认登录 shell 改为 fish；默认会修改
+#   FORCE_INSTALL_STARSHIP=1      # 即使已安装，也强制重装/升级 starship
+#   FORCE_INSTALL_FASTFETCH=1     # 即使已安装，也强制重装/升级 fastfetch
+#   SKIP_LOCALE=1                 # 跳过 Linux locale 生成/更新
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -37,14 +38,19 @@ TARGET_HOME="${TARGET_HOME:-}"
 CONFIG_ROOT=''
 FISH_CONFIG_DIR=''
 FASTFETCH_DIR=''
+BAT_CONFIG_DIR=''
 FISH_CONFIG_FILE=''
 STARSHIP_CONFIG_FILE=''
 FASTFETCH_CONFIG_FILE=''
+BAT_CONFIG_FILE=''
 BACKUP_ROOT=''
 BACKUP_DIR=''
 RESTORE_SCRIPT=''
 TIMESTAMP=''
 FISH_BIN=''
+WORK_DIR=''
+RESTORE_SCRIPT_TMP=''
+METADATA_FILE_TMP=''
 
 require_command() {
     command -v "$1" >/dev/null 2>&1 || die "缺少命令：$1"
@@ -129,13 +135,16 @@ detect_target_user() {
     fi
 
     [ -n "$TARGET_HOME" ] || die "找不到目标用户 home：$TARGET_USER"
+    [ -d "$TARGET_HOME" ] || die "目标用户 home 目录不存在：$TARGET_HOME"
 
     CONFIG_ROOT="$TARGET_HOME/.config"
     FISH_CONFIG_DIR="$CONFIG_ROOT/fish"
     FASTFETCH_DIR="$CONFIG_ROOT/fastfetch"
+    BAT_CONFIG_DIR="$CONFIG_ROOT/bat"
     FISH_CONFIG_FILE="$FISH_CONFIG_DIR/config.fish"
     STARSHIP_CONFIG_FILE="$CONFIG_ROOT/starship.toml"
     FASTFETCH_CONFIG_FILE="$FASTFETCH_DIR/config.jsonc"
+    BAT_CONFIG_FILE="$BAT_CONFIG_DIR/config"
 
     TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
     BACKUP_ROOT="$TARGET_HOME/.config/hermes-server-init-backups"
@@ -156,10 +165,83 @@ copy_preserve() {
     cp -R "$src" "$dst"
 }
 
-prepare_backup() {
-    mkdir -p "$BACKUP_DIR/files"
+cleanup_work_dir() {
+    if [ -n "${WORK_DIR:-}" ] && [ -d "$WORK_DIR" ]; then
+        rm -rf "$WORK_DIR"
+    fi
+}
 
-    cat > "$RESTORE_SCRIPT" <<EOF
+has_privileged_writer() {
+    [ "$(id -u)" -eq 0 ] || [ -n "$SUDO_CMD" ]
+}
+
+ensure_dir_for_target() {
+    local dir="$1"
+
+    if has_privileged_writer; then
+        run_privileged install -d -m 0755 -o "$TARGET_USER" -g "$TARGET_GROUP" "$dir"
+    else
+        mkdir -p "$dir"
+    fi
+}
+
+install_file_for_target() {
+    local src="$1"
+    local dst="$2"
+    local mode="${3:-0644}"
+
+    ensure_dir_for_target "$(dirname "$dst")"
+
+    if has_privileged_writer; then
+        run_privileged install -m "$mode" -o "$TARGET_USER" -g "$TARGET_GROUP" "$src" "$dst"
+    else
+        install -m "$mode" "$src" "$dst"
+    fi
+}
+
+copy_preserve_privileged() {
+    local src="$1"
+    local dst="$2"
+
+    ensure_dir_for_target "$(dirname "$dst")"
+
+    if ! run_privileged cp -a "$src" "$dst" 2>/dev/null; then
+        run_privileged cp -R "$src" "$dst"
+    fi
+
+    run_privileged chown -R "$TARGET_USER":"$TARGET_GROUP" "$dst" 2>/dev/null || true
+}
+
+sync_restore_script() {
+    chmod +x "$RESTORE_SCRIPT_TMP"
+    install_file_for_target "$RESTORE_SCRIPT_TMP" "$RESTORE_SCRIPT" 0755
+}
+
+sync_metadata_file() {
+    install_file_for_target "$METADATA_FILE_TMP" "$BACKUP_DIR/metadata.txt" 0644
+}
+
+write_rendered_file() {
+    local renderer="$1"
+    local target="$2"
+    local mode="${3:-0644}"
+    local tmp_file
+
+    tmp_file="$(mktemp)"
+    "$renderer" > "$tmp_file"
+    install_file_for_target "$tmp_file" "$target" "$mode"
+    rm -f "$tmp_file"
+}
+
+prepare_backup() {
+    WORK_DIR="$(mktemp -d)"
+    RESTORE_SCRIPT_TMP="$WORK_DIR/restore.sh"
+    METADATA_FILE_TMP="$WORK_DIR/metadata.txt"
+    trap cleanup_work_dir EXIT
+
+    ensure_dir_for_target "$BACKUP_DIR/files"
+
+    cat > "$RESTORE_SCRIPT_TMP" <<EOF
 #!/usr/bin/env bash
 set -euo pipefail
 TARGET_USER=$(printf '%q' "$TARGET_USER")
@@ -187,11 +269,16 @@ restore_file() {
 }
 EOF
 
-    printf 'created_at=%s\n' "$(date -Is 2>/dev/null || date)" > "$BACKUP_DIR/metadata.txt"
-    printf 'os_name=%s\n' "$OS_NAME" >> "$BACKUP_DIR/metadata.txt"
-    printf 'target_user=%s\n' "$TARGET_USER" >> "$BACKUP_DIR/metadata.txt"
-    printf 'target_group=%s\n' "$TARGET_GROUP" >> "$BACKUP_DIR/metadata.txt"
-    printf 'target_home=%s\n' "$TARGET_HOME" >> "$BACKUP_DIR/metadata.txt"
+    {
+        printf 'created_at=%s\n' "$(date -Is 2>/dev/null || date)"
+        printf 'os_name=%s\n' "$OS_NAME"
+        printf 'target_user=%s\n' "$TARGET_USER"
+        printf 'target_group=%s\n' "$TARGET_GROUP"
+        printf 'target_home=%s\n' "$TARGET_HOME"
+    } > "$METADATA_FILE_TMP"
+
+    sync_restore_script
+    sync_metadata_file
 
     ok "备份目录已创建：$BACKUP_DIR"
 }
@@ -206,25 +293,28 @@ backup_file() {
 
     if [ -e "$target" ]; then
         existed=1
-        copy_preserve "$target" "$backup_path"
+        copy_preserve_privileged "$target" "$backup_path"
         ok "已备份：$target"
     else
         warn "原文件不存在，恢复时将删除新建文件：$target"
     fi
 
-    cat >> "$RESTORE_SCRIPT" <<EOF
+    cat >> "$RESTORE_SCRIPT_TMP" <<EOF
 restore_file $(printf '%q' "$target") $(printf '%q' "$backup_path") $existed
 EOF
+
+    sync_restore_script
 }
 
 finish_restore_script() {
-    cat >> "$RESTORE_SCRIPT" <<EOF
+    cat >> "$RESTORE_SCRIPT_TMP" <<EOF
 if id "${TARGET_USER}" >/dev/null 2>&1; then
     chown -R "${TARGET_USER}":"${TARGET_GROUP}" "${TARGET_HOME}/.config" 2>/dev/null || true
 fi
 echo "已恢复配置，备份目录：\$BACKUP_DIR"
 EOF
-    chmod +x "$RESTORE_SCRIPT"
+
+    sync_restore_script
 }
 
 apt_install() {
@@ -297,7 +387,6 @@ install_archive_binary() {
     rm -rf "$tmp_dir"
 }
 
-
 install_base_packages() {
     case "$PKG_MANAGER" in
         apt)
@@ -326,13 +415,13 @@ install_base_packages() {
 install_fish_from_github_release() {
     local arch version url tmp_dir extracted_dir tmp_pkg
 
-    arch="$(map_common_arch)" || die "fish GitHub fallback 不支持当前架构：$(uname -m)"
+    arch="$(map_common_arch)" || die "fish GitHub 回退安装不支持当前架构：$(uname -m)"
 
     case "$OS_FAMILY" in
         linux)
             case "$arch" in
                 x86_64|aarch64) ;;
-                *) die "fish GitHub fallback 暂不支持当前 Linux 架构：$(uname -m)" ;;
+                *) die "fish GitHub 回退安装暂不支持当前 Linux 架构：$(uname -m)" ;;
             esac
 
             version="$(python3 - <<'PY'
@@ -404,7 +493,7 @@ install_fish_if_needed() {
 install_starship_from_github_release() {
     local arch target triple url
 
-    arch="$(map_common_arch)" || die "starship GitHub fallback 不支持当前架构：$(uname -m)"
+    arch="$(map_common_arch)" || die "starship GitHub 回退安装不支持当前架构：$(uname -m)"
 
     case "$OS_FAMILY" in
         linux)
@@ -413,7 +502,7 @@ install_starship_from_github_release() {
                 aarch64) target='aarch64' ;;
                 armv7l) target='arm' ;;
                 i686) target='i686' ;;
-                *) die "starship GitHub fallback 暂不支持当前 Linux 架构：$(uname -m)" ;;
+                *) die "starship GitHub 回退安装暂不支持当前 Linux 架构：$(uname -m)" ;;
             esac
             triple='unknown-linux-gnu'
             ;;
@@ -421,7 +510,7 @@ install_starship_from_github_release() {
             case "$arch" in
                 x86_64) target='x86_64' ;;
                 aarch64) target='aarch64' ;;
-                *) die "starship GitHub fallback 暂不支持当前 macOS 架构：$(uname -m)" ;;
+                *) die "starship GitHub 回退安装暂不支持当前 macOS 架构：$(uname -m)" ;;
             esac
             triple='apple-darwin'
             ;;
@@ -476,7 +565,7 @@ install_starship_if_needed() {
 
 install_fastfetch_from_github_release() {
     local arch url
-    arch="$(map_fastfetch_arch)" || die "fastfetch GitHub fallback 不支持当前架构：$(uname -m)"
+    arch="$(map_fastfetch_arch)" || die "fastfetch GitHub 回退安装不支持当前架构：$(uname -m)"
 
     case "$OS_FAMILY" in
         linux)
@@ -497,7 +586,7 @@ install_fastfetch_from_github_release() {
         macos)
             case "$arch" in
                 amd64|aarch64) ;;
-                *) die "fastfetch GitHub fallback 暂不支持当前 macOS 架构：$(uname -m)" ;;
+                *) die "fastfetch GitHub 回退安装暂不支持当前 macOS 架构：$(uname -m)" ;;
             esac
             url="https://github.com/fastfetch-cli/fastfetch/releases/latest/download/fastfetch-macos-${arch}.tar.gz"
             log "尝试 GitHub Release 回退安装 fastfetch：$(basename "$url")"
@@ -577,16 +666,16 @@ configure_locale_if_needed() {
 
 render_fish_config() {
     cat <<'EOF'
-# Generated by Hermes
-# Cross-platform fish config v2 for Debian / Ubuntu / macOS
+# 由 Hermes 自动生成
+# 跨平台 fish 配置 v2，支持 Debian / Ubuntu / macOS
 
 set current_os (uname)
 
 fish_add_path -m $HOME/.local/bin
 
-# Locale / language handling
-# Linux: use GNU locale variables directly.
-# macOS: avoid forcing LANGUAGE / LC_ALL globally; prefer LANG + LC_CTYPE.
+# 语言环境处理
+# Linux：直接使用 GNU locale 变量。
+# macOS：避免全局强制 LANGUAGE / LC_ALL，优先使用 LANG + LC_CTYPE。
 if test "$current_os" = 'Darwin'
     set -gx LANG zh_CN.UTF-8
     set -gx LC_CTYPE zh_CN.UTF-8
@@ -619,7 +708,7 @@ else if command -q bat
     alias cat='bat'
 end
 
-# Common aliases
+# 通用别名
 alias ll='ls -lh'
 alias la='ls -lah'
 alias tree='tree -C'
@@ -635,7 +724,7 @@ alias rm='rm -i'
 alias ln='ln -i'
 alias mkdir='mkdir -pv'
 
-# Platform-specific aliases
+# 平台专属别名
 if test "$current_os" = 'Darwin'
     if command -q gls
         alias ls='gls --color=auto'
@@ -660,7 +749,7 @@ if test "$current_os" = 'Darwin'
     end
 
     if command -q vm_stat
-        function free --description 'Show memory info on macOS'
+        function free --description '显示 macOS 内存信息'
             echo 'memory_pressure:'
             if command -q memory_pressure
                 memory_pressure
@@ -687,23 +776,23 @@ else
     end
 end
 
-function mkcd --description 'Create directory and cd into it'
+function mkcd --description '创建目录并进入该目录'
     if test (count $argv) -eq 0
-        echo 'mkcd: missing directory name' >&2
+        echo 'mkcd: 缺少目录名' >&2
         return 1
     end
     mkdir -p -- $argv; and cd -- $argv[-1]
 end
 
-function extract --description 'Extract common archive formats'
+function extract --description '解压常见压缩包格式'
     if test (count $argv) -eq 0
-        echo 'extract: missing file operand' >&2
+        echo 'extract: 缺少文件参数' >&2
         return 1
     end
 
     set file $argv[1]
     if not test -f "$file"
-        echo "'$file' is not a valid file"
+        echo "'$file' 不是有效文件"
         return 1
     end
 
@@ -720,7 +809,7 @@ function extract --description 'Extract common archive formats'
             else if command -q unar
                 unar "$file"
             else
-                echo 'extract: unrar/unar not installed' >&2
+                echo 'extract: 未安装 unrar/unar' >&2
                 return 1
             end
         case '*.gz'
@@ -734,30 +823,30 @@ function extract --description 'Extract common archive formats'
         case '*.7z'
             7z x "$file"
         case '*'
-            echo "'$file' cannot be extracted"
+            echo "'$file' 无法解压"
             return 1
     end
 end
 
-function ff --description 'Find files by name from root'
+function ff --description '从根目录按名称查找文件'
     if test (count $argv) -eq 0
-        echo 'ff: missing search term' >&2
+        echo 'ff: 缺少搜索关键词' >&2
         return 1
     end
     find / -type f -iname "*$argv[1]*" 2>/dev/null
 end
 
-function fd --description 'Find directories by name from root'
+function fd --description '从根目录按名称查找目录'
     if test (count $argv) -eq 0
-        echo 'fd: missing search term' >&2
+        echo 'fd: 缺少搜索关键词' >&2
         return 1
     end
     find / -type d -iname "*$argv[1]*" 2>/dev/null
 end
 
-function cman --description 'Open man with Chinese-friendly locale settings'
+function cman --description '使用更友好的中文环境打开 man'
     if not command -q man
-        echo 'cman: man not found' >&2
+        echo 'cman: 未找到 man 命令' >&2
         return 1
     end
 
@@ -892,7 +981,7 @@ render_fastfetch_config() {
     },
     {
       "type": "kernel",
-      "key": "  内    核:", // 可以改成 "  Linux内核:" 
+      "key": "  内    核:", // 可以改成 "  Linux内核:"
       "keyColor": "black" // 同上，可替换为 "white", "blue" 等
     },
     {
@@ -910,7 +999,7 @@ render_fastfetch_config() {
     },
     {
       "type": "uptime",
-      "key": " 󰅐 运行时间:", // 原来的"运行"改成了更完整的中文
+      "key": " 󰅐 运行时间:", // 原来的“运行”改成了更完整的中文
       "keyColor": "black",
       "format": "{1}天{2}时{3}分" // 强制使用中文格式输出
     },
@@ -942,7 +1031,7 @@ render_fastfetch_config() {
     },
     {
       "type": "cpu",
-      "key": "  C  P  U:", 
+      "key": "  C  P  U:",
       "keyColor": "black",
       "format": "{1} ({4} × {5} cores)" // 自定义 CPU 显示格式。{1}是型号，{4}是架构，{5}是核心数。如果手机屏幕显示不下这一长串，可以直接改成 "{1}" 或删掉 format 这一行
     },
@@ -960,7 +1049,7 @@ render_fastfetch_config() {
     },
     {
       "type": "swap",
-      "key": " 󰓡 交 换 区:", // 可以改成 "  虚拟内存:"
+      "key": " 󰓡 交换分区:", // 可以改成 "  虚拟内存:"
       "keyColor": "black",
       "separate": true
     },
@@ -980,18 +1069,24 @@ render_fastfetch_config() {
 EOF
 }
 
-write_configs() {
-    mkdir -p "$FISH_CONFIG_DIR" "$FASTFETCH_DIR"
+render_bat_config() {
+    cat <<'EOF'
+--map-syntax=*.jsonc:JSON
+EOF
+}
 
+write_configs() {
     backup_file "$FISH_CONFIG_FILE"
     backup_file "$STARSHIP_CONFIG_FILE"
     backup_file "$FASTFETCH_CONFIG_FILE"
+    backup_file "$BAT_CONFIG_FILE"
 
-    render_fish_config > "$FISH_CONFIG_FILE"
-    render_starship_config > "$STARSHIP_CONFIG_FILE"
-    render_fastfetch_config > "$FASTFETCH_CONFIG_FILE"
+    write_rendered_file render_fish_config "$FISH_CONFIG_FILE" 0644
+    write_rendered_file render_starship_config "$STARSHIP_CONFIG_FILE" 0644
+    write_rendered_file render_fastfetch_config "$FASTFETCH_CONFIG_FILE" 0644
+    write_rendered_file render_bat_config "$BAT_CONFIG_FILE" 0644
 
-    chown -R "$TARGET_USER":"$TARGET_GROUP" "$CONFIG_ROOT" 2>/dev/null || true
+    run_privileged chown -R "$TARGET_USER":"$TARGET_GROUP" "$CONFIG_ROOT" 2>/dev/null || true
     ok "配置文件已写入"
 }
 
@@ -1028,17 +1123,24 @@ verify_result() {
     require_command starship
     require_command fastfetch
 
+    if ! command -v bat >/dev/null 2>&1 && ! command -v batcat >/dev/null 2>&1; then
+        die "缺少命令：bat/batcat"
+    fi
+
     HOME="$TARGET_HOME" XDG_CONFIG_HOME="$CONFIG_ROOT" fish -n "$FISH_CONFIG_FILE"
 
     HOME="$TARGET_HOME" XDG_CONFIG_HOME="$CONFIG_ROOT" fish -c "source '$FISH_CONFIG_FILE'; functions -q mkcd; and functions -q extract; and functions -q ff; and functions -q fd; and functions -q cman; and echo FISH_OK" | grep -q '^FISH_OK$'
 
     STARSHIP_CONFIG="$STARSHIP_CONFIG_FILE" starship prompt --status 0 --cmd-duration 1234 >/dev/null
     fastfetch --config "$FASTFETCH_CONFIG_FILE" >/dev/null 2>&1
+    [ -f "$BAT_CONFIG_FILE" ]
+    grep -Fxq -- '--map-syntax=*.jsonc:JSON' "$BAT_CONFIG_FILE"
 
     ok "fish 配置语法验证通过"
     ok "fish 函数加载验证通过"
     ok "starship 配置加载验证通过"
     ok "fastfetch 配置加载验证通过"
+    ok "bat 配置写入验证通过"
 }
 
 print_summary() {
@@ -1051,20 +1153,24 @@ print_summary() {
 - fish 配置：$FISH_CONFIG_FILE
 - starship 配置：$STARSHIP_CONFIG_FILE
 - fastfetch 配置：$FASTFETCH_CONFIG_FILE
+- bat 配置：$BAT_CONFIG_FILE
 - 备份目录：$BACKUP_DIR
 - 恢复命令：bash $RESTORE_SCRIPT
 
 关键增强：
-1. Linux / macOS alias 已分离，避免 ls/grep/ps/watch/dmesg 参数冲突
-2. Linux fastfetch 支持 apt -> GitHub Release .deb fallback
-3. macOS locale/shell 处理已改为兼容模式，不再强推 Linux 风格 LC_ALL/LANGUAGE
+1. 使用“临时文件 + 提权 install/cp”写入目标用户配置，修复 sudo 为其他用户写 ~/.config 时的权限问题
+2. Linux / macOS alias 已分离，避免 ls/grep/ps/watch/dmesg 参数冲突
+3. Linux fastfetch 支持 apt -> GitHub Release .deb fallback
+4. macOS locale/shell 处理已改为兼容模式，不再强推 Linux 风格 LC_ALL/LANGUAGE
+5. bat 已配置 *.jsonc 按 JSON 语法高亮
 
 建议验证：
 1. 重新登录终端，或直接执行：fish
 2. 确认提示符已变为 starship 风格
 3. 确认进入交互式 shell 后自动显示 fastfetch
-4. 在 macOS 上执行：type cman; cman ls
-5. 在 Linux 上执行：type ip; type dmesg; cman bash
+4. 确认 bat 对 jsonc 高亮正常，例如：bat ~/.config/fastfetch/config.jsonc
+5. 在 macOS 上执行：type cman; cman ls
+6. 在 Linux 上执行：type ip; type dmesg; cman bash
 EOF
 }
 
