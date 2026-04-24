@@ -1,16 +1,19 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# 跨平台服务器 / Shell 初始化脚本 v2
+# 跨平台服务器 / Shell 初始化脚本 v3
 # 支持：Debian / Ubuntu / macOS
+#
 # 目标：
 #   1) 安装并配置 fish + starship + fastfetch
 #   2) 尽量复用当前 Linux 风格，同时修复跨平台兼容问题
 #   3) 先备份，再修改，最后验证
 #   4) 为 bat 配置 *.jsonc 使用 JSON 语法高亮
+#   5) 加固 sudo / 用户检测 / 恢复逻辑
 #
 # 可选环境变量：
 #   TARGET_USER=alice             # 要配置的目标用户；默认优先取 sudo 调用者，否则取当前用户
+#   TARGET_HOME=/home/alice       # 可手工指定目标用户 home；若与系统记录不一致会告警
 #   SET_DEFAULT_SHELL=0           # 设为 0 则跳过把默认登录 shell 改为 fish；默认会修改
 #   FORCE_INSTALL_STARSHIP=1      # 即使已安装，也强制重装/升级 starship
 #   FORCE_INSTALL_FASTFETCH=1     # 即使已安装，也强制重装/升级 fastfetch
@@ -32,6 +35,7 @@ OS_ID=''
 OS_NAME=''
 PKG_MANAGER=''
 SUDO_CMD=''
+SUDO_KEEPALIVE_PID=''
 TARGET_USER="${TARGET_USER:-}"
 TARGET_GROUP="${TARGET_GROUP:-}"
 TARGET_HOME="${TARGET_HOME:-}"
@@ -62,6 +66,89 @@ run_privileged() {
     else
         "$@"
     fi
+}
+
+cleanup_work_dir() {
+    if [ -n "${WORK_DIR:-}" ] && [ -d "$WORK_DIR" ]; then
+        rm -rf "$WORK_DIR"
+    fi
+}
+
+cleanup_all() {
+    local exit_code=$?
+    if [ -n "${SUDO_KEEPALIVE_PID:-}" ]; then
+        kill "$SUDO_KEEPALIVE_PID" >/dev/null 2>&1 || true
+    fi
+    cleanup_work_dir
+    trap - EXIT
+    exit "$exit_code"
+}
+
+has_privileged_writer() {
+    [ "$(id -u)" -eq 0 ] || [ -n "$SUDO_CMD" ]
+}
+
+user_exists() {
+    local user="$1"
+    id "$user" >/dev/null 2>&1
+}
+
+get_user_home() {
+    local user="$1"
+    case "$OS_FAMILY" in
+        linux)
+            getent passwd "$user" | cut -d: -f6
+            ;;
+        macos)
+            dscl . -read "/Users/$user" NFSHomeDirectory 2>/dev/null | sed -n 's/^NFSHomeDirectory:[[:space:]]*//p'
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
+
+get_user_group() {
+    local user="$1"
+    id -gn "$user" 2>/dev/null || {
+        if [ "$OS_FAMILY" = 'macos' ]; then
+            echo 'staff'
+        else
+            echo "$user"
+        fi
+    }
+}
+
+detect_bat_command() {
+    if command -v batcat >/dev/null 2>&1; then
+        echo 'batcat'
+        return 0
+    fi
+    if command -v bat >/dev/null 2>&1; then
+        echo 'bat'
+        return 0
+    fi
+    return 1
+}
+
+warmup_sudo_session() {
+    if [ -z "$SUDO_CMD" ]; then
+        return 0
+    fi
+
+    log "预热 sudo 凭据缓存"
+    "$SUDO_CMD" -v || die "sudo 验证失败，无法继续"
+
+    (
+        while true; do
+            "$SUDO_CMD" -n true >/dev/null 2>&1 || exit
+            sleep 30
+            kill -0 "$$" >/dev/null 2>&1 || exit
+        done
+    ) >/dev/null 2>&1 &
+    SUDO_KEEPALIVE_PID=$!
+
+    ok "sudo 凭据缓存已就绪"
 }
 
 require_root_or_sudo() {
@@ -111,6 +198,8 @@ detect_os() {
 }
 
 detect_target_user() {
+    local requested_home system_home
+
     if [ -n "${TARGET_USER:-}" ]; then
         TARGET_USER="${TARGET_USER}"
     elif [ -n "${SUDO_USER:-}" ] && [ "${SUDO_USER}" != 'root' ]; then
@@ -119,19 +208,19 @@ detect_target_user() {
         TARGET_USER="$(id -un)"
     fi
 
-    if [ -n "${TARGET_HOME:-}" ]; then
-        TARGET_HOME="${TARGET_HOME}"
-        if [ "$OS_FAMILY" = 'linux' ]; then
-            TARGET_GROUP="$(id -gn "$TARGET_USER" 2>/dev/null || echo "$TARGET_USER")"
-        else
-            TARGET_GROUP="$(id -gn "$TARGET_USER" 2>/dev/null || echo 'staff')"
+    user_exists "$TARGET_USER" || die "目标用户不存在：$TARGET_USER"
+
+    requested_home="${TARGET_HOME:-}"
+    system_home="$(get_user_home "$TARGET_USER" || true)"
+    TARGET_GROUP="$(get_user_group "$TARGET_USER")"
+
+    if [ -n "$requested_home" ]; then
+        TARGET_HOME="$requested_home"
+        if [ -n "$system_home" ] && [ "$TARGET_HOME" != "$system_home" ]; then
+            warn "TARGET_HOME 与系统记录的 home 不一致：系统为 [$system_home]，当前为 [$TARGET_HOME]"
         fi
-    elif [ "$OS_FAMILY" = 'linux' ]; then
-        TARGET_HOME="$(getent passwd "$TARGET_USER" | cut -d: -f6 || true)"
-        TARGET_GROUP="$(id -gn "$TARGET_USER" 2>/dev/null || echo "$TARGET_USER")"
     else
-        TARGET_HOME="$(dscl . -read "/Users/$TARGET_USER" NFSHomeDirectory 2>/dev/null | awk '{print $2}' || true)"
-        TARGET_GROUP="$(id -gn "$TARGET_USER" 2>/dev/null || echo 'staff')"
+        TARGET_HOME="$system_home"
     fi
 
     [ -n "$TARGET_HOME" ] || die "找不到目标用户 home：$TARGET_USER"
@@ -163,16 +252,6 @@ copy_preserve() {
         return 0
     fi
     cp -R "$src" "$dst"
-}
-
-cleanup_work_dir() {
-    if [ -n "${WORK_DIR:-}" ] && [ -d "$WORK_DIR" ]; then
-        rm -rf "$WORK_DIR"
-    fi
-}
-
-has_privileged_writer() {
-    [ "$(id -u)" -eq 0 ] || [ -n "$SUDO_CMD" ]
 }
 
 ensure_dir_for_target() {
@@ -237,17 +316,25 @@ prepare_backup() {
     WORK_DIR="$(mktemp -d)"
     RESTORE_SCRIPT_TMP="$WORK_DIR/restore.sh"
     METADATA_FILE_TMP="$WORK_DIR/metadata.txt"
-    trap cleanup_work_dir EXIT
 
     ensure_dir_for_target "$BACKUP_DIR/files"
 
     cat > "$RESTORE_SCRIPT_TMP" <<EOF
 #!/usr/bin/env bash
 set -euo pipefail
+
 TARGET_USER=$(printf '%q' "$TARGET_USER")
 TARGET_GROUP=$(printf '%q' "$TARGET_GROUP")
 TARGET_HOME=$(printf '%q' "$TARGET_HOME")
-BACKUP_DIR="\$(cd "\$(dirname "\$0")" && pwd)"
+SELF_PATH="\$(cd "\$(dirname "\$0")" && pwd)/\$(basename "\$0")"
+BACKUP_DIR="\$(cd "\$(dirname "\$SELF_PATH")" && pwd)"
+RESTORE_AUTO_ELEVATED="\${RESTORE_AUTO_ELEVATED:-0}"
+SCRIPT_ARGS=( "\$@" )
+
+log()  { printf '[INFO] %s\n' "\$*"; }
+warn() { printf '[WARN] %s\n' "\$*" >&2; }
+die()  { printf '[ERR ] %s\n' "\$*" >&2; exit 1; }
+
 copy_preserve() {
     local src="\$1"
     local dst="\$2"
@@ -256,11 +343,86 @@ copy_preserve() {
     fi
     cp -R "\$src" "\$dst"
 }
+
+nearest_existing_parent() {
+    local path="\$1"
+    path="\$(dirname "\$path")"
+    while [ ! -e "\$path" ] && [ "\$path" != "/" ]; do
+        path="\$(dirname "\$path")"
+    done
+    printf '%s\n' "\$path"
+}
+
+can_restore_target() {
+    local target="\$1"
+    local parent
+    if [ -e "\$target" ]; then
+        [ -w "\$target" ]
+    else
+        parent="\$(nearest_existing_parent "\$target")"
+        [ -w "\$parent" ]
+    fi
+}
+
+can_delete_target() {
+    local target="\$1"
+    if [ -e "\$target" ]; then
+        [ -w "\$(dirname "\$target")" ]
+    else
+        return 0
+    fi
+}
+
+auto_elevate_restore() {
+    local reason="\${1:-恢复需要更高权限}"
+
+    if [ "\$(id -u)" -eq 0 ]; then
+        return 0
+    fi
+
+    if [ "\$RESTORE_AUTO_ELEVATED" = '1' ]; then
+        die "已尝试自动提权但仍失败：\$reason"
+    fi
+
+    command -v sudo >/dev/null 2>&1 || die "\$reason；且未找到 sudo，请使用 root 执行恢复"
+
+    warn "\$reason"
+    log "尝试使用 sudo 自动提权恢复"
+    sudo -v || die "sudo 验证失败，无法继续恢复"
+
+    exec sudo env RESTORE_AUTO_ELEVATED=1 bash "\$SELF_PATH" "\${SCRIPT_ARGS[@]}"
+}
+
+ensure_restore_permission() {
+    local target="\$1"
+    local existed="\$2"
+    local current_user=''
+
+    if [ "\$(id -u)" -eq 0 ]; then
+        return 0
+    fi
+
+    current_user="\$(id -un 2>/dev/null || true)"
+    if [ -n "\$current_user" ] && [ "\$current_user" != "\$TARGET_USER" ]; then
+        auto_elevate_restore "当前用户(\$current_user)不是目标用户(\$TARGET_USER)，需要提权恢复"
+    fi
+
+    if [ "\$existed" = '1' ]; then
+        can_restore_target "\$target" || auto_elevate_restore "对目标路径无写权限：\$target"
+    else
+        can_delete_target "\$target" || auto_elevate_restore "对目标路径无删除权限：\$target"
+    fi
+}
+
 restore_file() {
     local target="\$1"
     local backup="\$2"
     local existed="\$3"
+
+    ensure_restore_permission "\$target" "\$existed"
+
     if [ "\$existed" = '1' ]; then
+        [ -e "\$backup" ] || die "备份不存在：\$backup"
         mkdir -p "\$(dirname "\$target")"
         copy_preserve "\$backup" "\$target"
     else
@@ -308,7 +470,7 @@ EOF
 
 finish_restore_script() {
     cat >> "$RESTORE_SCRIPT_TMP" <<EOF
-if id "${TARGET_USER}" >/dev/null 2>&1; then
+if [ "\$(id -u)" -eq 0 ] && id "${TARGET_USER}" >/dev/null 2>&1; then
     chown -R "${TARGET_USER}":"${TARGET_GROUP}" "${TARGET_HOME}/.config" 2>/dev/null || true
 fi
 echo "已恢复配置，备份目录：\$BACKUP_DIR"
@@ -1116,6 +1278,31 @@ set_default_shell_if_needed() {
     ok "默认 shell 已切换为 fish：$TARGET_USER -> $FISH_BIN"
 }
 
+verify_bat_result() {
+    local bat_cmd reported_config tmp_base sample_file sample_output
+
+    bat_cmd="$(detect_bat_command)" || die "缺少命令：bat/batcat"
+
+    [ -f "$BAT_CONFIG_FILE" ] || die "bat 配置文件不存在：$BAT_CONFIG_FILE"
+    grep -Fxq -- '--map-syntax=*.jsonc:JSON' "$BAT_CONFIG_FILE" || die "bat 配置内容不符合预期：$BAT_CONFIG_FILE"
+
+    reported_config="$(HOME="$TARGET_HOME" XDG_CONFIG_HOME="$CONFIG_ROOT" "$bat_cmd" --config-file 2>/dev/null | head -n 1 | tr -d '\r')"
+    [ -n "$reported_config" ] || die "无法通过 $bat_cmd 读取配置文件路径"
+    [ "$reported_config" = "$BAT_CONFIG_FILE" ] || die "$bat_cmd 实际读取的配置文件不是预期路径：$reported_config"
+
+    tmp_base="$(mktemp)"
+    sample_file="${tmp_base}.jsonc"
+    mv "$tmp_base" "$sample_file"
+    printf '%s\n' '{"hello": 1, "enabled": true, "name": "jsonc-check"}' > "$sample_file"
+
+    sample_output="$(HOME="$TARGET_HOME" XDG_CONFIG_HOME="$CONFIG_ROOT" "$bat_cmd" --paging=never --color=always --style=plain "$sample_file" 2>/dev/null || true)"
+    rm -f "$sample_file"
+
+    printf '%s' "$sample_output" | grep -q $'\033\[' || die "$bat_cmd 未对 .jsonc 生成高亮输出，可能未正确加载 bat 配置"
+
+    ok "bat 配置写入验证通过（使用命令：$bat_cmd）"
+}
+
 verify_result() {
     log "开始验证"
 
@@ -1123,9 +1310,7 @@ verify_result() {
     require_command starship
     require_command fastfetch
 
-    if ! command -v bat >/dev/null 2>&1 && ! command -v batcat >/dev/null 2>&1; then
-        die "缺少命令：bat/batcat"
-    fi
+    detect_bat_command >/dev/null 2>&1 || die "缺少命令：bat/batcat"
 
     HOME="$TARGET_HOME" XDG_CONFIG_HOME="$CONFIG_ROOT" fish -n "$FISH_CONFIG_FILE"
 
@@ -1133,14 +1318,13 @@ verify_result() {
 
     STARSHIP_CONFIG="$STARSHIP_CONFIG_FILE" starship prompt --status 0 --cmd-duration 1234 >/dev/null
     fastfetch --config "$FASTFETCH_CONFIG_FILE" >/dev/null 2>&1
-    [ -f "$BAT_CONFIG_FILE" ]
-    grep -Fxq -- '--map-syntax=*.jsonc:JSON' "$BAT_CONFIG_FILE"
 
     ok "fish 配置语法验证通过"
     ok "fish 函数加载验证通过"
     ok "starship 配置加载验证通过"
     ok "fastfetch 配置加载验证通过"
-    ok "bat 配置写入验证通过"
+
+    verify_bat_result
 }
 
 print_summary() {
@@ -1158,26 +1342,37 @@ print_summary() {
 - 恢复命令：bash $RESTORE_SCRIPT
 
 关键增强：
-1. 使用“临时文件 + 提权 install/cp”写入目标用户配置，修复 sudo 为其他用户写 ~/.config 时的权限问题
-2. Linux / macOS alias 已分离，避免 ls/grep/ps/watch/dmesg 参数冲突
-3. Linux fastfetch 支持 apt -> GitHub Release .deb fallback
-4. macOS locale/shell 处理已改为兼容模式，不再强推 Linux 风格 LC_ALL/LANGUAGE
-5. bat 已配置 *.jsonc 按 JSON 语法高亮
+1. 启动前校验 TARGET_USER 是否真实存在，避免误写不存在用户目录
+2. 已执行 sudo -v 预热，并维持 sudo 凭据缓存，减少中途重复输密码
+3. 使用“临时文件 + 提权 install/cp”写入目标用户配置，修复 sudo 为其他用户写 ~/.config 时的权限问题
+4. bat/batcat 验证更严格：同时校验命令存在、配置路径、配置内容、.jsonc 高亮输出
+5. restore.sh 支持自动检测权限不足并尝试 sudo 提权恢复
+6. Linux / macOS alias 已分离，避免 ls/grep/ps/watch/dmesg 参数冲突
+7. Linux fastfetch 支持 apt -> GitHub Release .deb fallback
+8. macOS locale/shell 处理已改为兼容模式，不再强推 Linux 风格 LC_ALL/LANGUAGE
+9. bat 已配置 *.jsonc 按 JSON 语法高亮
 
 建议验证：
 1. 重新登录终端，或直接执行：fish
 2. 确认提示符已变为 starship 风格
 3. 确认进入交互式 shell 后自动显示 fastfetch
-4. 确认 bat 对 jsonc 高亮正常，例如：bat ~/.config/fastfetch/config.jsonc
-5. 在 macOS 上执行：type cman; cman ls
-6. 在 Linux 上执行：type ip; type dmesg; cman bash
+4. 确认 bat / batcat 对 jsonc 高亮正常，例如：
+   bat ~/.config/fastfetch/config.jsonc
+   或
+   batcat ~/.config/fastfetch/config.jsonc
+5. 如需恢复，直接执行：
+   bash $RESTORE_SCRIPT
+   若权限不足，restore.sh 会自动尝试 sudo 提权
 EOF
 }
 
 main() {
+    trap cleanup_all EXIT
+
     require_root_or_sudo
     detect_os
     detect_target_user
+    warmup_sudo_session
     prepare_backup
     install_base_packages
     install_fish_if_needed
