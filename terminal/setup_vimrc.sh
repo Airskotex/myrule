@@ -1,172 +1,446 @@
-#!/bin/bash
-
+#!/usr/bin/env bash
 # ==========================================
-# Vim 配置文件自动化部署脚本
+# Vim / NeoVim 配置文件自动化部署脚本
+# 兼容: Debian/Ubuntu, RHEL/CentOS/Rocky/Alma,
+#        Arch, openSUSE, Alpine, macOS(Homebrew)
 # ==========================================
 
-# 1. 确定目标文件路径 (区分 Root 与普通用户)
-if [ "$EUID" -eq 0 ]; then
-    # 不同的 Linux 发行版全局 vimrc 路径可能不同
-    if [ -f /etc/vim/vimrc ]; then
-        TARGET_FILE="/etc/vim/vimrc"  # Debian / Ubuntu 族
-    elif [ -f /etc/vimrc ]; then
-        TARGET_FILE="/etc/vimrc"      # RHEL / CentOS / Rocky 族
-    else
-        TARGET_FILE="/etc/vimrc"      # 默认 fallback
-    fi
-    echo "🔍 检测到当前为 Root 用户，将为所有用户应用全局配置: $TARGET_FILE"
+set -euo pipefail
+
+# ---------- 版本 ----------
+SCRIPT_VERSION="2.1.0"
+
+# ---------- 颜色与输出 ----------
+if [ -t 1 ] && command -v tput &>/dev/null && [ "$(tput colors 2>/dev/null || echo 0)" -ge 8 ]; then
+    C_RED=$(tput setaf 1)
+    C_GREEN=$(tput setaf 2)
+    C_YELLOW=$(tput setaf 3)
+    C_CYAN=$(tput setaf 6)
+    C_RESET=$(tput sgr0)
 else
-    TARGET_FILE="$HOME/.vimrc"
-    echo "🔍 检测到当前为普通用户，将仅为当前用户应用配置: $TARGET_FILE"
+    C_RED="" C_GREEN="" C_YELLOW="" C_CYAN="" C_RESET=""
 fi
 
-# 确保目标文件存在，避免后续 sed 执行报错
-touch "$TARGET_FILE"
+info()  { printf '%s[INFO]%s  %s\n'  "$C_CYAN"   "$C_RESET" "$*"; }
+ok()    { printf '%s[ OK ]%s  %s\n'  "$C_GREEN"  "$C_RESET" "$*"; }
+warn()  { printf '%s[WARN]%s  %s\n'  "$C_YELLOW" "$C_RESET" "$*" >&2; }
+err()   { printf '%s[ERR ]%s  %s\n'  "$C_RED"    "$C_RESET" "$*" >&2; }
 
-# 2. 清理历史旧配置 (防止重复写入)
-# 匹配我们自定义的 BEGIN 和 END 标记，将这之间的内容全部删除
-echo "⚙️ 正在清理可能存在的旧配置块以防止冲突..."
-sed -i.bak -e '/^" === BEGIN DEVOPS VIMRC ===/,/^" === END DEVOPS VIMRC ===/d' "$TARGET_FILE"
+# ---------- 全局变量 ----------
+MARKER_BEGIN='" === BEGIN DEVOPS VIMRC ==='
+MARKER_END='" === END DEVOPS VIMRC ==='
+DRY_RUN=0
+DO_UNINSTALL=0
+FORCE_SCOPE=""   # user | global
+ALSO_NEOVIM=0
+TARGET_FILE=""
 
-# 3. 写入最新配置
-echo "✍️ 正在写入最新 Vim 配置..."
+# ---------- 帮助 ----------
+usage() {
+    cat <<HELP
+用法: $(basename "$0") [选项]
 
-cat << 'EOF' >> "$TARGET_FILE"
+选项:
+  -h, --help       显示本帮助信息
+  -v, --version    显示脚本版本
+  -u, --uninstall  卸载（移除自定义配置块）
+  -n, --dry-run    模拟运行，不实际修改文件
+  --user           强制安装到当前用户 (~/.vimrc)
+  --global         强制安装到全局 vimrc（需要 root）
+  --neovim         同时为 NeoVim 部署配置
+
+示例:
+  sudo $(basename "$0")            # root 全局部署
+  $(basename "$0")                 # 普通用户部署
+  $(basename "$0") --neovim        # 同时部署 NeoVim
+  $(basename "$0") --uninstall     # 卸载自定义配置
+HELP
+}
+
+# ---------- 参数解析 ----------
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        -h|--help)      usage; exit 0 ;;
+        -v|--version)   echo "$SCRIPT_VERSION"; exit 0 ;;
+        -u|--uninstall) DO_UNINSTALL=1 ;;
+        -n|--dry-run)   DRY_RUN=1 ;;
+        --user)         FORCE_SCOPE="user" ;;
+        --global)       FORCE_SCOPE="global" ;;
+        --neovim)       ALSO_NEOVIM=1 ;;
+        *)              err "未知选项: $1"; usage; exit 1 ;;
+    esac
+    shift
+done
+
+# ---------- 检测 vim 是否安装 ----------
+check_vim_installed() {
+    if ! command -v vim &>/dev/null && ! command -v nvim &>/dev/null; then
+        err "未检测到 vim 或 nvim，请先安装。"
+        exit 1
+    fi
+}
+
+# ---------- 检测操作系统 ----------
+detect_os() {
+    if [[ "$OSTYPE" == darwin* ]]; then
+        echo "macos"
+    elif [ -f /etc/os-release ]; then
+        # shellcheck source=/dev/null
+        . /etc/os-release
+        case "${ID:-unknown}" in
+            ubuntu|debian|linuxmint|pop|kali|raspbian|deepin|uos)  echo "debian" ;;
+            rhel|centos|rocky|almalinux|ol|fedora|amzn|anolis|openEuler) echo "rhel" ;;
+            arch|manjaro|endeavouros|garuda)          echo "arch" ;;
+            opensuse*|sles|suse)                      echo "suse" ;;
+            alpine)                                   echo "alpine" ;;
+            *)                                        echo "unknown" ;;
+        esac
+    elif [ -f /etc/redhat-release ]; then
+        echo "rhel"
+    elif [ -f /etc/debian_version ]; then
+        echo "debian"
+    elif [ -f /etc/arch-release ]; then
+        echo "arch"
+    elif [ -f /etc/alpine-release ]; then
+        echo "alpine"
+    else
+        echo "unknown"
+    fi
+}
+
+# ---------- 确定目标文件路径 ----------
+resolve_target() {
+    local scope="$FORCE_SCOPE"
+    local distro
+    distro=$(detect_os)
+
+    # 如果未指定 scope，按 EUID 自动判断
+    if [ -z "$scope" ]; then
+        if [ "${EUID:-$(id -u)}" -eq 0 ]; then
+            scope="global"
+        else
+            scope="user"
+        fi
+    fi
+
+    if [ "$scope" = "global" ]; then
+        if [ "${EUID:-$(id -u)}" -ne 0 ]; then
+            err "全局部署需要 root 权限，请使用 sudo 运行。"
+            exit 1
+        fi
+        case "$distro" in
+            debian)  TARGET_FILE="/etc/vim/vimrc" ;;
+            rhel)    TARGET_FILE="/etc/vimrc" ;;
+            arch)    TARGET_FILE="/etc/vimrc" ;;
+            suse)    TARGET_FILE="/etc/vimrc" ;;
+            alpine)  TARGET_FILE="/etc/vim/vimrc" ;;
+            macos)   TARGET_FILE="/usr/local/etc/vimrc" ;;  # Homebrew vim
+            *)       TARGET_FILE="/etc/vimrc" ;;
+        esac
+        info "全局部署 ($distro) -> $TARGET_FILE"
+    else
+        TARGET_FILE="${HOME}/.vimrc"
+        info "用户部署 -> $TARGET_FILE"
+    fi
+}
+
+# ---------- 安全地创建文件及父目录 ----------
+ensure_file() {
+    local f="$1"
+    local dir
+    dir=$(dirname "$f")
+
+    # 跟随符号链接
+    if [ -L "$f" ]; then
+        local real
+        real=$(readlink -f "$f" 2>/dev/null || readlink "$f")
+        warn "$f 是符号链接 -> $real，将操作实际文件。"
+        f="$real"
+        dir=$(dirname "$f")
+    fi
+
+    if [ ! -d "$dir" ]; then
+        if [ "$DRY_RUN" -eq 1 ]; then
+            info "[dry-run] 将创建目录 $dir"
+        else
+            mkdir -p "$dir"
+        fi
+    fi
+
+    if [ ! -f "$f" ]; then
+        if [ "$DRY_RUN" -eq 1 ]; then
+            info "[dry-run] 将创建文件 $f"
+        else
+            touch "$f"
+        fi
+    fi
+
+    # 检查可写
+    if [ "$DRY_RUN" -eq 0 ] && [ ! -w "$f" ]; then
+        err "文件不可写: $f"
+        exit 1
+    fi
+
+    # 导出实际路径（可能因符号链接而变化）
+    TARGET_FILE="$f"
+}
+
+# ---------- 备份 ----------
+backup_file() {
+    local f="$1"
+    if [ ! -f "$f" ] || [ ! -s "$f" ]; then
+        return
+    fi
+    local bak="${f}.bak.$(date +%Y%m%d%H%M%S)"
+    if [ "$DRY_RUN" -eq 1 ]; then
+        info "[dry-run] 将备份 $f -> $bak"
+    else
+        cp -a "$f" "$bak"
+        ok "已备份: $bak"
+    fi
+}
+
+# ---------- 清理旧配置块（兼容 BSD / GNU sed） ----------
+remove_block() {
+    local f="$1"
+    if ! grep -qF "$MARKER_BEGIN" "$f" 2>/dev/null; then
+        return 0
+    fi
+    info "清理旧配置块..."
+    if [ "$DRY_RUN" -eq 1 ]; then
+        info "[dry-run] 将从 $f 中删除旧配置块"
+        return 0
+    fi
+
+    # 使用兼容 BSD sed 和 GNU sed 的方式
+    if sed --version 2>/dev/null | grep -q 'GNU'; then
+        # GNU sed
+        sed -i "/^${MARKER_BEGIN//\//\\/}$/,/^${MARKER_END//\//\\/}$/d" "$f"
+    else
+        # BSD sed (macOS)
+        sed -i '' "/^${MARKER_BEGIN//\//\\/}$/,/^${MARKER_END//\//\\/}$/d" "$f"
+    fi
+
+    # 清理末尾多余空行
+    if sed --version 2>/dev/null | grep -q 'GNU'; then
+        sed -i -e :a -e '/^\n*$/{$d;N;ba' -e '}' "$f"
+    fi
+}
+
+# ---------- 生成配置内容 ----------
+generate_config() {
+cat << 'VIMCFG'
 " === BEGIN DEVOPS VIMRC ===
 """"""""""""""""""""""""""""""""""""""
-" vim 运维服务器最小修正版 ~/.vimrc
+" vim 运维服务器最小修正版
 " by leonshaw 2024.10.12
 " 适合 Kubernetes / Ansible / Shell
 """"""""""""""""""""""""""""""""""""""
 
-" 编码设置释义
-" vim 内部使用的字符编码方式
-"set encoding=编码
-"set enc=编码
-" vim 当前编辑的文件的字符编码方式，保存文件时也使用
-"set fileencoding=编码
-"set fenc=编码
-" vim 打开的文件的字符编码方式，按顺序，最前面的优先
-"fileencodings 是一个用逗号分隔的列表，简写 fencs
-"set fileencodings=编码
-" vim 所工作的终端的字符编码方式
-"set termencoding=编码
-
-" 编码设置
+" -------- 编码 --------
 set encoding=utf-8
 set fileencoding=utf-8
-set fencs=utf-8,gb18030,gbk,cp936,gb2312,big5
+set fileencodings=utf-8,gb18030,gbk,cp936,gb2312,big5,latin1
 set termencoding=utf-8
 
-" 语言设置
-set langmenu=zh_CN.UTF-8
-set helplang=cn,en
+" -------- 语言 --------
+silent! set langmenu=zh_CN.UTF-8
+silent! set helplang=cn,en
 
-" 去掉 vi 的一致性
+" -------- 基础 --------
 set nocompatible
-
-" 打开文件类型检测、插件和缩进
 filetype plugin indent on
-
-" 显示行号
-set number
-
-" 开启语法高亮
 syntax on
-
-" 设置字体
-"set guifont=Monaco:h13
-" solarized 主题设置在终端下的设置
-"let g:solarized_termcolors=256
-
-" 设置不自动换行
+set number
 set nowrap
-
-" 设置以 unix 的格式保存文件（UNIX 系统下默认）
 set fileformat=unix
-" 打开 dos 文件时可自动识别
-set fileformats=unix,dos
+set fileformats=unix,dos,mac
+set autoread
+set hidden
+set wildmenu
+set wildmode=longest:full,full
 
-" 自动缩进
+" -------- 缩进 --------
 set autoindent
-
-" Tab 键的宽度 = 4 个空格
+set smartindent
 set tabstop=4
-" 统一缩进为 4
 set softtabstop=4
 set shiftwidth=4
-" expandtab：缩进用空格来表示，noexpandtab：用制表符表示一个缩进
 set expandtab
 
-" 不同文件类型缩进
-augroup my_vimrc_filetype
+" -------- 文件类型缩进 --------
+augroup devops_vimrc_ft
   autocmd!
-  autocmd FileType yaml         setlocal tabstop=2 shiftwidth=2 softtabstop=2 expandtab
-  autocmd FileType json         setlocal tabstop=2 shiftwidth=2 softtabstop=2 expandtab
-  autocmd FileType html,css     setlocal tabstop=2 shiftwidth=2 softtabstop=2 expandtab
-  autocmd FileType python       setlocal tabstop=4 shiftwidth=4 softtabstop=4 expandtab
-  autocmd FileType sh,bash,zsh  setlocal tabstop=4 shiftwidth=4 softtabstop=4 expandtab
-  autocmd FileType go           setlocal noexpandtab tabstop=4 shiftwidth=4 softtabstop=4
-  autocmd FileType make         setlocal noexpandtab tabstop=8 shiftwidth=8 softtabstop=0
-  " Kubernetes / Ansible / Shell 中，回车时不自动延续注释
-  autocmd FileType yaml,sh,bash,zsh setlocal formatoptions-=cro
+  " 2-空格缩进
+  autocmd FileType yaml,yml         setlocal ts=2 sw=2 sts=2 et
+  autocmd FileType json,jsonc       setlocal ts=2 sw=2 sts=2 et
+  autocmd FileType html,css,scss    setlocal ts=2 sw=2 sts=2 et
+  autocmd FileType javascript,typescript,vue,jsx,tsx setlocal ts=2 sw=2 sts=2 et
+  autocmd FileType xml,toml         setlocal ts=2 sw=2 sts=2 et
+  autocmd FileType terraform,tf,hcl setlocal ts=2 sw=2 sts=2 et
+  autocmd FileType ruby,erb         setlocal ts=2 sw=2 sts=2 et
+  autocmd FileType lua              setlocal ts=2 sw=2 sts=2 et
+  autocmd FileType markdown         setlocal ts=2 sw=2 sts=2 et wrap
+
+  " 4-空格缩进
+  autocmd FileType python           setlocal ts=4 sw=4 sts=4 et
+  autocmd FileType sh,bash,zsh      setlocal ts=4 sw=4 sts=4 et
+  autocmd FileType dockerfile       setlocal ts=4 sw=4 sts=4 et
+  autocmd FileType java,groovy      setlocal ts=4 sw=4 sts=4 et
+  autocmd FileType c,cpp            setlocal ts=4 sw=4 sts=4 et
+
+  " Tab 缩进（不可转空格）
+  autocmd FileType go               setlocal noet ts=4 sw=4 sts=4
+  autocmd FileType make             setlocal noet ts=8 sw=8 sts=0
+  autocmd FileType gitconfig        setlocal noet ts=4 sw=4 sts=4
+
+  " 运维特殊处理：回车时不自动延续注释
+  autocmd FileType yaml,yml,sh,bash,zsh,dockerfile setlocal formatoptions-=cro
 augroup END
 
-" 高亮显示匹配的括号
-set showmatch
-" 匹配括号高亮的时间（单位是十分之一秒）
-set matchtime=5
-
-" 光标移动到 buffer 的顶部和底部时保持 3 行距离
-set scrolloff=3
-
-" 启动显示状态行 (1), 总是显示状态行 (2)
-set laststatus=2
-
-" 使退格键（backspace）正常处理 indent, eol, start 等
-set backspace=indent,eol,start
-
-" 服务器 / SSH 场景下为了方便复制，默认关闭鼠标
-" 如需开启可改回：set mouse=a
-set mouse=a
-
-" 搜索忽略大小写
+" -------- 搜索 --------
 set ignorecase
-" 搜索中有大写字母时自动区分大小写
 set smartcase
-" 高亮显示匹配字符（回车后）
 set hlsearch
-" 搜索实时高亮显示所有匹配的字符
 set incsearch
 
-" 设置当文件被改动时自动载入
-set autoread
-
-" 突出显示当前行
-set cursorline
-
-" 打开标尺，在屏幕右下角显示当前光标所处位置（设置了 statusline 可以忽略）
+" -------- 显示 / UI --------
+set showmatch
+set matchtime=3
+set scrolloff=3
+set sidescrolloff=5
+set laststatus=2
 set ruler
-" 状态行显示的内容
+set cursorline
+set showcmd
+set list
+set listchars=tab:→·,trail:□,extends:»,precedes:«,nbsp:⣿
+
+" 状态栏
 set statusline=\ %<%F[%1*%M%*%n%R%H]%=\ %y\ %0(%{&fileformat}\ %{strlen(&fenc)?&fenc:&enc}\ %l,%c%)\ %p%%
 
-" 显示 Tab 键和行尾空格
-set list
-set listchars=tab:→·,trail:□
-
-" 粘贴 Kubernetes YAML / Ansible Playbook / Shell 脚本时很好用
+" -------- 操作 --------
+set backspace=indent,eol,start
+set mouse=a
+if !has('nvim') && has('mouse_sgr')
+    set ttymouse=sgr
+endif
 set pastetoggle=<F2>
 
-" 服务器安全场景下，不启用 modeline
+" -------- 安全 --------
 set nomodeline
-" === END DEVOPS VIMRC ===
-EOF
+set noswapfile
+set history=500
 
-# 4. 验证写入结果
-if grep -q '" === BEGIN DEVOPS VIMRC ===' "$TARGET_FILE"; then
-    echo "✅ 配置部署成功！"
-    echo "💡 提示：原文件备份已保存为 ${TARGET_FILE}.bak"
-else
-    echo "❌ 错误：配置写入失败，请检查文件权限。"
-    exit 1
-fi
+" -------- 撤销持久化 (如目录可创建) --------
+if has('persistent_undo')
+    let s:undo_dir = expand('~/.vim/undodir')
+    if !isdirectory(s:undo_dir)
+        silent! call mkdir(s:undo_dir, 'p', 0700)
+    endif
+    execute 'set undodir=' . s:undo_dir
+    set undofile
+endif
+
+" -------- 大文件保护 (> 10 MB 时精简) --------
+augroup devops_vimrc_large
+  autocmd!
+  autocmd BufReadPre * if getfsize(expand('%')) > 10 * 1024 * 1024
+        \ | setlocal noswapfile nobackup nowritebackup noundofile
+        \ | syntax off
+        \ | setlocal eventignore+=FileType
+        \ | endif
+augroup END
+" === END DEVOPS VIMRC ===
+VIMCFG
+}
+
+# ---------- 写入配置 ----------
+write_config() {
+    local f="$1"
+    if [ "$DRY_RUN" -eq 1 ]; then
+        info "[dry-run] 将写入配置到 $f"
+        return 0
+    fi
+    generate_config >> "$f"
+}
+
+# ---------- 验证 ----------
+verify() {
+    local f="$1"
+    if grep -qF "$MARKER_BEGIN" "$f" 2>/dev/null; then
+        ok "配置已成功部署到 $f"
+    else
+        err "配置写入失败: $f，请检查文件权限。"
+        return 1
+    fi
+}
+
+# ---------- NeoVim 配置 ----------
+deploy_neovim() {
+    local nvim_init
+    if [ "${EUID:-$(id -u)}" -eq 0 ]; then
+        nvim_init="/etc/xdg/nvim/init.vim"
+    else
+        nvim_init="${XDG_CONFIG_HOME:-$HOME/.config}/nvim/init.vim"
+    fi
+
+    info "同时部署 NeoVim 配置 -> $nvim_init"
+    local nvim_dir
+    nvim_dir=$(dirname "$nvim_init")
+
+    if [ "$DRY_RUN" -eq 0 ]; then
+        mkdir -p "$nvim_dir"
+        touch "$nvim_init"
+    fi
+
+    ensure_file "$nvim_init"
+    local saved_target="$TARGET_FILE"
+    TARGET_FILE="$nvim_init"
+
+    backup_file "$TARGET_FILE"
+    remove_block "$TARGET_FILE"
+
+    if [ "$DO_UNINSTALL" -eq 0 ]; then
+        write_config "$TARGET_FILE"
+        verify "$TARGET_FILE"
+    else
+        ok "已从 $TARGET_FILE 卸载自定义配置"
+    fi
+
+    TARGET_FILE="$saved_target"
+}
+
+# ==========================================
+#                   主流程
+# ==========================================
+main() {
+    info "Vim 配置部署脚本 v${SCRIPT_VERSION}"
+    [ "$DRY_RUN" -eq 1 ] && warn ">>> 模拟运行模式，不会修改任何文件 <<<"
+
+    check_vim_installed
+    resolve_target
+    ensure_file "$TARGET_FILE"
+    backup_file "$TARGET_FILE"
+    remove_block "$TARGET_FILE"
+
+    if [ "$DO_UNINSTALL" -eq 1 ]; then
+        ok "已从 $TARGET_FILE 卸载自定义配置"
+    else
+        write_config "$TARGET_FILE"
+        verify "$TARGET_FILE"
+    fi
+
+    # NeoVim
+    if [ "$ALSO_NEOVIM" -eq 1 ]; then
+        if command -v nvim &>/dev/null; then
+            deploy_neovim
+        else
+            warn "未检测到 nvim，跳过 NeoVim 配置。"
+        fi
+    fi
+
+    info "全部完成。"
+}
+
+main "$@"
