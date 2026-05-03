@@ -8,7 +8,7 @@
 set -euo pipefail
 
 # ---------- 版本 ----------
-SCRIPT_VERSION="2.1.0"
+SCRIPT_VERSION="2.2.0"
 
 # ---------- 颜色与输出 ----------
 if [ -t 1 ] && command -v tput &>/dev/null && [ "$(tput colors 2>/dev/null || echo 0)" -ge 8 ]; then
@@ -298,6 +298,50 @@ augroup devops_vimrc_ft
   autocmd FileType yaml,yml,sh,bash,zsh,dockerfile setlocal formatoptions-=cro
 augroup END
 
+" -------- 保存时自动创建不存在的父目录 --------
+" 示例:
+"   vim /tmp/a/b/c/test.yaml
+"   :w
+" 如果 /tmp/a/b/c 不存在，保存时会自动 mkdir -p 创建。
+function! s:DevopsAutoMkdirForWrite(file) abort
+    " 非普通文件缓冲区跳过，例如 help、terminal、nofile 等
+    if &buftype !=# ''
+        return
+    endif
+
+    " 空文件名跳过
+    if empty(a:file)
+        return
+    endif
+
+    " 跳过远程路径，例如 scp://、ftp://、http:// 等
+    if a:file =~# '^\w\+://'
+        return
+    endif
+
+    let l:dir = fnamemodify(a:file, ':p:h')
+
+    " 根目录、当前目录或目录已存在时跳过
+    if empty(l:dir) || l:dir ==# '.' || l:dir ==# '/' || isdirectory(l:dir)
+        return
+    endif
+
+    " 自动创建父目录
+    silent! call mkdir(l:dir, 'p', 0755)
+
+    " 创建失败时给出提示，后续 :w 会继续报错
+    if !isdirectory(l:dir)
+        echohl ErrorMsg
+        echom '无法自动创建目录: ' . l:dir
+        echohl None
+    endif
+endfunction
+
+augroup devops_vimrc_auto_mkdir
+  autocmd!
+  autocmd BufWritePre * call <SID>DevopsAutoMkdirForWrite(expand('<afile>'))
+augroup END
+
 " -------- 搜索 --------
 set ignorecase
 set smartcase
@@ -386,13 +430,6 @@ deploy_neovim() {
     fi
 
     info "同时部署 NeoVim 配置 -> $nvim_init"
-    local nvim_dir
-    nvim_dir=$(dirname "$nvim_init")
-
-    if [ "$DRY_RUN" -eq 0 ]; then
-        mkdir -p "$nvim_dir"
-        touch "$nvim_init"
-    fi
 
     ensure_file "$nvim_init"
     local saved_target="$TARGET_FILE"
