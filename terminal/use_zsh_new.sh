@@ -420,6 +420,7 @@ elif command -v bat &> /dev/null; then
     alias cat='bat'
     export BAT_THEME="TwoDark"
 fi
+alias -g p='-p -P'
 
 # Custom functions
 mkcd() { mkdir -p "$@" && cd "$_"; }
