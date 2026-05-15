@@ -411,16 +411,15 @@ alias du='du -h'
 alias free='free -h'
 alias ps='ps auxf'
 
-# bat 配置
+# bat 配置：bat 正常调用，cat 走 bat -p -P（plain + 不分页）
 if command -v batcat &> /dev/null; then
-    alias cat='batcat'
     alias bat='batcat'
+    alias cat='batcat -p -P'
     export BAT_THEME="TwoDark"
 elif command -v bat &> /dev/null; then
-    alias cat='bat'
+    alias cat='bat -p -P'
     export BAT_THEME="TwoDark"
 fi
-alias -g p='-p -P'
 
 # Custom functions
 mkcd() { mkdir -p "$@" && cd "$_"; }
