@@ -1,0 +1,305 @@
+#!/usr/bin/env bash
+# SSH 免密登录一键配置脚本
+# 用法: ssh-setup-key <IP> <密钥或密码> [user] [port] [alias]
+#   密钥或密码: 传文件路径(已存在的私钥)用密钥登录, 否则当密码用密码登录
+#   alias: 可选 SSH 别名；默认不设置。也可用 --alias/-a 指定。
+
+set -u -o pipefail
+
+usage() {
+    echo "用法: $0 <IP> <密钥或密码> [user] [port] [alias]"
+    echo "     $0 <IP> <密钥或密码> [user] [port] --alias <alias>"
+    echo ""
+    echo "  <密钥或密码>:"
+    echo "    传文件路径 → 用该私钥登录（目标机器仅密钥认证时）"
+    echo "    传字符串   → 当作密码用 sshpass 登录"
+    echo "  [user] 默认 root"
+    echo "  [port] 默认 22"
+    echo "  [alias] 默认不设置；填写后写入 ~/.ssh/config，可用 ssh <alias> 登录"
+    echo ""
+    echo "示例:"
+    echo "  $0 192.168.1.100 mypassword"
+    echo "  $0 192.168.1.100 ~/.ssh/old_key"
+    echo "  $0 192.168.1.100 ~/.ssh/old_key wangmeng 6000"
+    echo "  $0 192.168.1.100 ~/.ssh/old_key wangmeng 6000 spark-002"
+    echo "  $0 192.168.1.100 mypassword --alias testbox"
+}
+
+fail_step() {
+    local step="$1"
+    local hint="$2"
+    echo "[✗] 失败步骤: ${step}" >&2
+    echo "    处理建议: ${hint}" >&2
+    exit 1
+}
+
+show_ssh_config() {
+    if [[ -z "${SSH_ALIAS:-}" ]]; then
+        return 0
+    fi
+
+    local SSH_CONFIG="$HOME/.ssh/config"
+    echo "──────────────────────────────"
+    echo "SSH config 内容: ${SSH_CONFIG}"
+    if [[ -f "$SSH_CONFIG" ]]; then
+        echo "----- BEGIN ~/.ssh/config -----"
+        cat "$SSH_CONFIG"
+        echo "----- END ~/.ssh/config -----"
+    else
+        echo "(未写入 ~/.ssh/config；请检查别名写入步骤是否成功)"
+    fi
+    echo "──────────────────────────────"
+}
+
+if [[ $# -eq 1 && ( "$1" == "-h" || "$1" == "--help" ) ]]; then
+    usage
+    exit 0
+fi
+
+if [[ $# -lt 2 ]]; then
+    usage
+    exit 1
+fi
+
+IP="$1"
+AUTH="$2"
+USER="root"
+PORT="22"
+SSH_ALIAS=""
+shift 2
+
+# 兼容原参数顺序：第 3 个参数是数字则当端口，否则当用户；第 4 个参数当端口；第 5 个参数当别名。
+# 额外支持 --alias/-a，适合不想使用第 5 个位置参数时显式指定别名。
+POSITIONAL=()
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        -a|--alias)
+            if [[ $# -lt 2 || -z "${2:-}" ]]; then
+                echo "[✗] --alias 需要提供非空别名"
+                exit 1
+            fi
+            SSH_ALIAS="$2"
+            shift 2
+            ;;
+        --alias=*)
+            SSH_ALIAS="${1#--alias=}"
+            if [[ -z "$SSH_ALIAS" ]]; then
+                echo "[✗] --alias 需要提供非空别名"
+                exit 1
+            fi
+            shift
+            ;;
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        *)
+            POSITIONAL+=("$1")
+            shift
+            ;;
+    esac
+done
+
+if [[ ${#POSITIONAL[@]} -ge 1 ]]; then
+    if [[ "${POSITIONAL[0]}" =~ ^[0-9]+$ ]]; then
+        PORT="${POSITIONAL[0]}"
+    else
+        USER="${POSITIONAL[0]}"
+    fi
+fi
+if [[ ${#POSITIONAL[@]} -ge 2 ]]; then
+    PORT="${POSITIONAL[1]}"
+fi
+if [[ ${#POSITIONAL[@]} -ge 3 ]]; then
+    SSH_ALIAS="${POSITIONAL[2]}"
+fi
+if [[ ${#POSITIONAL[@]} -gt 3 ]]; then
+    echo "[✗] 位置参数过多: ${POSITIONAL[*]}"
+    usage
+    exit 1
+fi
+
+if [[ ! "$PORT" =~ ^[0-9]+$ ]]; then
+    echo "[✗] 端口必须是数字: $PORT"
+    exit 1
+fi
+if (( PORT < 1 || PORT > 65535 )); then
+    echo "[✗] 端口超出范围: $PORT (有效范围 1-65535)"
+    exit 1
+fi
+if [[ -n "$SSH_ALIAS" ]]; then
+    if [[ "$SSH_ALIAS" =~ [[:space:]] || "$SSH_ALIAS" == -* ]]; then
+        echo "[✗] SSH 别名不能包含空白字符，也不能以 - 开头: $SSH_ALIAS"
+        exit 1
+    fi
+fi
+
+SSH_KEY="$HOME/.ssh/id_ed25519"
+SSH_TARGET="${USER}@${IP}"
+
+# 判断认证方式: AUTH 是已存在的文件 → 密钥登录, 否则 → 密码登录
+if [[ -f "$AUTH" ]]; then
+    AUTH_MODE="key"
+    AUTH_KEY="$AUTH"
+    chmod 600 "$AUTH_KEY" || fail_step "设置登录私钥权限" "请检查本机文件权限/所有者: ls -l '$AUTH_KEY'；必要时执行 sudo chown \"$(id -un)\" '$AUTH_KEY' 后重试。"
+    echo "[✓] 已设置登录私钥权限为 600: $AUTH_KEY"
+else
+    AUTH_MODE="password"
+    AUTH_PASS="$AUTH"
+fi
+
+echo "[*] 目标: ${USER}@${IP}:${PORT} (认证: ${AUTH_MODE})"
+if [[ -n "$SSH_ALIAS" ]]; then
+    echo "[*] SSH 别名: ${SSH_ALIAS}"
+fi
+
+# 前置检查: sshpass（密码模式需要）
+if [[ "$AUTH_MODE" == "password" ]] && ! command -v sshpass &>/dev/null; then
+    echo "[*] 安装 sshpass ..."
+    if ! (apt-get install -y sshpass &>/dev/null 2>&1 || yum install -y sshpass &>/dev/null 2>&1); then
+        fail_step "安装 sshpass" "请先手动安装 sshpass：Debian/Ubuntu 用 apt-get install -y sshpass；RHEL/CentOS 用 yum install -y sshpass。"
+    fi
+fi
+
+# SSH 命令封装: 根据认证模式拼参数
+ssh_cmd() {
+    if [[ "$AUTH_MODE" == "key" ]]; then
+        ssh -i "$AUTH_KEY" "$@"
+    else
+        sshpass -p "$AUTH_PASS" ssh "$@"
+    fi
+}
+
+ssh_copy_id_cmd() {
+    if [[ "$AUTH_MODE" == "key" ]]; then
+        # 用已有私钥登录后追加新公钥
+        local PUB_KEY
+        PUB_KEY="$(cat "${SSH_KEY}.pub")" || return 1
+        ssh -i "$AUTH_KEY" -o StrictHostKeyChecking=no -p "$PORT" "$SSH_TARGET" \
+            "mkdir -p ~/.ssh && chmod 700 ~/.ssh && grep -qxF '$PUB_KEY' ~/.ssh/authorized_keys 2>/dev/null || echo '$PUB_KEY' >> ~/.ssh/authorized_keys; chmod 600 ~/.ssh/authorized_keys"
+    else
+        sshpass -p "$AUTH_PASS" ssh-copy-id -o StrictHostKeyChecking=no -i "${SSH_KEY}.pub" \
+            -p "$PORT" "$SSH_TARGET"
+    fi
+}
+
+configure_ssh_alias() {
+    if [[ -z "$SSH_ALIAS" ]]; then
+        return 0
+    fi
+
+    local SSH_DIR SSH_CONFIG TMP_CONFIG
+    SSH_DIR="$HOME/.ssh"
+    SSH_CONFIG="$SSH_DIR/config"
+    TMP_CONFIG="$(mktemp)" || fail_step "创建临时 config 文件" "请检查 /tmp 是否可写，以及磁盘空间是否充足: df -h /tmp。"
+
+    mkdir -p "$SSH_DIR" || fail_step "创建本机 ~/.ssh 目录" "请检查 HOME 是否正确、目录是否可写: echo \$HOME; ls -ld \$HOME。"
+    chmod 700 "$SSH_DIR" || fail_step "设置本机 ~/.ssh 权限" "请检查目录所有者: ls -ld '$SSH_DIR'；必要时执行 sudo chown -R \"$(id -un)\" '$SSH_DIR'。"
+
+    if [[ -f "$SSH_CONFIG" ]]; then
+        cp -a "$SSH_CONFIG" "${SSH_CONFIG}.bak.$(date +%Y%m%d-%H%M%S)" || fail_step "备份 ~/.ssh/config" "请检查 '$SSH_CONFIG' 是否可读写、磁盘空间是否充足。"
+        awk -v alias="$SSH_ALIAS" '
+            $1 == "Host" {
+                skip = 0
+                for (i = 2; i <= NF; i++) {
+                    if ($i == alias) {
+                        skip = 1
+                        break
+                    }
+                }
+            }
+            !skip { print }
+        ' "$SSH_CONFIG" > "$TMP_CONFIG" || fail_step "更新 ~/.ssh/config 中的 Host 块" "请检查 config 语法和文件权限；可先从备份恢复 ~/.ssh/config.bak.*。"
+    else
+        : > "$TMP_CONFIG" || fail_step "初始化临时 config" "请检查 /tmp 是否可写。"
+    fi
+
+    {
+        cat "$TMP_CONFIG"
+        if [[ -s "$TMP_CONFIG" ]]; then
+            printf '\n'
+        fi
+        printf 'Host %s\n' "$SSH_ALIAS"
+        printf '    HostName %s\n' "$IP"
+        printf '    User %s\n' "$USER"
+        printf '    Port %s\n' "$PORT"
+        printf '    IdentityFile %s\n' "$SSH_KEY"
+        printf '    IdentitiesOnly yes\n'
+    } > "$SSH_CONFIG" || fail_step "写入 ~/.ssh/config" "请检查 '$SSH_DIR' 是否可写、磁盘空间是否充足；如已有损坏配置可从 ~/.ssh/config.bak.* 恢复。"
+
+    rm -f "$TMP_CONFIG"
+    chmod 600 "$SSH_CONFIG" || fail_step "设置 ~/.ssh/config 权限" "请执行 chmod 600 '$SSH_CONFIG' 后重试，或检查文件所有者是否为当前用户。"
+    echo "[✓] SSH 别名已写入: $SSH_CONFIG (Host $SSH_ALIAS)"
+}
+
+# 生成密钥（如不存在）
+if [[ ! -f "$SSH_KEY" ]]; then
+    echo "[*] 生成 SSH 密钥对 ..."
+    mkdir -p "$HOME/.ssh" || fail_step "创建本机 ~/.ssh 目录" "请检查 HOME 是否正确、目录是否可写: echo \$HOME; ls -ld \$HOME。"
+    chmod 700 "$HOME/.ssh" || fail_step "设置本机 ~/.ssh 目录权限" "请执行 chmod 700 '$HOME/.ssh'，并确认目录所有者为当前用户。"
+    ssh-keygen -t ed25519 -f "$SSH_KEY" -N "" -C "AK" -q || fail_step "生成本机 SSH 密钥" "请检查 ssh-keygen 是否存在、'$HOME/.ssh' 是否可写；可手动执行 ssh-keygen -t ed25519 -f '$SSH_KEY' -N ''."
+    chmod 600 "$SSH_KEY" || fail_step "设置本机私钥权限" "请执行 chmod 600 '$SSH_KEY' 后重试。"
+    [[ -f "${SSH_KEY}.pub" ]] && chmod 644 "${SSH_KEY}.pub"
+    echo "[✓] 密钥已生成: $SSH_KEY"
+else
+    chmod 600 "$SSH_KEY" || fail_step "设置本机私钥权限" "请检查文件所有者: ls -l '$SSH_KEY'；必要时执行 sudo chown \"$(id -un)\" '$SSH_KEY' 后重试。"
+    [[ -f "${SSH_KEY}.pub" ]] && chmod 644 "${SSH_KEY}.pub"
+    echo "[✓] 密钥已存在并已设置权限 600: $SSH_KEY"
+fi
+
+if [[ ! -f "${SSH_KEY}.pub" ]]; then
+    ssh-keygen -y -f "$SSH_KEY" > "${SSH_KEY}.pub" || fail_step "补生成本机公钥" "请确认 '$SSH_KEY' 是有效私钥；可手动执行 ssh-keygen -y -f '$SSH_KEY' > '${SSH_KEY}.pub'。"
+    chmod 644 "${SSH_KEY}.pub"
+fi
+
+# 检查是否已经免密
+if ssh -o BatchMode=yes -o ConnectTimeout=5 -p "$PORT" "$SSH_TARGET" "exit 0" &>/dev/null; then
+    echo "[✓] 免密登录已生效，无需重复配置"
+    configure_ssh_alias
+    if [[ -n "$SSH_ALIAS" ]]; then
+        echo "  别名 : ssh $SSH_ALIAS"
+    fi
+    show_ssh_config
+    exit 0
+fi
+
+# 配置远端 ~/.ssh 目录权限
+echo "[*] 配置远端 SSH 目录 ..."
+if ! ssh_cmd -o StrictHostKeyChecking=no -o ConnectTimeout=10 -p "$PORT" "$SSH_TARGET" \
+    "mkdir -p ~/.ssh && chmod 700 ~/.ssh"; then
+    if [[ "$AUTH_MODE" == "key" ]]; then
+        fail_step "连接远端并配置 ~/.ssh 目录" "请检查 IP/端口/用户/私钥是否正确：ssh -i '$AUTH_KEY' -p '$PORT' '$SSH_TARGET'；如提示 bad permissions，确认本机私钥为 600。"
+    else
+        fail_step "连接远端并配置 ~/.ssh 目录" "请检查 IP/端口/用户/密码是否正确：sshpass -p '<密码>' ssh -p '$PORT' '$SSH_TARGET'；也确认远端允许 PasswordAuthentication。"
+    fi
+fi
+
+# 推送公钥
+echo "[*] 推送公钥到 ${SSH_TARGET} ..."
+if ! ssh_copy_id_cmd; then
+    if [[ "$AUTH_MODE" == "key" ]]; then
+        fail_step "推送公钥" "请确认现有登录私钥可写入远端 ~/.ssh/authorized_keys；可手动执行 ssh -i '$AUTH_KEY' -p '$PORT' '$SSH_TARGET' 后检查 ~/.ssh 目录权限和磁盘空间。"
+    else
+        fail_step "推送公钥" "请确认密码正确、远端允许密码登录且 ssh-copy-id 可用；可手动执行 ssh-copy-id -i '${SSH_KEY}.pub' -p '$PORT' '$SSH_TARGET'。"
+    fi
+fi
+
+# 验证
+echo "[*] 验证免密登录 ..."
+if ssh -o BatchMode=yes -o ConnectTimeout=5 -p "$PORT" "$SSH_TARGET" \
+    "echo '[✓] 免密登录验证成功'"; then
+    configure_ssh_alias
+    echo "──────────────────────────────"
+    echo "  IP   : $IP"
+    echo "  用户 : $USER"
+    echo "  端口 : $PORT"
+    echo "  认证 : ${AUTH_MODE}"
+    echo "  连接 : ssh -p $PORT $SSH_TARGET"
+    if [[ -n "$SSH_ALIAS" ]]; then
+        echo "  别名 : ssh $SSH_ALIAS"
+    fi
+    echo "──────────────────────────────"
+    show_ssh_config
+else
+    fail_step "验证免密登录" "公钥可能未正确写入远端 authorized_keys，或远端 sshd 禁止 PubkeyAuthentication。请检查远端 ~/.ssh 权限为 700、~/.ssh/authorized_keys 权限为 600，并查看 /var/log/auth.log 或 journalctl -u ssh/sshd。"
+fi
