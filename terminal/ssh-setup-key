@@ -1,14 +1,18 @@
 #!/usr/bin/env bash
-# SSH 免密登录一键配置脚本
+# SSH 免密登录一键配置/清除脚本
 # 用法: ssh-setup-key <IP> <密钥或密码> [user] [port] [alias]
+#       ssh-setup-key --clear <IP> <密钥或密码> [user] [port] [alias]
 #   密钥或密码: 传文件路径(已存在的私钥)用密钥登录, 否则当密码用密码登录
 #   alias: 可选 SSH 别名；默认不设置。也可用 --alias/-a 指定。
 
 set -u -o pipefail
 
 usage() {
-    echo "用法: $0 <IP> <密钥或密码> [user] [port] [alias]"
-    echo "     $0 <IP> <密钥或密码> [user] [port] --alias <alias>"
+    echo "用法:"
+    echo "  添加: $0 <IP> <密钥或密码> [user] [port] [alias]"
+    echo "        $0 <IP> <密钥或密码> [user] [port] --alias <alias>"
+    echo "  清除: $0 --clear <IP> <密钥或密码> [user] [port] [alias]"
+    echo "        $0 clear <IP> <密钥或密码> [user] [port] --alias <alias>"
     echo ""
     echo "  <密钥或密码>:"
     echo "    传文件路径 → 用该私钥登录（目标机器仅密钥认证时）"
@@ -16,6 +20,9 @@ usage() {
     echo "  [user] 默认 root"
     echo "  [port] 默认 22"
     echo "  [alias] 默认不设置；填写后写入 ~/.ssh/config，可用 ssh <alias> 登录"
+    echo "  --clear/clear 仅清除指定 IP 相关的本机/远端指纹和 SSH 配置"
+    echo "  清除不会删除本机 ~/.ssh/id_ed25519 私钥对"
+    echo "  远端 authorized_keys 只删除本脚本写入的本机公钥，不会清空其它公钥"
     echo ""
     echo "示例:"
     echo "  $0 192.168.1.100 mypassword"
@@ -23,6 +30,7 @@ usage() {
     echo "  $0 192.168.1.100 ~/.ssh/old_key wangmeng 6000"
     echo "  $0 192.168.1.100 ~/.ssh/old_key wangmeng 6000 spark-002"
     echo "  $0 192.168.1.100 mypassword --alias testbox"
+    echo "  $0 --clear 192.168.1.100 mypassword root 22 testbox"
 }
 
 fail_step() {
@@ -50,6 +58,528 @@ show_ssh_config() {
     fi
     echo "──────────────────────────────"
 }
+
+shell_quote() {
+    local value
+    value=${1//\'/\'\\\'\'}
+    printf "'%s'" "$value"
+}
+
+collect_ssh_config_target_hosts() {
+    local config_file="$1"
+    local target_host="$2"
+    local target_port="$3"
+    local target_alias="$4"
+
+    if [[ ! -f "$config_file" ]]; then
+        return 0
+    fi
+
+    awk -v target="$target_host" -v port="$target_port" -v alias="$target_alias" '
+        function is_direct(name) {
+            return name == target || name == "[" target "]:" port || (alias != "" && name == alias)
+        }
+        function is_wild(name) {
+            return name ~ /[*?]/ || substr(name, 1, 1) == "!"
+        }
+        function add(name) {
+            if (name != "" && !is_wild(name) && !(name in seen)) {
+                seen[name] = 1
+                print name
+            }
+        }
+        function flush_block(    i) {
+            if (in_host && (host_direct_match || (hostname_match && !has_wild))) {
+                for (i = 1; i <= host_count; i++) {
+                    add(host_name[i])
+                }
+            }
+        }
+        $1 == "Host" {
+            flush_block()
+            in_host = 1
+            host_count = 0
+            host_direct_match = 0
+            hostname_match = 0
+            has_wild = 0
+            for (i = 2; i <= NF; i++) {
+                host_name[++host_count] = $i
+                if (is_direct($i)) {
+                    host_direct_match = 1
+                }
+                if (is_wild($i)) {
+                    has_wild = 1
+                }
+            }
+            next
+        }
+        in_host && tolower($1) == "hostname" && $2 == target {
+            hostname_match = 1
+        }
+        END {
+            flush_block()
+        }
+    ' "$config_file"
+}
+
+remove_ssh_config_target() {
+    local config_file="$1"
+    local target_host="$2"
+    local target_port="$3"
+    local target_alias="$4"
+    local label="$5"
+    local tmp_config
+
+    if [[ ! -f "$config_file" ]]; then
+        echo "[*] ${label}: 未找到 ${config_file}，跳过"
+        return 0
+    fi
+
+    tmp_config="$(mktemp)" || fail_step "创建临时 config 文件" "请检查 /tmp 是否可写，以及磁盘空间是否充足: df -h /tmp。"
+    awk -v target="$target_host" -v port="$target_port" -v alias="$target_alias" '
+        function is_direct(name) {
+            return name == target || name == "[" target "]:" port || (alias != "" && name == alias)
+        }
+        function is_wild(name) {
+            return name ~ /[*?]/ || substr(name, 1, 1) == "!"
+        }
+        function flush_block() {
+            if (!in_host) {
+                printf "%s", block
+            } else if (!(host_direct_match || (hostname_match && !has_wild))) {
+                printf "%s", block
+            }
+        }
+        $1 == "Host" {
+            flush_block()
+            block = $0 ORS
+            in_host = 1
+            host_direct_match = 0
+            hostname_match = 0
+            has_wild = 0
+            for (i = 2; i <= NF; i++) {
+                if (is_direct($i)) {
+                    host_direct_match = 1
+                }
+                if (is_wild($i)) {
+                    has_wild = 1
+                }
+            }
+            next
+        }
+        {
+            if (!in_host) {
+                print
+                next
+            }
+            block = block $0 ORS
+            if (tolower($1) == "hostname" && $2 == target) {
+                hostname_match = 1
+            }
+        }
+        END {
+            flush_block()
+        }
+    ' "$config_file" > "$tmp_config" || fail_step "清理 ${label} config" "请检查 '$config_file' 是否可读写、语法是否正常。"
+
+    if cmp -s "$config_file" "$tmp_config"; then
+        rm -f "$tmp_config"
+        echo "[*] ${label}: config 中未找到指向 $target_host 的 Host 块"
+        return 0
+    fi
+
+    if [[ -s "$tmp_config" ]]; then
+        mv "$tmp_config" "$config_file" || fail_step "写回 ${label} config" "请检查 '$config_file' 是否可写。"
+        chmod 600 "$config_file" || fail_step "设置 ${label} config 权限" "请执行 chmod 600 '$config_file' 后重试。"
+    else
+        rm -f "$config_file" "$tmp_config" || fail_step "删除空 ${label} config" "请检查 '$config_file' 是否可写。"
+    fi
+    echo "[✓] ${label}: 已清除指向 $target_host 的 Host 配置"
+}
+
+remove_known_hosts_entries() {
+    local known_hosts_file="$1"
+    shift
+
+    if [[ ! -f "$known_hosts_file" ]]; then
+        echo "[*] 本机: 未找到 ${known_hosts_file}，跳过"
+        return 0
+    fi
+
+    local tmp_file line_numbers hosts_text host
+    tmp_file="$(mktemp)" || fail_step "创建临时 known_hosts 文件" "请检查 /tmp 是否可写，以及磁盘空间是否充足: df -h /tmp。"
+
+    if command -v ssh-keygen &>/dev/null; then
+        line_numbers="$(
+            for host in "$@"; do
+                [[ -n "$host" ]] || continue
+                ssh-keygen -F "$host" -f "$known_hosts_file" 2>/dev/null | awk '/^# Host .* found: line [0-9]+$/ { print $NF }'
+            done | sort -n -u
+        )"
+
+        if [[ -z "$line_numbers" ]]; then
+            rm -f "$tmp_file"
+            echo "[*] 本机: $known_hosts_file 中未找到目标指纹"
+            return 0
+        fi
+
+        awk -v lines="$line_numbers" '
+            BEGIN {
+                n = split(lines, line, /[[:space:]]+/)
+                for (i = 1; i <= n; i++) {
+                    if (line[i] != "") {
+                        remove[line[i]] = 1
+                    }
+                }
+            }
+            !(NR in remove) { print }
+        ' "$known_hosts_file" > "$tmp_file" || fail_step "清理本机 known_hosts" "请检查 '$known_hosts_file' 是否可读写。"
+    else
+        hosts_text="$(printf '%s\034' "$@")"
+        awk -v hosts="$hosts_text" '
+            BEGIN {
+                n = split(hosts, host, "\034")
+                for (i = 1; i <= n; i++) {
+                    if (host[i] != "") {
+                        remove_host[host[i]] = 1
+                    }
+                }
+            }
+            {
+                host_field = $1
+                if (substr($1, 1, 1) == "@") {
+                    host_field = $2
+                }
+                keep = 1
+                split(host_field, patterns, ",")
+                for (i in patterns) {
+                    if (patterns[i] in remove_host) {
+                        keep = 0
+                    }
+                }
+                if (keep) {
+                    print
+                }
+            }
+        ' "$known_hosts_file" > "$tmp_file" || fail_step "清理本机 known_hosts" "请检查 '$known_hosts_file' 是否可读写。"
+
+        if cmp -s "$known_hosts_file" "$tmp_file"; then
+            rm -f "$tmp_file"
+            echo "[*] 本机: $known_hosts_file 中未找到目标指纹"
+            return 0
+        fi
+    fi
+
+    if [[ -s "$tmp_file" ]]; then
+        mv "$tmp_file" "$known_hosts_file" || fail_step "写回本机 known_hosts" "请检查 '$known_hosts_file' 是否可写。"
+        chmod 600 "$known_hosts_file" 2>/dev/null || true
+    else
+        rm -f "$known_hosts_file" "$tmp_file" || fail_step "删除空本机 known_hosts" "请检查 '$known_hosts_file' 是否可写。"
+    fi
+    echo "[✓] 本机: 已清除 $known_hosts_file 中的目标指纹"
+}
+
+load_local_public_key() {
+    if [[ -f "${SSH_KEY}.pub" ]]; then
+        cat "${SSH_KEY}.pub"
+        return 0
+    fi
+    if [[ -f "$SSH_KEY" ]]; then
+        ssh-keygen -y -f "$SSH_KEY"
+        return $?
+    fi
+    return 1
+}
+
+clear_remote_ssh_state() {
+    local pub_key="$1"
+    local remote_cmd
+
+    remote_cmd="PUB_KEY=$(shell_quote "$pub_key") TARGET_HOST=$(shell_quote "$IP") TARGET_PORT=$(shell_quote "$PORT") TARGET_ALIAS=$(shell_quote "$SSH_ALIAS") sh -s"
+
+    ssh_cmd -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR -o ConnectTimeout=10 -p "$PORT" "$SSH_TARGET" "$remote_cmd" <<'REMOTE_CLEAN'
+ssh_dir="${HOME}/.ssh"
+
+collect_remote_config_hosts() {
+    file="$1"
+    alias="$2"
+    target="$3"
+    port="$4"
+    [ -f "$file" ] || return 0
+
+    awk -v target="$target" -v port="$port" -v alias="$alias" '
+        function is_direct(name) {
+            return name == target || name == "[" target "]:" port || (alias != "" && name == alias)
+        }
+        function is_wild(name) {
+            return name ~ /[*?]/ || substr(name, 1, 1) == "!"
+        }
+        function add(name) {
+            if (name != "" && !is_wild(name) && !(name in seen)) {
+                seen[name] = 1
+                print name
+            }
+        }
+        function flush_block(    i) {
+            if (in_host && (host_direct_match || (hostname_match && !has_wild))) {
+                for (i = 1; i <= host_count; i++) {
+                    add(host_name[i])
+                }
+            }
+        }
+        $1 == "Host" {
+            flush_block()
+            in_host = 1
+            host_count = 0
+            host_direct_match = 0
+            hostname_match = 0
+            has_wild = 0
+            for (i = 2; i <= NF; i++) {
+                host_name[++host_count] = $i
+                if (is_direct($i)) {
+                    host_direct_match = 1
+                }
+                if (is_wild($i)) {
+                    has_wild = 1
+                }
+            }
+            next
+        }
+        in_host && tolower($1) == "hostname" && $2 == target {
+            hostname_match = 1
+        }
+        END {
+            flush_block()
+        }
+    ' "$file"
+}
+
+remove_remote_config_target() {
+    file="$1"
+    alias="$2"
+    target="$3"
+    port="$4"
+    [ -f "$file" ] || return 0
+
+    tmp="${file}.tmp.$$"
+    awk -v target="$target" -v port="$port" -v alias="$alias" '
+        function is_direct(name) {
+            return name == target || name == "[" target "]:" port || (alias != "" && name == alias)
+        }
+        function is_wild(name) {
+            return name ~ /[*?]/ || substr(name, 1, 1) == "!"
+        }
+        function flush_block() {
+            if (!in_host) {
+                printf "%s", block
+            } else if (!(host_direct_match || (hostname_match && !has_wild))) {
+                printf "%s", block
+            }
+        }
+        $1 == "Host" {
+            flush_block()
+            block = $0 ORS
+            in_host = 1
+            host_direct_match = 0
+            hostname_match = 0
+            has_wild = 0
+            for (i = 2; i <= NF; i++) {
+                if (is_direct($i)) {
+                    host_direct_match = 1
+                }
+                if (is_wild($i)) {
+                    has_wild = 1
+                }
+            }
+            next
+        }
+        {
+            if (!in_host) {
+                print
+                next
+            }
+            block = block $0 ORS
+            if (tolower($1) == "hostname" && $2 == target) {
+                hostname_match = 1
+            }
+        }
+        END {
+            flush_block()
+        }
+    ' "$file" > "$tmp" || {
+        rm -f "$tmp"
+        return 1
+    }
+
+    if cmp -s "$file" "$tmp"; then
+        rm -f "$tmp"
+        return 0
+    fi
+    if [ -s "$tmp" ]; then
+        mv "$tmp" "$file" || return 1
+        chmod 600 "$file" 2>/dev/null || true
+    else
+        rm -f "$file" "$tmp" || return 1
+    fi
+}
+
+remove_remote_known_hosts() {
+    file="$1"
+    shift
+    [ -f "$file" ] || return 0
+
+    tmp="${file}.tmp.$$"
+    if command -v ssh-keygen >/dev/null 2>&1; then
+        lines="$(
+            for host in "$@"; do
+                [ -n "$host" ] || continue
+                ssh-keygen -F "$host" -f "$file" 2>/dev/null | awk '/^# Host .* found: line [0-9]+$/ { print $NF }'
+            done | sort -n -u
+        )"
+        if [ -z "$lines" ]; then
+            rm -f "$tmp"
+            return 0
+        fi
+        awk -v lines="$lines" '
+            BEGIN {
+                n = split(lines, line, /[[:space:]]+/)
+                for (i = 1; i <= n; i++) {
+                    if (line[i] != "") {
+                        remove[line[i]] = 1
+                    }
+                }
+            }
+            !(NR in remove) { print }
+        ' "$file" > "$tmp" || {
+            rm -f "$tmp"
+            return 1
+        }
+    else
+        hosts_text="$(printf '%s\034' "$@")"
+        awk -v hosts="$hosts_text" '
+            BEGIN {
+                n = split(hosts, host, "\034")
+                for (i = 1; i <= n; i++) {
+                    if (host[i] != "") {
+                        remove_host[host[i]] = 1
+                    }
+                }
+            }
+            {
+                host_field = $1
+                if (substr($1, 1, 1) == "@") {
+                    host_field = $2
+                }
+                keep = 1
+                split(host_field, patterns, ",")
+                for (i in patterns) {
+                    if (patterns[i] in remove_host) {
+                        keep = 0
+                    }
+                }
+                if (keep) {
+                    print
+                }
+            }
+        ' "$file" > "$tmp" || {
+            rm -f "$tmp"
+            return 1
+        }
+        if cmp -s "$file" "$tmp"; then
+            rm -f "$tmp"
+            return 0
+        fi
+    fi
+
+    if [ -s "$tmp" ]; then
+        mv "$tmp" "$file" || return 1
+        chmod 600 "$file" 2>/dev/null || true
+    else
+        rm -f "$file" "$tmp" || return 1
+    fi
+}
+
+if [ -d "$ssh_dir" ]; then
+    config_hosts=""
+    if [ -f "$ssh_dir/config" ]; then
+        config_hosts="$(collect_remote_config_hosts "$ssh_dir/config" "$TARGET_ALIAS" "$TARGET_HOST" "$TARGET_PORT")" || exit 1
+    fi
+
+    if [ -n "$PUB_KEY" ] && [ -f "$ssh_dir/authorized_keys" ]; then
+        tmp="${ssh_dir}/authorized_keys.tmp.$$"
+        grep -vxF "$PUB_KEY" "$ssh_dir/authorized_keys" > "$tmp" || true
+        if cmp -s "$ssh_dir/authorized_keys" "$tmp"; then
+            rm -f "$tmp"
+        elif [ -s "$tmp" ]; then
+            mv "$tmp" "$ssh_dir/authorized_keys" || exit 1
+            chmod 600 "$ssh_dir/authorized_keys" 2>/dev/null || true
+        else
+            rm -f "$ssh_dir/authorized_keys" "$tmp" || exit 1
+        fi
+    fi
+
+    if [ -n "$TARGET_ALIAS" ]; then
+        remove_remote_known_hosts "$ssh_dir/known_hosts" "$TARGET_HOST" "[$TARGET_HOST]:$TARGET_PORT" "$TARGET_ALIAS" "[$TARGET_ALIAS]:$TARGET_PORT" $config_hosts || exit 1
+        remove_remote_known_hosts "$ssh_dir/known_hosts2" "$TARGET_HOST" "[$TARGET_HOST]:$TARGET_PORT" "$TARGET_ALIAS" "[$TARGET_ALIAS]:$TARGET_PORT" $config_hosts || exit 1
+    else
+        remove_remote_known_hosts "$ssh_dir/known_hosts" "$TARGET_HOST" "[$TARGET_HOST]:$TARGET_PORT" $config_hosts || exit 1
+        remove_remote_known_hosts "$ssh_dir/known_hosts2" "$TARGET_HOST" "[$TARGET_HOST]:$TARGET_PORT" $config_hosts || exit 1
+    fi
+    remove_remote_config_target "$ssh_dir/config" "$TARGET_ALIAS" "$TARGET_HOST" "$TARGET_PORT" || exit 1
+fi
+REMOTE_CLEAN
+}
+
+clear_ssh_state() {
+    local pub_key=""
+    local known_hosts_targets=("$IP" "[$IP]:$PORT")
+    local ssh_dir="$HOME/.ssh"
+
+    if [[ -n "$SSH_ALIAS" ]]; then
+        known_hosts_targets+=("$SSH_ALIAS" "[$SSH_ALIAS]:$PORT")
+    fi
+
+    if pub_key="$(load_local_public_key 2>/dev/null)"; then
+        :
+    else
+        pub_key=""
+        echo "[*] 本机: 未找到 $SSH_KEY 或 ${SSH_KEY}.pub，跳过远端 authorized_keys 公钥清理"
+    fi
+
+    echo "[*] 清理本机 SSH 状态 ..."
+    mkdir -p "$ssh_dir" || fail_step "创建本机 ~/.ssh 目录" "请检查 HOME 是否正确、目录是否可写: echo \${HOME}; ls -ld \${HOME}。"
+    chmod 700 "$ssh_dir" || fail_step "设置本机 ~/.ssh 目录权限" "请执行 chmod 700 '$ssh_dir'，并确认目录所有者为当前用户。"
+
+    if [[ -f "$ssh_dir/config" ]]; then
+        while IFS= read -r config_host; do
+            [[ -n "$config_host" ]] || continue
+            known_hosts_targets+=("$config_host" "[$config_host]:$PORT")
+        done < <(collect_ssh_config_target_hosts "$ssh_dir/config" "$IP" "$PORT" "$SSH_ALIAS")
+    fi
+
+    remove_known_hosts_entries "$ssh_dir/known_hosts" "${known_hosts_targets[@]}"
+    remove_known_hosts_entries "$ssh_dir/known_hosts2" "${known_hosts_targets[@]}"
+    remove_ssh_config_target "$ssh_dir/config" "$IP" "$PORT" "$SSH_ALIAS" "本机"
+
+    echo "[*] 清理远端 SSH 状态 ..."
+    clear_remote_ssh_state "$pub_key" || fail_step "清理远端 SSH 状态" "请检查 IP/端口/用户/认证是否正确：ssh -p '$PORT' '$SSH_TARGET'；本机 known_hosts/config 已按目标清理。"
+    echo "[✓] 远端: 已清理指定 IP 相关的 known_hosts/config，并移除本脚本公钥"
+
+    echo "──────────────────────────────"
+    echo "  已清除: $SSH_TARGET:$PORT"
+    if [[ -n "$SSH_ALIAS" ]]; then
+        echo "  别名  : $SSH_ALIAS"
+    fi
+    echo "  范围  : 仅指定 IP 相关的远端 authorized_keys/known_hosts/config；本机 known_hosts/config"
+    echo "  保留  : 本机 $SSH_KEY 私钥对"
+    echo "──────────────────────────────"
+}
+
+CLEAR_MODE=0
+if [[ $# -gt 0 && ( "$1" == "--clear" || "$1" == "-c" || "$1" == "clear" ) ]]; then
+    CLEAR_MODE=1
+    shift
+fi
 
 if [[ $# -eq 1 && ( "$1" == "-h" || "$1" == "--help" ) ]]; then
     usage
@@ -92,6 +622,10 @@ while [[ $# -gt 0 ]]; do
         -h|--help)
             usage
             exit 0
+            ;;
+        -c|--clear|clear)
+            CLEAR_MODE=1
+            shift
             ;;
         *)
             POSITIONAL+=("$1")
@@ -152,6 +686,11 @@ echo "[*] 目标: ${USER}@${IP}:${PORT} (认证: ${AUTH_MODE})"
 if [[ -n "$SSH_ALIAS" ]]; then
     echo "[*] SSH 别名: ${SSH_ALIAS}"
 fi
+if [[ "$CLEAR_MODE" -eq 1 ]]; then
+    echo "[*] 模式: 清除"
+else
+    echo "[*] 模式: 添加"
+fi
 
 # 前置检查: sshpass（密码模式需要）
 if [[ "$AUTH_MODE" == "password" ]] && ! command -v sshpass &>/dev/null; then
@@ -183,6 +722,11 @@ ssh_copy_id_cmd() {
     fi
 }
 
+if [[ "$CLEAR_MODE" -eq 1 ]]; then
+    clear_ssh_state
+    exit 0
+fi
+
 configure_ssh_alias() {
     if [[ -z "$SSH_ALIAS" ]]; then
         return 0
@@ -193,7 +737,7 @@ configure_ssh_alias() {
     SSH_CONFIG="$SSH_DIR/config"
     TMP_CONFIG="$(mktemp)" || fail_step "创建临时 config 文件" "请检查 /tmp 是否可写，以及磁盘空间是否充足: df -h /tmp。"
 
-    mkdir -p "$SSH_DIR" || fail_step "创建本机 ~/.ssh 目录" "请检查 HOME 是否正确、目录是否可写: echo \$HOME; ls -ld \$HOME。"
+    mkdir -p "$SSH_DIR" || fail_step "创建本机 ~/.ssh 目录" "请检查 HOME 是否正确、目录是否可写: echo \${HOME}; ls -ld \${HOME}。"
     chmod 700 "$SSH_DIR" || fail_step "设置本机 ~/.ssh 权限" "请检查目录所有者: ls -ld '$SSH_DIR'；必要时执行 sudo chown -R \"$(id -un)\" '$SSH_DIR'。"
 
     if [[ -f "$SSH_CONFIG" ]]; then
@@ -235,7 +779,7 @@ configure_ssh_alias() {
 # 生成密钥（如不存在）
 if [[ ! -f "$SSH_KEY" ]]; then
     echo "[*] 生成 SSH 密钥对 ..."
-    mkdir -p "$HOME/.ssh" || fail_step "创建本机 ~/.ssh 目录" "请检查 HOME 是否正确、目录是否可写: echo \$HOME; ls -ld \$HOME。"
+    mkdir -p "$HOME/.ssh" || fail_step "创建本机 ~/.ssh 目录" "请检查 HOME 是否正确、目录是否可写: echo \${HOME}; ls -ld \${HOME}。"
     chmod 700 "$HOME/.ssh" || fail_step "设置本机 ~/.ssh 目录权限" "请执行 chmod 700 '$HOME/.ssh'，并确认目录所有者为当前用户。"
     ssh-keygen -t ed25519 -f "$SSH_KEY" -N "" -C "AK" -q || fail_step "生成本机 SSH 密钥" "请检查 ssh-keygen 是否存在、'$HOME/.ssh' 是否可写；可手动执行 ssh-keygen -t ed25519 -f '$SSH_KEY' -N ''."
     chmod 600 "$SSH_KEY" || fail_step "设置本机私钥权限" "请执行 chmod 600 '$SSH_KEY' 后重试。"
