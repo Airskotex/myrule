@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # SSH 免密登录一键配置/清除脚本
 # 用法: ssh-setup-key <IP> <密钥或密码> [user] [port] [alias]
-#       ssh-setup-key --clear <IP> <密钥或密码> [user] [port] [alias]
+#       ssh-setup-key --clear <IP|alias> [options]
 #   密钥或密码: 传文件路径(已存在的私钥)用密钥登录, 否则当密码用密码登录
 #   alias: 可选 SSH 别名；默认不设置。也可用 --alias/-a 指定。
 
@@ -11,26 +11,42 @@ usage() {
     echo "用法:"
     echo "  添加: $0 <IP> <密钥或密码> [user] [port] [alias]"
     echo "        $0 <IP> <密钥或密码> [user] [port] --alias <alias>"
-    echo "  清除: $0 --clear <IP> <密钥或密码> [user] [port] [alias]"
-    echo "        $0 clear <IP> <密钥或密码> [user] [port] --alias <alias>"
+    echo "        $0 <IP> --ask-pass [user] [port] --alias <alias>"
+    echo "        $0 <IP> --password-stdin [user] [port] --alias <alias>"
+    echo "  清除: $0 clear <IP|alias>"
+    echo "        $0 clear <IP> --alias <alias>"
+    echo "        $0 --clear <IP|alias> [options]"
     echo ""
     echo "  <密钥或密码>:"
     echo "    传文件路径 → 用该私钥登录（目标机器仅密钥认证时）"
     echo "    传字符串   → 当作密码用 sshpass 登录"
+    echo "  --ask-pass      交互输入密码，适合包含 !、$、&、引号等特殊字符的密码"
+    echo "  --password-stdin 从标准输入读取一行密码"
+    echo "  --key <path>    明确指定登录私钥"
+    echo "  --password <s>  明确指定登录密码"
+    echo "  --user <user>   明确指定 SSH 用户"
+    echo "  --port <port>   明确指定 SSH 端口"
     echo "  [user] 默认 root"
     echo "  [port] 默认 22"
     echo "  [alias] 默认不设置；填写后写入 ~/.ssh/config，可用 ssh <alias> 登录"
-    echo "  --clear/clear 仅清除指定 IP 相关的本机/远端指纹和 SSH 配置"
+    echo "  --clear/clear 清除指定 IP/别名相关的本机/远端指纹和 SSH 配置"
+    echo "  清除模式可省略密码；脚本会优先使用 ~/.ssh/config 中的 IdentityFile 或本机 ~/.ssh/id_ed25519"
+    echo "  --local-only 仅清理本机 known_hosts/config，不连接远端"
     echo "  清除不会删除本机 ~/.ssh/id_ed25519 私钥对"
     echo "  远端 authorized_keys 只删除本脚本写入的本机公钥，不会清空其它公钥"
     echo ""
     echo "示例:"
     echo "  $0 192.168.1.100 mypassword"
+    echo "  $0 192.168.1.100 --ask-pass root 22 -a testbox"
+    echo "  printf '%s\\n' 'my!pa\$\$&word' | $0 192.168.1.100 --password-stdin root 22 -a testbox"
     echo "  $0 192.168.1.100 ~/.ssh/old_key"
     echo "  $0 192.168.1.100 ~/.ssh/old_key wangmeng 6000"
     echo "  $0 192.168.1.100 ~/.ssh/old_key wangmeng 6000 spark-002"
     echo "  $0 192.168.1.100 mypassword --alias testbox"
-    echo "  $0 --clear 192.168.1.100 mypassword root 22 testbox"
+    echo "  $0 clear testbox"
+    echo "  $0 clear 192.168.1.100 -a testbox"
+    echo "  $0 clear 192.168.1.100 --user root --port 22 -a testbox --local-only"
+    echo "  $0 --clear 192.168.1.100 --password 'mypassword' --user root --port 22 -a testbox"
 }
 
 fail_step() {
@@ -63,6 +79,119 @@ shell_quote() {
     local value
     value=${1//\'/\'\\\'\'}
     printf "'%s'" "$value"
+}
+
+safe_cmd() {
+    local quoted=()
+    local arg
+    for arg in "$@"; do
+        quoted+=("$(shell_quote "$arg")")
+    done
+    printf '%s' "${quoted[*]}"
+}
+
+read_password_prompt() {
+    local prompt="${1:-SSH 密码: }"
+    local password
+    if [[ ! -t 0 ]]; then
+        fail_step "读取密码" "--ask-pass 需要交互式终端；非交互环境请改用 --password-stdin。"
+    fi
+    printf '%s' "$prompt" >&2
+    IFS= read -r -s password || fail_step "读取密码" "无法从终端读取密码，请确认当前会话支持交互输入。"
+    printf '\n' >&2
+    printf '%s' "$password"
+}
+
+read_password_stdin() {
+    local password
+    IFS= read -r password || fail_step "读取标准输入密码" "请通过标准输入传入一行密码，例如: printf '%s\\n' '<密码>' | $0 <IP> --password-stdin。"
+    printf '%s' "$password"
+}
+
+find_identity_file_for_host() {
+    local host="$1"
+    local identity
+    if [[ -n "$host" ]] && command -v ssh &>/dev/null; then
+        identity="$(ssh -G "$host" 2>/dev/null | awk 'tolower($1) == "identityfile" && $2 !~ /_sk$/ { print $2; exit }')" || true
+        if [[ -n "$identity" ]]; then
+            case "$identity" in
+                ~/*) identity="${HOME}/${identity#~/}" ;;
+            esac
+            if [[ -f "$identity" ]]; then
+                printf '%s\n' "$identity"
+                return 0
+            fi
+        fi
+    fi
+    return 1
+}
+
+ssh_config_has_exact_host() {
+    local host="$1"
+    local config_file="$HOME/.ssh/config"
+
+    [[ -f "$config_file" ]] || return 1
+    awk -v target="$host" '
+        tolower($1) == "host" {
+            for (i = 2; i <= NF; i++) {
+                if ($i == target) {
+                    found = 1
+                }
+            }
+        }
+        END { exit(found ? 0 : 1) }
+    ' "$config_file"
+}
+
+ssh_config_value() {
+    local host="$1"
+    local key="$2"
+
+    ssh -G "$host" 2>/dev/null | awk -v target_key="$key" '
+        tolower($1) == target_key {
+            $1 = ""
+            sub(/^[[:space:]]+/, "")
+            print
+            exit
+        }
+    '
+}
+
+apply_clear_config_defaults() {
+    local target="$1"
+    local lookup_host=""
+    local config_hostname config_user config_port config_identity
+
+    if [[ -n "$SSH_ALIAS" ]] && ssh_config_has_exact_host "$SSH_ALIAS"; then
+        lookup_host="$SSH_ALIAS"
+    elif ssh_config_has_exact_host "$target"; then
+        lookup_host="$target"
+        if [[ -z "$SSH_ALIAS" ]]; then
+            SSH_ALIAS="$target"
+        fi
+    fi
+
+    [[ -n "$lookup_host" ]] || return 0
+
+    config_hostname="$(ssh_config_value "$lookup_host" hostname)"
+    config_user="$(ssh_config_value "$lookup_host" user)"
+    config_port="$(ssh_config_value "$lookup_host" port)"
+
+    if [[ -n "$config_hostname" && ( "$IP" == "$target" || "$IP" == "$SSH_ALIAS" ) ]]; then
+        IP="$config_hostname"
+    fi
+    if [[ "$USER_SET" -eq 0 && -n "$config_user" ]]; then
+        USER="$config_user"
+    fi
+    if [[ "$PORT_SET" -eq 0 && -n "$config_port" ]]; then
+        PORT="$config_port"
+    fi
+    if [[ "$AUTH_SET" -eq 0 ]] && config_identity="$(find_identity_file_for_host "$lookup_host")"; then
+        AUTH="$config_identity"
+        AUTH_MODE="key"
+        AUTH_KEY="$config_identity"
+        AUTH_SET=1
+    fi
 }
 
 collect_ssh_config_target_hosts() {
@@ -213,8 +342,8 @@ remove_known_hosts_entries() {
         line_numbers="$(
             for host in "$@"; do
                 [[ -n "$host" ]] || continue
-                ssh-keygen -F "$host" -f "$known_hosts_file" 2>/dev/null | awk '/^# Host .* found: line [0-9]+$/ { print $NF }'
-            done | sort -n -u
+                ssh-keygen -F "$host" -f "$known_hosts_file" 2>/dev/null | awk '/^# Host .* found: line [0-9]+[[:space:]]*$/ { print $(NF - 0) }'
+            done | sort -n -u | tr '\n' ' '
         )"
 
         if [[ -z "$line_numbers" ]]; then
@@ -433,8 +562,8 @@ remove_remote_known_hosts() {
         lines="$(
             for host in "$@"; do
                 [ -n "$host" ] || continue
-                ssh-keygen -F "$host" -f "$file" 2>/dev/null | awk '/^# Host .* found: line [0-9]+$/ { print $NF }'
-            done | sort -n -u
+                ssh-keygen -F "$host" -f "$file" 2>/dev/null | awk '/^# Host .* found: line [0-9]+[[:space:]]*$/ { print $(NF - 0) }'
+            done | sort -n -u | tr '\n' ' '
         )"
         if [ -z "$lines" ]; then
             rm -f "$tmp"
@@ -561,9 +690,18 @@ clear_ssh_state() {
     remove_known_hosts_entries "$ssh_dir/known_hosts2" "${known_hosts_targets[@]}"
     remove_ssh_config_target "$ssh_dir/config" "$IP" "$PORT" "$SSH_ALIAS" "本机"
 
-    echo "[*] 清理远端 SSH 状态 ..."
-    clear_remote_ssh_state "$pub_key" || fail_step "清理远端 SSH 状态" "请检查 IP/端口/用户/认证是否正确：ssh -p '$PORT' '$SSH_TARGET'；本机 known_hosts/config 已按目标清理。"
-    echo "[✓] 远端: 已清理指定 IP 相关的 known_hosts/config，并移除本脚本公钥"
+    if [[ "$LOCAL_ONLY" -eq 1 ]]; then
+        echo "[*] 远端: --local-only 已指定，跳过远端 SSH 状态清理"
+    else
+        echo "[*] 清理远端 SSH 状态 ..."
+        if clear_remote_ssh_state "$pub_key"; then
+            echo "[✓] 远端: 已清理指定 IP 相关的 known_hosts/config，并移除本脚本公钥"
+        elif [[ "$AUTH_EXPLICIT" -eq 0 || "$AUTH_MODE" == "default" ]]; then
+            echo "[!] 远端: 无可用认证或默认 SSH 登录失败，已跳过远端清理；本机 known_hosts/config 已按目标清理" >&2
+        else
+            fail_step "清理远端 SSH 状态" "请检查 IP/端口/用户/认证是否正确：ssh -p '$PORT' '$SSH_TARGET'；本机 known_hosts/config 已按目标清理。"
+        fi
+    fi
 
     echo "──────────────────────────────"
     echo "  已清除: $SSH_TARGET:$PORT"
@@ -573,6 +711,26 @@ clear_ssh_state() {
     echo "  范围  : 仅指定 IP 相关的远端 authorized_keys/known_hosts/config；本机 known_hosts/config"
     echo "  保留  : 本机 $SSH_KEY 私钥对"
     echo "──────────────────────────────"
+}
+
+clean_local_known_hosts_for_target() {
+    local ssh_dir="$HOME/.ssh"
+    local known_hosts_targets=("$IP" "[$IP]:$PORT")
+    local config_host
+
+    if [[ -n "$SSH_ALIAS" ]]; then
+        known_hosts_targets+=("$SSH_ALIAS" "[$SSH_ALIAS]:$PORT")
+    fi
+
+    if [[ -f "$ssh_dir/config" ]]; then
+        while IFS= read -r config_host; do
+            [[ -n "$config_host" ]] || continue
+            known_hosts_targets+=("$config_host" "[$config_host]:$PORT")
+        done < <(collect_ssh_config_target_hosts "$ssh_dir/config" "$IP" "$PORT" "$SSH_ALIAS")
+    fi
+
+    remove_known_hosts_entries "$ssh_dir/known_hosts" "${known_hosts_targets[@]}"
+    remove_known_hosts_entries "$ssh_dir/known_hosts2" "${known_hosts_targets[@]}"
 }
 
 CLEAR_MODE=0
@@ -586,17 +744,43 @@ if [[ $# -eq 1 && ( "$1" == "-h" || "$1" == "--help" ) ]]; then
     exit 0
 fi
 
-if [[ $# -lt 2 ]]; then
+if [[ "$CLEAR_MODE" -eq 0 && $# -lt 2 ]]; then
+    usage
+    exit 1
+fi
+if [[ "$CLEAR_MODE" -eq 1 && $# -lt 1 ]]; then
     usage
     exit 1
 fi
 
 IP="$1"
-AUTH="$2"
+AUTH=""
 USER="root"
 PORT="22"
 SSH_ALIAS=""
-shift 2
+AUTH_SET=0
+AUTH_EXPLICIT=0
+AUTH_MODE=""
+AUTH_KEY=""
+AUTH_PASS=""
+USER_SET=0
+PORT_SET=0
+LOCAL_ONLY=0
+SSH_KEY="$HOME/.ssh/id_ed25519"
+shift
+
+if [[ "$CLEAR_MODE" -eq 0 ]]; then
+    case "$1" in
+        -a|--alias|--alias=*|-u|--user|--user=*|-p|--port|--port=*|--ask-pass|--password-stdin|--password|--password=*|--key|--key=*)
+            ;;
+        *)
+            AUTH="$1"
+            AUTH_SET=1
+            AUTH_EXPLICIT=1
+            shift
+            ;;
+    esac
+fi
 
 # 兼容原参数顺序：第 3 个参数是数字则当端口，否则当用户；第 4 个参数当端口；第 5 个参数当别名。
 # 额外支持 --alias/-a，适合不想使用第 5 个位置参数时显式指定别名。
@@ -619,6 +803,104 @@ while [[ $# -gt 0 ]]; do
             fi
             shift
             ;;
+        -u|--user)
+            if [[ $# -lt 2 || -z "${2:-}" ]]; then
+                echo "[✗] --user 需要提供非空用户名"
+                exit 1
+            fi
+            USER="$2"
+            USER_SET=1
+            shift 2
+            ;;
+        --user=*)
+            USER="${1#--user=}"
+            if [[ -z "$USER" ]]; then
+                echo "[✗] --user 需要提供非空用户名"
+                exit 1
+            fi
+            USER_SET=1
+            shift
+            ;;
+        -p|--port)
+            if [[ $# -lt 2 || -z "${2:-}" ]]; then
+                echo "[✗] --port 需要提供端口"
+                exit 1
+            fi
+            PORT="$2"
+            PORT_SET=1
+            shift 2
+            ;;
+        --port=*)
+            PORT="${1#--port=}"
+            if [[ -z "$PORT" ]]; then
+                echo "[✗] --port 需要提供端口"
+                exit 1
+            fi
+            PORT_SET=1
+            shift
+            ;;
+        --ask-pass)
+            if ! AUTH_PASS="$(read_password_prompt "SSH 密码: ")"; then
+                exit 1
+            fi
+            AUTH_MODE="password"
+            AUTH_SET=1
+            AUTH_EXPLICIT=1
+            shift
+            ;;
+        --password-stdin)
+            if ! AUTH_PASS="$(read_password_stdin)"; then
+                exit 1
+            fi
+            AUTH_MODE="password"
+            AUTH_SET=1
+            AUTH_EXPLICIT=1
+            shift
+            ;;
+        --password)
+            if [[ $# -lt 2 ]]; then
+                echo "[✗] --password 需要提供密码"
+                exit 1
+            fi
+            AUTH_PASS="$2"
+            AUTH_MODE="password"
+            AUTH_SET=1
+            AUTH_EXPLICIT=1
+            shift 2
+            ;;
+        --password=*)
+            AUTH_PASS="${1#--password=}"
+            AUTH_MODE="password"
+            AUTH_SET=1
+            AUTH_EXPLICIT=1
+            shift
+            ;;
+        --key)
+            if [[ $# -lt 2 || -z "${2:-}" ]]; then
+                echo "[✗] --key 需要提供私钥路径"
+                exit 1
+            fi
+            AUTH_KEY="$2"
+            AUTH_MODE="key"
+            AUTH_SET=1
+            AUTH_EXPLICIT=1
+            shift 2
+            ;;
+        --key=*)
+            AUTH_KEY="${1#--key=}"
+            if [[ -z "$AUTH_KEY" ]]; then
+                echo "[✗] --key 需要提供私钥路径"
+                exit 1
+            fi
+            AUTH_MODE="key"
+            AUTH_SET=1
+            AUTH_EXPLICIT=1
+            shift
+            ;;
+        --local-only)
+            LOCAL_ONLY=1
+            shift
+            ;;
         -h|--help)
             usage
             exit 0
@@ -637,12 +919,15 @@ done
 if [[ ${#POSITIONAL[@]} -ge 1 ]]; then
     if [[ "${POSITIONAL[0]}" =~ ^[0-9]+$ ]]; then
         PORT="${POSITIONAL[0]}"
+        PORT_SET=1
     else
         USER="${POSITIONAL[0]}"
+        USER_SET=1
     fi
 fi
 if [[ ${#POSITIONAL[@]} -ge 2 ]]; then
     PORT="${POSITIONAL[1]}"
+    PORT_SET=1
 fi
 if [[ ${#POSITIONAL[@]} -ge 3 ]]; then
     SSH_ALIAS="${POSITIONAL[2]}"
@@ -651,6 +936,13 @@ if [[ ${#POSITIONAL[@]} -gt 3 ]]; then
     echo "[✗] 位置参数过多: ${POSITIONAL[*]}"
     usage
     exit 1
+fi
+
+if [[ "$CLEAR_MODE" -eq 1 ]]; then
+    if [[ -z "$SSH_ALIAS" && "$IP" != *.* && "$IP" != *:* ]]; then
+        SSH_ALIAS="$IP"
+    fi
+    apply_clear_config_defaults "$IP"
 fi
 
 if [[ ! "$PORT" =~ ^[0-9]+$ ]]; then
@@ -668,19 +960,45 @@ if [[ -n "$SSH_ALIAS" ]]; then
     fi
 fi
 
-SSH_KEY="$HOME/.ssh/id_ed25519"
 SSH_TARGET="${USER}@${IP}"
 
 # 判断认证方式: AUTH 是已存在的文件 → 密钥登录, 否则 → 密码登录
-if [[ -f "$AUTH" ]]; then
+if [[ "$CLEAR_MODE" -eq 0 && "$AUTH_SET" -eq 0 ]]; then
+    usage
+    exit 1
+elif [[ "$AUTH_MODE" == "key" ]]; then
+    if [[ ! -f "$AUTH_KEY" ]]; then
+        echo "[✗] 指定的私钥文件不存在: $AUTH_KEY"
+        exit 1
+    fi
+    chmod 600 "$AUTH_KEY" || fail_step "设置登录私钥权限" "请检查本机文件权限/所有者: ls -l '$AUTH_KEY'；必要时执行 sudo chown \"$(id -un)\" '$AUTH_KEY' 后重试。"
+    echo "[✓] 已设置登录私钥权限为 600: $AUTH_KEY"
+elif [[ "$AUTH_MODE" == "password" ]]; then
+    :
+elif [[ "$AUTH_SET" -eq 1 && -f "$AUTH" ]]; then
     AUTH_MODE="key"
     AUTH_KEY="$AUTH"
     chmod 600 "$AUTH_KEY" || fail_step "设置登录私钥权限" "请检查本机文件权限/所有者: ls -l '$AUTH_KEY'；必要时执行 sudo chown \"$(id -un)\" '$AUTH_KEY' 后重试。"
     echo "[✓] 已设置登录私钥权限为 600: $AUTH_KEY"
-else
+elif [[ "$AUTH_SET" -eq 1 ]]; then
     AUTH_MODE="password"
     AUTH_PASS="$AUTH"
+elif [[ "$CLEAR_MODE" -eq 1 ]]; then
+    if [[ "$AUTH_SET" -eq 0 ]]; then
+        if [[ -f "$SSH_KEY" ]]; then
+            AUTH_MODE="key"
+            AUTH_KEY="$SSH_KEY"
+            AUTH_SET=1
+        else
+            AUTH_MODE="default"
+        fi
+    fi
+else
+    usage
+    exit 1
 fi
+
+SSH_TARGET="${USER}@${IP}"
 
 echo "[*] 目标: ${USER}@${IP}:${PORT} (认证: ${AUTH_MODE})"
 if [[ -n "$SSH_ALIAS" ]]; then
@@ -704,8 +1022,10 @@ fi
 ssh_cmd() {
     if [[ "$AUTH_MODE" == "key" ]]; then
         ssh -i "$AUTH_KEY" "$@"
+    elif [[ "$AUTH_MODE" == "password" ]]; then
+        sshpass -d 3 ssh "$@" 3<<< "$AUTH_PASS"
     else
-        sshpass -p "$AUTH_PASS" ssh "$@"
+        ssh "$@"
     fi
 }
 
@@ -714,11 +1034,12 @@ ssh_copy_id_cmd() {
         # 用已有私钥登录后追加新公钥
         local PUB_KEY
         PUB_KEY="$(cat "${SSH_KEY}.pub")" || return 1
-        ssh -i "$AUTH_KEY" -o StrictHostKeyChecking=no -p "$PORT" "$SSH_TARGET" \
-            "mkdir -p ~/.ssh && chmod 700 ~/.ssh && grep -qxF '$PUB_KEY' ~/.ssh/authorized_keys 2>/dev/null || echo '$PUB_KEY' >> ~/.ssh/authorized_keys; chmod 600 ~/.ssh/authorized_keys"
+        ssh -i "$AUTH_KEY" -o StrictHostKeyChecking=no -p "$PORT" "$SSH_TARGET" "$(safe_cmd sh -c "mkdir -p ~/.ssh && chmod 700 ~/.ssh && touch ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys && grep -qxF -- \"\$1\" ~/.ssh/authorized_keys || printf '%s\n' \"\$1\" >> ~/.ssh/authorized_keys" sh "$PUB_KEY")"
+    elif [[ "$AUTH_MODE" == "password" ]]; then
+        sshpass -d 3 ssh-copy-id -o StrictHostKeyChecking=no -i "${SSH_KEY}.pub" \
+            -p "$PORT" "$SSH_TARGET" 3<<< "$AUTH_PASS"
     else
-        sshpass -p "$AUTH_PASS" ssh-copy-id -o StrictHostKeyChecking=no -i "${SSH_KEY}.pub" \
-            -p "$PORT" "$SSH_TARGET"
+        ssh-copy-id -o StrictHostKeyChecking=no -i "${SSH_KEY}.pub" -p "$PORT" "$SSH_TARGET"
     fi
 }
 
@@ -796,6 +1117,9 @@ if [[ ! -f "${SSH_KEY}.pub" ]]; then
     chmod 644 "${SSH_KEY}.pub"
 fi
 
+echo "[*] 清理本机旧 SSH 主机指纹 ..."
+clean_local_known_hosts_for_target
+
 # 检查是否已经免密
 if ssh -o BatchMode=yes -o ConnectTimeout=5 -p "$PORT" "$SSH_TARGET" "exit 0" &>/dev/null; then
     echo "[✓] 免密登录已生效，无需重复配置"
@@ -809,12 +1133,12 @@ fi
 
 # 配置远端 ~/.ssh 目录权限
 echo "[*] 配置远端 SSH 目录 ..."
-if ! ssh_cmd -o StrictHostKeyChecking=no -o ConnectTimeout=10 -p "$PORT" "$SSH_TARGET" \
-    "mkdir -p ~/.ssh && chmod 700 ~/.ssh"; then
+    if ! ssh_cmd -o StrictHostKeyChecking=no -o ConnectTimeout=10 -p "$PORT" "$SSH_TARGET" \
+        "mkdir -p ~/.ssh && chmod 700 ~/.ssh"; then
     if [[ "$AUTH_MODE" == "key" ]]; then
         fail_step "连接远端并配置 ~/.ssh 目录" "请检查 IP/端口/用户/私钥是否正确：ssh -i '$AUTH_KEY' -p '$PORT' '$SSH_TARGET'；如提示 bad permissions，确认本机私钥为 600。"
     else
-        fail_step "连接远端并配置 ~/.ssh 目录" "请检查 IP/端口/用户/密码是否正确：sshpass -p '<密码>' ssh -p '$PORT' '$SSH_TARGET'；也确认远端允许 PasswordAuthentication。"
+        fail_step "连接远端并配置 ~/.ssh 目录" "请检查 IP/端口/用户/密码是否正确；特殊字符密码请改用 --ask-pass 或 --password-stdin；也确认远端允许 PasswordAuthentication。"
     fi
 fi
 
