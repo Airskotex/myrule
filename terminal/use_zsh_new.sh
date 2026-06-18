@@ -15,7 +15,14 @@ IS_ROOT=$([[ $EUID -eq 0 ]] && echo "true" || echo "false")
 LOG_FILE="$HOME/.zsh_install_$(date +%Y%m%d_%H%M%S).log"
 PACKAGE_MANAGER=""
 OS_TYPE=""
-SKIP_USERS=("nobody" "systemd-network" "systemd-resolve" "daemon" "bin" "sys")  
+ARCH_GNU=""
+SKIP_USERS=("nobody" "systemd-network" "systemd-resolve" "daemon" "bin" "sys")
+
+# GitHub 镜像加速：国内环境自动切换为 xget.me/gh 镜像
+# detect_china() 会在 main 开头探测，重设以下两个前缀
+GH_PREFIX="https://github.com"
+RAW_PREFIX="https://raw.githubusercontent.com"
+USE_MIRROR="false"
 
 # 颜色定义
 RED='\033[0;31m'
@@ -108,7 +115,21 @@ detect_package_manager() {
 
 command_exists() {
     command -v "$1" &> /dev/null
-}  
+}
+
+# 检测 CPU 架构，归一化为 GNU 三元组里常用的写法（x86_64 / aarch64）
+detect_arch() {
+    case "$(uname -m)" in
+        x86_64|amd64)   ARCH_GNU="x86_64" ;;
+        aarch64|arm64)  ARCH_GNU="aarch64" ;;
+        *)              ARCH_GNU="" ;;
+    esac
+    if [ -n "$ARCH_GNU" ]; then
+        log_info "检测到架构: $ARCH_GNU"
+    else
+        log_warn "未识别的架构 $(uname -m)，二进制兜底安装将跳过"
+    fi
+}
 
 # ================================================================
 # 包管理器操作函数
@@ -179,7 +200,96 @@ get_package_name() {
             ;;
         *) echo "$generic_name" ;;
     esac
-}  
+}
+
+# fastfetch 兜底：apt/dnf/yum 源里常常没有，改从 GitHub Releases 下 .deb/.rpm 安装
+# 镜像策略复用 $GH_PREFIX（国内 xget.me / 国外 github.com）
+install_fastfetch_from_github() {
+    if command_exists fastfetch; then return 0; fi
+    if [ -z "$ARCH_GNU" ]; then
+        log_warn "架构未知，跳过 fastfetch 的 GitHub 兜底安装"
+        return 1
+    fi
+
+    local arch_tag pkg_ext installer
+    # fastfetch 的 deb 和 rpm 资产都用 amd64/aarch64 命名（非 x86_64）
+    case "$ARCH_GNU" in
+        x86_64)  arch_tag="amd64" ;;
+        aarch64) arch_tag="aarch64" ;;
+    esac
+    case "$PACKAGE_MANAGER" in
+        apt)
+            pkg_ext="deb"
+            installer="dpkg"
+            ;;
+        yum|dnf)
+            pkg_ext="rpm"
+            installer="rpm"
+            ;;
+        *)
+            log_warn "包管理器 $PACKAGE_MANAGER 不支持 fastfetch 的 GitHub 兜底"
+            return 1
+            ;;
+    esac
+
+    local file="fastfetch-linux-${arch_tag}.${pkg_ext}"
+    local url="${GH_PREFIX}/fastfetch-cli/fastfetch/releases/latest/download/${file}"
+    local tmp="/tmp/${file}"
+
+    log_info "从 GitHub 下载 fastfetch: $url"
+    if ! curl -fsSL --connect-timeout 10 -o "$tmp" "$url"; then
+        log_warn "fastfetch 下载失败，跳过"
+        return 1
+    fi
+
+    case "$installer" in
+        dpkg)
+            if [ "$IS_ROOT" = "true" ]; then dpkg -i "$tmp" || apt -f install -y; else sudo dpkg -i "$tmp" || sudo apt -f install -y; fi
+            ;;
+        rpm)
+            if [ "$IS_ROOT" = "true" ]; then rpm -Uvh --force "$tmp"; else sudo rpm -Uvh --force "$tmp"; fi
+            ;;
+    esac
+    rm -f "$tmp"
+
+    command_exists fastfetch && log_info "fastfetch 安装成功" || log_warn "fastfetch 安装未生效"
+}
+
+# Starship 兜底：官方 install.sh 会去 GitHub Releases 拉二进制，国内会卡。
+# 国外直连仍用官方脚本；国内改为直接从 $GH_PREFIX 下载 tar.gz 解压到 /usr/local/bin
+install_starship() {
+    if command_exists starship; then return 0; fi
+    log_info "正在全局安装 Starship..."
+
+    if [ "$USE_MIRROR" != "true" ]; then
+        curl -sS https://starship.rs/install.sh | sh -s -- -y \
+            || log_warn "Starship 安装失败，部分样式可能无法显示"
+        return 0
+    fi
+
+    # 镜像模式：自行下载二进制
+    if [ -z "$ARCH_GNU" ]; then
+        log_warn "架构未知，Starship 镜像安装跳过"
+        return 1
+    fi
+    local target="${ARCH_GNU}-unknown-linux-musl"
+    local file="starship-${target}.tar.gz"
+    local url="${GH_PREFIX}/starship/starship/releases/latest/download/${file}"
+    local tmp="/tmp/${file}"
+
+    log_info "从镜像下载 Starship: $url"
+    if ! curl -fsSL --connect-timeout 10 -o "$tmp" "$url"; then
+        log_warn "Starship 下载失败，部分样式可能无法显示"
+        return 1
+    fi
+    if [ "$IS_ROOT" = "true" ]; then
+        tar -xzf "$tmp" -C /usr/local/bin starship
+    else
+        sudo tar -xzf "$tmp" -C /usr/local/bin starship
+    fi
+    rm -f "$tmp"
+    command_exists starship && log_info "Starship 安装成功" || log_warn "Starship 安装未生效"
+}
 
 install_system_packages() {
     log_info "检查并安装必要的软件包..."
@@ -211,10 +321,12 @@ install_system_packages() {
         log_info "所有必要软件包已安装"
     fi
 
-    if ! command_exists starship; then
-        log_info "正在全局安装 Starship..."
-        curl -sS https://starship.rs/install.sh | sh -s -- -y || log_warn "Starship 安装失败，部分样式可能无法显示"
+    # fastfetch 在多数 apt/yum 源缺失，包管理器装不上则走 GitHub 兜底
+    if ! command_exists fastfetch && [[ "$OS_TYPE" == "linux" ]]; then
+        install_fastfetch_from_github || true
     fi
+
+    install_starship
 }  
 
 # ================================================================
@@ -250,19 +362,42 @@ get_target_users() {
     fi
 }  
 
+# 检测是否处于国内网络环境：直连 github.com 超时则判定受限，启用 xget.me 镜像
+detect_china() {
+    log_info "检测 GitHub 直连情况..."
+    # 给 github.com 一个较短的探测超时；连得上就用官方源，连不上就走镜像
+    if curl -fsS --connect-timeout 5 --max-time 8 -o /dev/null "https://github.com" 2>/dev/null; then
+        USE_MIRROR="false"
+        GH_PREFIX="https://github.com"
+        RAW_PREFIX="https://raw.githubusercontent.com"
+        log_info "GitHub 直连正常，使用官方源"
+    else
+        USE_MIRROR="true"
+        GH_PREFIX="https://xget.me/gh"
+        # xget.me 的 raw 形态同样走 /gh/USER/REPO/...，无需 raw 子域
+        RAW_PREFIX="https://xget.me/gh"
+        log_warn "GitHub 直连受限，已启用 xget.me 镜像加速"
+    fi
+}
+
 check_network() {
-    local test_urls=(
-        "https://github.com"
-        "https://raw.githubusercontent.com"
-        "https://api.github.com"
-    )  
+    local test_urls
+    if [ "$USE_MIRROR" = "true" ]; then
+        test_urls=("https://xget.me")
+    else
+        test_urls=(
+            "https://github.com"
+            "https://raw.githubusercontent.com"
+            "https://api.github.com"
+        )
+    fi
     for url in "${test_urls[@]}"; do
         if curl -fsS --connect-timeout 5 -o /dev/null "$url" 2>/dev/null; then
             return 0
         fi
-    done  
+    done
     return 1
-}  
+}
 
 install_for_user() {
     local username="$1"
@@ -289,6 +424,8 @@ set -euo pipefail
 # 接收传入的参数
 USERNAME="$1"
 USER_HOME="$2"
+GH_PREFIX="${3:-https://github.com}"
+RAW_PREFIX="${4:-https://raw.githubusercontent.com}"
 export HOME="$USER_HOME"
 cd "$HOME"
 
@@ -303,7 +440,9 @@ if [ ! -d "$HOME/.oh-my-zsh" ]; then
     echo -e "${GREEN}[INFO]${NC} 安装 Oh My Zsh..."
     export RUNZSH=no
     export CHSH=no
-    sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended || {
+    # 让 install.sh 内部的 git clone 也走镜像
+    export REMOTE="${GH_PREFIX}/ohmyzsh/ohmyzsh.git"
+    sh -c "$(curl -fsSL ${RAW_PREFIX}/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended || {
         echo -e "${RED}[ERROR]${NC} Oh My Zsh 安装失败"
         exit 1
     }
@@ -326,9 +465,9 @@ install_plugin() {
     fi
 }
 
-install_plugin "zsh-syntax-highlighting" "https://github.com/zsh-users/zsh-syntax-highlighting.git"
-install_plugin "zsh-autosuggestions" "https://github.com/zsh-users/zsh-autosuggestions"
-install_plugin "fzf-tab" "https://github.com/Aloxaf/fzf-tab"
+install_plugin "zsh-syntax-highlighting" "${GH_PREFIX}/zsh-users/zsh-syntax-highlighting.git"
+install_plugin "zsh-autosuggestions" "${GH_PREFIX}/zsh-users/zsh-autosuggestions"
+install_plugin "fzf-tab" "${GH_PREFIX}/Aloxaf/fzf-tab"
 
 if [ -f "$HOME/.zshrc" ]; then
     echo -e "${GREEN}[INFO]${NC} 发现已存在的 .zshrc，开始备份..."
@@ -640,11 +779,11 @@ mkdir -p "$FONT_DIR"
 
 echo -e "${GREEN}[INFO]${NC} 安装 Nerd 字体..."
 fonts=(
-    "https://github.com/romkatv/powerlevel10k-media/raw/master/MesloLGS%20NF%20Regular.ttf"
-    "https://github.com/romkatv/powerlevel10k-media/raw/master/MesloLGS%20NF%20Bold.ttf"
-    "https://github.com/romkatv/powerlevel10k-media/raw/master/MesloLGS%20NF%20Italic.ttf"
-    "https://github.com/romkatv/powerlevel10k-media/raw/master/MesloLGS%20NF%20Bold%20Italic.ttf"
-)  
+    "${GH_PREFIX}/romkatv/powerlevel10k-media/raw/master/MesloLGS%20NF%20Regular.ttf"
+    "${GH_PREFIX}/romkatv/powerlevel10k-media/raw/master/MesloLGS%20NF%20Bold.ttf"
+    "${GH_PREFIX}/romkatv/powerlevel10k-media/raw/master/MesloLGS%20NF%20Italic.ttf"
+    "${GH_PREFIX}/romkatv/powerlevel10k-media/raw/master/MesloLGS%20NF%20Bold%20Italic.ttf"
+)
 
 for font_url in "${fonts[@]}"; do
     font_name=$(basename "$font_url" | sed 's/%20/ /g')
@@ -662,12 +801,12 @@ USERSCRIPT
 
     chmod +x "$temp_script"
 
-    # 将用户名和目录作为参数传递给临时脚本执行
+    # 将用户名、目录及镜像前缀作为参数传递给临时脚本执行
     if [ "$username" == "$USER" ] || ([ "$username" == "root" ] && [ "$IS_ROOT" == "true" ]); then
-        bash "$temp_script" "$username" "$user_home"
+        bash "$temp_script" "$username" "$user_home" "$GH_PREFIX" "$RAW_PREFIX"
     else
-        su - "$username" -c "bash $temp_script '$username' '$user_home'"
-    fi  
+        su - "$username" -c "bash $temp_script '$username' '$user_home' '$GH_PREFIX' '$RAW_PREFIX'"
+    fi
 
     rm -f "$temp_script"  
 
@@ -698,11 +837,14 @@ setup_skel() {
 
     log_info "配置新用户默认模板..."
 
-    cat > /usr/local/bin/auto-setup-zsh << 'EOF'
+    # 弱引用 here-doc：把当前判定的镜像前缀固化进生成的脚本；
+    # 脚本自身的变量（$HOME 等）需转义以延迟到运行时展开
+    cat > /usr/local/bin/auto-setup-zsh << EOF
 #!/bin/bash
-if [ ! -d "$HOME/.oh-my-zsh" ] && [ -x /usr/bin/zsh ]; then
-    echo "正在为您自动配置 Zsh 环境..."  
-    curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh | sh -s -- --unattended  
+if [ ! -d "\$HOME/.oh-my-zsh" ] && [ -x /usr/bin/zsh ]; then
+    echo "正在为您自动配置 Zsh 环境..."
+    export REMOTE="${GH_PREFIX}/ohmyzsh/ohmyzsh.git"
+    curl -fsSL ${RAW_PREFIX}/ohmyzsh/ohmyzsh/master/tools/install.sh | sh -s -- --unattended
     echo "配置完成！请重新登录以使用 Zsh。"
 fi
 EOF
@@ -774,11 +916,13 @@ main() {
 
     log_info "=== 系统检测 ==="
     detect_os
-    detect_package_manager  
+    detect_package_manager
+    detect_arch
 
     log_info "=== 网络检测 ==="
+    detect_china
     if ! check_network; then
-        log_error "无法连接到 GitHub，请检查网络连接"
+        log_error "无法连接到 GitHub${USE_MIRROR:+ 镜像}，请检查网络连接"
         exit 1
     fi
     log_info "网络连接正常"
