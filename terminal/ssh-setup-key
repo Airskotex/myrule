@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # SSH 免密登录一键配置/清除脚本
-# 用法: ssh-setup-key <IP> <密钥或密码> [user] [port] [alias]
-#       ssh-setup-key --clear <IP|alias> [options]
+# 用法: ssh-setup-key <IP> [密钥或密码] [user] [port] [alias]
+#       ssh-setup-key clear <IP|alias> [密钥或密码] [user] [port] [alias]
 #   密钥或密码: 传文件路径(已存在的私钥)用密钥登录, 否则当密码用密码登录
 #   alias: 可选 SSH 别名；默认不设置。也可用 --alias/-a 指定。
 
@@ -9,17 +9,18 @@ set -u -o pipefail
 
 usage() {
     echo "用法:"
-    echo "  添加: $0 <IP> <密钥或密码> [user] [port] [alias]"
-    echo "        $0 <IP> <密钥或密码> [user] [port] --alias <alias>"
+    echo "  添加: $0 <IP> [密钥或密码] [user] [port] [alias]"
+    echo "        $0 <IP> [密钥或密码] [user] [port] --alias <alias>"
     echo "        $0 <IP> --ask-pass [user] [port] --alias <alias>"
     echo "        $0 <IP> --password-stdin [user] [port] --alias <alias>"
-    echo "  清除: $0 clear <IP|alias>"
-    echo "        $0 clear <IP> --alias <alias>"
-    echo "        $0 --clear <IP|alias> [options]"
+    echo "  清除: $0 clear <IP|alias> [密钥或密码] [user] [port] [alias]"
+    echo "        $0 clear <IP> [密钥或密码] --alias <alias>"
+    echo "        $0 --clear <IP|alias> [密钥或密码] [options]"
     echo ""
     echo "  <密钥或密码>:"
     echo "    传文件路径 → 用该私钥登录（目标机器仅密钥认证时）"
     echo "    传字符串   → 当作密码用 sshpass 登录"
+    echo "    未传入     → 交互选择输入密码或私钥路径"
     echo "  --ask-pass      交互输入密码，适合包含 !、$、&、引号等特殊字符的密码"
     echo "  --password-stdin 从标准输入读取一行密码"
     echo "  --key <path>    明确指定登录私钥"
@@ -29,14 +30,20 @@ usage() {
     echo "  [user] 默认 root"
     echo "  [port] 默认 22"
     echo "  [alias] 默认不设置；填写后写入 ~/.ssh/config，可用 ssh <alias> 登录"
+    echo "  省略密钥或密码时，如需指定非默认用户/端口，请使用 --user/--port"
     echo "  --clear/clear 清除指定 IP/别名相关的本机/远端指纹和 SSH 配置"
-    echo "  清除模式可省略密码；脚本会优先使用 ~/.ssh/config 中的 IdentityFile 或本机 ~/.ssh/id_ed25519"
+    echo "  清除模式的参数顺序和添加模式一致：IP 后第一个普通参数是密钥或密码"
+    echo "  清除模式可省略密钥或密码；默认用户 root，默认端口 22，远端清理会交互询问认证信息"
+    echo "  清除模式如只想指定非默认用户/端口且不传凭据，请使用 --user/--port"
+    echo "  通过别名清除时，脚本会读取 ~/.ssh/config 中的 HostName/User/Port"
+    echo "  清除模式远端不可达或认证失败时，仅保留本机清理结果并跳过远端清理"
     echo "  --local-only 仅清理本机 known_hosts/config，不连接远端"
     echo "  清除不会删除本机 ~/.ssh/id_ed25519 私钥对"
     echo "  远端 authorized_keys 只删除本脚本写入的本机公钥，不会清空其它公钥"
     echo ""
     echo "示例:"
     echo "  $0 192.168.1.100 mypassword"
+    echo "  $0 192.168.1.100 -a testbox"
     echo "  $0 192.168.1.100 --ask-pass root 22 -a testbox"
     echo "  printf '%s\\n' 'my!pa\$\$&word' | $0 192.168.1.100 --password-stdin root 22 -a testbox"
     echo "  $0 192.168.1.100 ~/.ssh/old_key"
@@ -45,6 +52,8 @@ usage() {
     echo "  $0 192.168.1.100 mypassword --alias testbox"
     echo "  $0 clear testbox"
     echo "  $0 clear 192.168.1.100 -a testbox"
+    echo "  $0 clear 192.168.1.100 mypassword -a testbox"
+    echo "  $0 clear 192.168.1.100 ~/.ssh/old_key root 22 -a testbox"
     echo "  $0 clear 192.168.1.100 --user root --port 22 -a testbox --local-only"
     echo "  $0 --clear 192.168.1.100 --password 'mypassword' --user root --port 22 -a testbox"
 }
@@ -106,6 +115,57 @@ read_password_stdin() {
     local password
     IFS= read -r password || fail_step "读取标准输入密码" "请通过标准输入传入一行密码，例如: printf '%s\\n' '<密码>' | $0 <IP> --password-stdin。"
     printf '%s' "$password"
+}
+
+expand_auth_path() {
+    local auth_path="$1"
+    case "$auth_path" in
+        "~") auth_path="$HOME" ;;
+        ~/*) auth_path="${HOME}/${auth_path#~/}" ;;
+    esac
+    printf '%s' "$auth_path"
+}
+
+read_auth_interactive() {
+    local choice key_path
+
+    if [[ ! -t 0 ]]; then
+        fail_step "读取认证信息" "未提供密码或私钥且当前不是交互式终端；请传入 <密码或私钥路径>、--ask-pass、--password-stdin 或 --key。"
+    fi
+
+    echo "[*] 未提供登录密码或私钥，进入手动输入模式" >&2
+    while true; do
+        printf '请选择认证方式 [1=密码, 2=私钥路径] (默认 1): ' >&2
+        IFS= read -r choice || fail_step "读取认证方式" "无法从终端读取输入，请确认当前会话支持交互输入。"
+        case "$choice" in
+            ""|1|p|P|password|Password|"密码")
+                if ! AUTH_PASS="$(read_password_prompt "SSH 密码: ")"; then
+                    exit 1
+                fi
+                AUTH_MODE="password"
+                AUTH_SET=1
+                AUTH_EXPLICIT=1
+                return 0
+                ;;
+            2|k|K|key|Key|"密钥"|"秘钥"|"私钥")
+                printf '私钥路径: ' >&2
+                IFS= read -r key_path || fail_step "读取私钥路径" "无法从终端读取输入，请确认当前会话支持交互输入。"
+                key_path="$(expand_auth_path "$key_path")"
+                if [[ -z "$key_path" ]]; then
+                    echo "[!] 私钥路径不能为空，请重新选择" >&2
+                    continue
+                fi
+                AUTH_KEY="$key_path"
+                AUTH_MODE="key"
+                AUTH_SET=1
+                AUTH_EXPLICIT=1
+                return 0
+                ;;
+            *)
+                echo "[!] 无效选择，请输入 1 或 2" >&2
+                ;;
+        esac
+    done
 }
 
 find_identity_file_for_host() {
@@ -423,10 +483,20 @@ load_local_public_key() {
 clear_remote_ssh_state() {
     local pub_key="$1"
     local remote_cmd
+    local ssh_options=(
+        -o StrictHostKeyChecking=no
+        -o UserKnownHostsFile=/dev/null
+        -o LogLevel=ERROR
+        -o ConnectTimeout=10
+    )
+
+    if [[ "$AUTH_MODE" != "password" ]]; then
+        ssh_options+=(-o BatchMode=yes)
+    fi
 
     remote_cmd="PUB_KEY=$(shell_quote "$pub_key") TARGET_HOST=$(shell_quote "$IP") TARGET_PORT=$(shell_quote "$PORT") TARGET_ALIAS=$(shell_quote "$SSH_ALIAS") sh -s"
 
-    ssh_cmd -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR -o ConnectTimeout=10 -p "$PORT" "$SSH_TARGET" "$remote_cmd" <<'REMOTE_CLEAN'
+    ssh_cmd "${ssh_options[@]}" -p "$PORT" "$SSH_TARGET" "$remote_cmd" <<'REMOTE_CLEAN'
 ssh_dir="${HOME}/.ssh"
 
 collect_remote_config_hosts() {
@@ -663,6 +733,7 @@ clear_ssh_state() {
     local pub_key=""
     local known_hosts_targets=("$IP" "[$IP]:$PORT")
     local ssh_dir="$HOME/.ssh"
+    local remote_result="未执行"
 
     if [[ -n "$SSH_ALIAS" ]]; then
         known_hosts_targets+=("$SSH_ALIAS" "[$SSH_ALIAS]:$PORT")
@@ -691,15 +762,16 @@ clear_ssh_state() {
     remove_ssh_config_target "$ssh_dir/config" "$IP" "$PORT" "$SSH_ALIAS" "本机"
 
     if [[ "$LOCAL_ONLY" -eq 1 ]]; then
+        remote_result="已跳过 (--local-only)"
         echo "[*] 远端: --local-only 已指定，跳过远端 SSH 状态清理"
     else
         echo "[*] 清理远端 SSH 状态 ..."
         if clear_remote_ssh_state "$pub_key"; then
+            remote_result="已清理"
             echo "[✓] 远端: 已清理指定 IP 相关的 known_hosts/config，并移除本脚本公钥"
-        elif [[ "$AUTH_EXPLICIT" -eq 0 || "$AUTH_MODE" == "default" ]]; then
-            echo "[!] 远端: 无可用认证或默认 SSH 登录失败，已跳过远端清理；本机 known_hosts/config 已按目标清理" >&2
         else
-            fail_step "清理远端 SSH 状态" "请检查 IP/端口/用户/认证是否正确：ssh -p '$PORT' '$SSH_TARGET'；本机 known_hosts/config 已按目标清理。"
+            remote_result="已跳过 (远端不可达或认证失败)"
+            echo "[!] 远端: 连接或认证失败，已跳过远端清理；本机 known_hosts/config 已按目标清理" >&2
         fi
     fi
 
@@ -708,6 +780,7 @@ clear_ssh_state() {
     if [[ -n "$SSH_ALIAS" ]]; then
         echo "  别名  : $SSH_ALIAS"
     fi
+    echo "  远端  : $remote_result"
     echo "  范围  : 仅指定 IP 相关的远端 authorized_keys/known_hosts/config；本机 known_hosts/config"
     echo "  保留  : 本机 $SSH_KEY 私钥对"
     echo "──────────────────────────────"
@@ -744,7 +817,7 @@ if [[ $# -eq 1 && ( "$1" == "-h" || "$1" == "--help" ) ]]; then
     exit 0
 fi
 
-if [[ "$CLEAR_MODE" -eq 0 && $# -lt 2 ]]; then
+if [[ "$CLEAR_MODE" -eq 0 && $# -lt 1 ]]; then
     usage
     exit 1
 fi
@@ -769,7 +842,7 @@ LOCAL_ONLY=0
 SSH_KEY="$HOME/.ssh/id_ed25519"
 shift
 
-if [[ "$CLEAR_MODE" -eq 0 ]]; then
+if [[ "$CLEAR_MODE" -eq 0 && $# -gt 0 ]]; then
     case "$1" in
         -a|--alias|--alias=*|-u|--user|--user=*|-p|--port|--port=*|--ask-pass|--password-stdin|--password|--password=*|--key|--key=*)
             ;;
@@ -780,9 +853,20 @@ if [[ "$CLEAR_MODE" -eq 0 ]]; then
             shift
             ;;
     esac
+elif [[ $# -gt 0 ]]; then
+    case "$1" in
+        -a|--alias|--alias=*|-u|--user|--user=*|-p|--port|--port=*|--ask-pass|--password-stdin|--password|--password=*|--key|--key=*|--local-only|-h|--help|-c|--clear)
+            ;;
+        *)
+            AUTH="$1"
+            AUTH_SET=1
+            AUTH_EXPLICIT=1
+            shift
+            ;;
+    esac
 fi
 
-# 兼容原参数顺序：第 3 个参数是数字则当端口，否则当用户；第 4 个参数当端口；第 5 个参数当别名。
+# 兼容原添加模式参数顺序：凭据之后，第 1 个位置参数是数字则当端口，否则当用户；第 2 个当端口；第 3 个当别名。
 # 额外支持 --alias/-a，适合不想使用第 5 个位置参数时显式指定别名。
 POSITIONAL=()
 while [[ $# -gt 0 ]]; do
@@ -962,10 +1046,13 @@ fi
 
 SSH_TARGET="${USER}@${IP}"
 
+if [[ "$AUTH_EXPLICIT" -eq 0 && ( "$CLEAR_MODE" -eq 0 || "$LOCAL_ONLY" -eq 0 ) ]]; then
+    read_auth_interactive
+fi
+
 # 判断认证方式: AUTH 是已存在的文件 → 密钥登录, 否则 → 密码登录
 if [[ "$CLEAR_MODE" -eq 0 && "$AUTH_SET" -eq 0 ]]; then
-    usage
-    exit 1
+    read_auth_interactive
 elif [[ "$AUTH_MODE" == "key" ]]; then
     if [[ ! -f "$AUTH_KEY" ]]; then
         echo "[✗] 指定的私钥文件不存在: $AUTH_KEY"
