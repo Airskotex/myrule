@@ -1946,15 +1946,61 @@ nvidia_repo_path() {
     echo "${distro}/${arch}"
 }
 
+# 函数：从 NVIDIA 仓库的 Packages 索引里查出指定驱动版本对应的 .deb 相对路径。
+# 不能靠拼后缀猜文件名：实际仓库里后缀至少有 -1、-1ubuntu1、-0ubuntu1、-2ubuntu1 四种，
+# 且同一分支内混用（如 580.126.20-1 与 580.159.03-1ubuntu1）。
+# 包名也有 nvidia-fabricmanager 与 nvidia-fabricmanager-<major> 两种形式。
+# 因此直接解析索引取权威的 Filename 字段。
+nvidia_repo_find_deb() {
+    local repo_path=$1
+    local driver_version=$2
+    local driver_major="${driver_version%%.*}"
+    local index_url="https://developer.download.nvidia.com/compute/cuda/repos/${repo_path}/Packages.gz"
+    local index_file="${DOWNLOAD_DIR}/.nvidia-repo-Packages.gz"
+    local result=""
+
+    # 索引约 3MB，缓存复用避免重复下载
+    if [[ ! -s "$index_file" ]]; then
+        if ! metadata_wget -qO "$index_file" "$index_url" 2>/dev/null; then
+            rm -f -- "$index_file"
+            return 1
+        fi
+    fi
+
+    # 按 stanza 解析：只认包名精确匹配且版本号以目标版本开头（后缀任意）的条目，
+    # 并排除 -dev 包。优先不带主版本号后缀的包名。
+    result=$(gzip -dc "$index_file" 2>/dev/null | awk -v ver="$driver_version" -v maj="$driver_major" '
+        /^Package:/ { pkg = $2; version = ""; fname = "" }
+        /^Version:/ { version = $2 }
+        /^Filename:/ {
+            fname = $2
+            if (pkg !~ /-dev/ && (pkg == "nvidia-fabricmanager" || pkg == "nvidia-fabricmanager-" maj)) {
+                # 版本必须是 <ver> 或 <ver><Debian修订分隔符>，不能是 <ver>.<更多数字>
+                if (version == ver || index(version, ver "-") == 1 || \
+                    index(version, ver "~") == 1 || index(version, ver "+") == 1) {
+                    prio = (pkg == "nvidia-fabricmanager") ? 1 : 2
+                    if (best == "" || prio < bestprio) { best = fname; bestprio = prio; bestver = version }
+                }
+            }
+        }
+        END { if (best != "") print best "\t" bestver }
+    ')
+
+    [[ -z "$result" ]] && return 1
+    echo "$result"
+}
+
 # 函数：源索引查不到精确版本时，直接从 NVIDIA 仓库下载 .deb 安装。
 # 新包 Conflicts/Replaces 旧的 nvidia-fabricmanager-<major>，dpkg -i 会自动替换。
 install_fabricmanager_deb() {
     local driver_version=$1
     local repo_path
+    local found=""
+    local deb_rel=""
+    local deb_ver=""
     local deb_file
     local deb_url
     local deb_path
-    local suffix
 
     command -v dpkg &> /dev/null || return 1
 
@@ -1966,42 +2012,39 @@ install_fabricmanager_deb() {
     print_section "尝试从 NVIDIA 仓库直接安装 fabricmanager .deb"
     print_kv "仓库路径" "$repo_path"
 
-    # 版本后缀在不同发行版/批次间不一致，逐个尝试
-    for suffix in "-1" "-1ubuntu1" "-2" "-2ubuntu1"; do
-        deb_file="nvidia-fabricmanager_${driver_version}${suffix}_amd64.deb"
-        [[ "$(uname -m)" == "aarch64" ]] && \
-            deb_file="nvidia-fabricmanager_${driver_version}${suffix}_arm64.deb"
-        deb_url="https://developer.download.nvidia.com/compute/cuda/repos/${repo_path}/${deb_file}"
-
-        if ! metadata_wget --spider -q "$deb_url" 2>/dev/null; then
-            continue
-        fi
-
-        log_info "找到可用 .deb: ${deb_file}"
-        deb_path="${DOWNLOAD_DIR}/${deb_file}"
-        if ! download_file "$deb_url" "$deb_file"; then
-            log_warn "下载 ${deb_file} 失败。"
-            continue
-        fi
-
-        if run_privileged dpkg -i "$deb_path"; then
-            log_success "fabricmanager ${driver_version}${suffix} 安装成功（.deb 直装）。"
-            rm -f -- "$deb_path"
-            return 0
-        fi
-
-        log_warn "dpkg -i 失败，尝试用 apt-get -f install 修复依赖。"
-        if run_privileged env DEBIAN_FRONTEND=noninteractive apt-get -f install -y; then
-            log_success "依赖修复完成，fabricmanager 已安装。"
-            rm -f -- "$deb_path"
-            return 0
-        fi
-
-        rm -f -- "$deb_path"
+    found=$(nvidia_repo_find_deb "$repo_path" "$driver_version") || {
+        log_warn "仓库索引中找不到驱动 ${driver_version} 对应的 fabricmanager .deb。"
         return 1
-    done
+    }
 
-    log_warn "仓库中找不到 ${driver_version} 对应的 fabricmanager .deb。"
+    deb_rel="${found%%$'\t'*}"
+    deb_ver="${found##*$'\t'}"
+    deb_rel="${deb_rel#./}"
+    deb_file="$(basename -- "$deb_rel")"
+    deb_url="https://developer.download.nvidia.com/compute/cuda/repos/${repo_path}/${deb_rel}"
+
+    print_kv "索引中匹配到" "${deb_file} (版本 ${deb_ver})"
+
+    deb_path="${DOWNLOAD_DIR}/${deb_file}"
+    if ! download_file "$deb_url" "$deb_file"; then
+        log_warn "下载 ${deb_file} 失败。"
+        return 1
+    fi
+
+    if run_privileged dpkg -i "$deb_path"; then
+        log_success "fabricmanager ${deb_ver} 安装成功（.deb 直装）。"
+        rm -f -- "$deb_path"
+        return 0
+    fi
+
+    log_warn "dpkg -i 失败，尝试用 apt-get -f install 修复依赖。"
+    if run_privileged env DEBIAN_FRONTEND=noninteractive apt-get -f install -y; then
+        log_success "依赖修复完成，fabricmanager ${deb_ver} 已安装。"
+        rm -f -- "$deb_path"
+        return 0
+    fi
+
+    rm -f -- "$deb_path"
     return 1
 }
 
