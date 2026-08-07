@@ -1402,12 +1402,60 @@ verify_cuda_installation() {
     fi
 }
 
+# 函数：读取内存中已加载的驱动版本。
+# /proc/driver/nvidia/version 的实际格式为：
+#   NVRM version: NVIDIA UNIX Open Kernel Module for x86_64  580.65.06  Release Build ...
+# 版本号前的措辞随驱动分支变化（Open Kernel Module / Kernel Module / x86_64 等），
+# 因此不按固定措辞匹配，直接取该行首个 N.N 形式的版本号。
+detect_loaded_driver_version() {
+    local version=""
+
+    if [[ -r /proc/driver/nvidia/version ]]; then
+        version=$(grep -m1 -oE '[0-9]+\.[0-9]+(\.[0-9]+)?' /proc/driver/nvidia/version 2>/dev/null | head -1)
+    fi
+
+    [[ -n "$version" ]] && echo "$version"
+}
+
+# 函数：检查磁盘上的 .ko 版本与内存中已加载驱动是否一致。
+# 换驱动后若旧模块被重新加载，会出现 "Driver/library version mismatch"，
+# 此时磁盘是新版、内存是旧版，必须重启才能生效。
+check_driver_version_consistency() {
+    local disk_version=""
+    local loaded_version=""
+    local ko_path
+
+    ko_path=$(find "/lib/modules/$(uname -r)" -name 'nvidia.ko*' 2>/dev/null | head -1)
+    [[ -z "$ko_path" ]] && return 0
+    command -v modinfo &> /dev/null || return 0
+
+    disk_version=$(modinfo -F version "$ko_path" 2>/dev/null || true)
+    [[ -z "$disk_version" ]] && return 0
+
+    loaded_version=$(detect_loaded_driver_version || true)
+
+    # 模块未加载时无需比较，重启或首次 nvidia-smi 会加载新版
+    [[ -z "$loaded_version" ]] && return 0
+
+    if [[ "$disk_version" == "$loaded_version" ]]; then
+        log_success "磁盘与内存中的驱动版本一致 (${disk_version})。"
+        return 0
+    fi
+
+    log_warn "驱动版本不一致：磁盘 ${disk_version}，内存中仍是 ${loaded_version}。"
+    print_hint "安装本身已完成，但旧模块仍驻留内存，nvidia-smi 会报 Driver/library version mismatch。"
+    print_hint "必须重启系统才能加载新驱动: reboot"
+    return 1
+}
+
 verify_nvidia_driver_installation() {
     local smi_path
     local smi_output
     local smi_cuda_version=""
 
     print_section "验证 NVIDIA Driver"
+
+    check_driver_version_consistency || true
 
     if smi_path=$(command -v nvidia-smi 2>/dev/null); then
         print_kv "nvidia-smi 路径" "$smi_path"
@@ -1797,9 +1845,11 @@ apt_find_package_version() {
     command -v apt-cache &> /dev/null || return 1
     escaped="${version_prefix//./\\.}"
 
+    # 只允许 Debian 版本修订分隔符（- ~ +）跟在完整版本号后，不含 '.'。
+    # 否则传入 "580" 会误匹配 "580.105.08-1"，装上版本不符的包。
     apt-cache madison "$package" 2>/dev/null | \
         awk -F'|' '{gsub(/^[ \t]+|[ \t]+$/, "", $2); print $2}' | \
-        grep -E "^${escaped}(([-.~+]).*)?$" | \
+        grep -E "^${escaped}([-~+].*)?$" | \
         head -1
 }
 
@@ -1825,8 +1875,10 @@ install_fabricmanager_apt() {
 
     run_privileged apt-get update -qq || log_warn "apt-get update 失败，继续尝试安装。"
 
-    # 包名两种形式都要试：nvidia-fabricmanager-<major> 与 nvidia-fabricmanager
-    for try_pkg in "nvidia-fabricmanager-${driver_major}" "nvidia-fabricmanager"; do
+    # 包名两种形式都要试。NVIDIA CUDA 源用不带主版本号的 nvidia-fabricmanager
+    # （版本形如 595.45.04-1ubuntu1），Ubuntu 官方源用 nvidia-fabricmanager-<major>
+    # （版本形如 580.173.02-0ubuntu0.22.04.1）。CUDA 源版本更贴合 runfile 驱动，故优先。
+    for try_pkg in "nvidia-fabricmanager" "nvidia-fabricmanager-${driver_major}"; do
         candidate=$(apt_find_package_version "$try_pkg" "$driver_version" || true)
         if [[ -n "$candidate" ]]; then
             package="$try_pkg"
@@ -1841,22 +1893,116 @@ install_fabricmanager_apt() {
             print_hint "该分支可能需要 NVIDIA CUDA apt 源，请先配置对应发行版的仓库。"
             return 1
         fi
-        log_warn "源中没有与驱动 ${driver_version} 版本一致的 fabricmanager。"
+        log_warn "源索引中没有与驱动 ${driver_version} 版本一致的 fabricmanager。"
         print_kv "源中可用版本" "$available"
+        # 源索引只收录部分版本，但仓库里往往仍保留对应 .deb 直链，
+        # 因此索引查不到时再尝试直接下载安装，而不是直接放弃。
+        if install_fabricmanager_deb "$driver_version"; then
+            return 0
+        fi
+        log_error "无法获得与驱动 ${driver_version} 匹配的 fabricmanager。"
         print_hint "fabricmanager 与驱动必须严格同版本，装不一致的版本仍会导致 CUDA 初始化失败。"
         print_hint "两个可行方向："
         print_hint "  1) 改装与源中 fabricmanager 版本一致的驱动版本；"
-        print_hint "  2) 配置 NVIDIA CUDA apt 源以获取精确版本。"
+        print_hint "  2) 手动下载对应 .deb 后执行 dpkg -i 安装。"
         return 1
     fi
 
     log_info "源中匹配到 ${package} = ${candidate}"
-    if ! run_privileged apt-get install -y "${package}=${candidate}"; then
+    if ! run_privileged env DEBIAN_FRONTEND=noninteractive apt-get install -y \
+        --allow-downgrades "${package}=${candidate}"; then
         log_error "安装 ${package}=${candidate} 失败。"
         return 1
     fi
 
     log_success "fabricmanager ${candidate} 安装成功。"
+}
+
+# 函数：推导本机对应的 NVIDIA CUDA 仓库路径（如 ubuntu2204/x86_64）。
+# 仅支持官方实际提供的组合：Ubuntu 有 x86_64/sbsa/arm64，Debian 无 arm64。
+nvidia_repo_path() {
+    local distro=""
+    local arch=""
+
+    [[ -r /etc/os-release ]] || return 1
+    # shellcheck disable=SC1091
+    . /etc/os-release
+
+    case "${ID:-}" in
+        ubuntu) distro="ubuntu${VERSION_ID//./}" ;;
+        debian) distro="debian${VERSION_ID%%.*}" ;;
+        *) return 1 ;;
+    esac
+
+    case "$(uname -m)" in
+        x86_64) arch="x86_64" ;;
+        aarch64)
+            # Ubuntu 同时提供 sbsa 与 arm64，服务器卡走 sbsa；Debian 只有 sbsa
+            arch="sbsa"
+            ;;
+        *) return 1 ;;
+    esac
+
+    echo "${distro}/${arch}"
+}
+
+# 函数：源索引查不到精确版本时，直接从 NVIDIA 仓库下载 .deb 安装。
+# 新包 Conflicts/Replaces 旧的 nvidia-fabricmanager-<major>，dpkg -i 会自动替换。
+install_fabricmanager_deb() {
+    local driver_version=$1
+    local repo_path
+    local deb_file
+    local deb_url
+    local deb_path
+    local suffix
+
+    command -v dpkg &> /dev/null || return 1
+
+    repo_path=$(nvidia_repo_path) || {
+        log_warn "无法推导本机对应的 NVIDIA 仓库路径，跳过 .deb 安装。"
+        return 1
+    }
+
+    print_section "尝试从 NVIDIA 仓库直接安装 fabricmanager .deb"
+    print_kv "仓库路径" "$repo_path"
+
+    # 版本后缀在不同发行版/批次间不一致，逐个尝试
+    for suffix in "-1" "-1ubuntu1" "-2" "-2ubuntu1"; do
+        deb_file="nvidia-fabricmanager_${driver_version}${suffix}_amd64.deb"
+        [[ "$(uname -m)" == "aarch64" ]] && \
+            deb_file="nvidia-fabricmanager_${driver_version}${suffix}_arm64.deb"
+        deb_url="https://developer.download.nvidia.com/compute/cuda/repos/${repo_path}/${deb_file}"
+
+        if ! metadata_wget --spider -q "$deb_url" 2>/dev/null; then
+            continue
+        fi
+
+        log_info "找到可用 .deb: ${deb_file}"
+        deb_path="${DOWNLOAD_DIR}/${deb_file}"
+        if ! download_file "$deb_url" "$deb_file"; then
+            log_warn "下载 ${deb_file} 失败。"
+            continue
+        fi
+
+        if run_privileged dpkg -i "$deb_path"; then
+            log_success "fabricmanager ${driver_version}${suffix} 安装成功（.deb 直装）。"
+            rm -f -- "$deb_path"
+            return 0
+        fi
+
+        log_warn "dpkg -i 失败，尝试用 apt-get -f install 修复依赖。"
+        if run_privileged env DEBIAN_FRONTEND=noninteractive apt-get -f install -y; then
+            log_success "依赖修复完成，fabricmanager 已安装。"
+            rm -f -- "$deb_path"
+            return 0
+        fi
+
+        rm -f -- "$deb_path"
+        return 1
+    done
+
+    log_warn "仓库中找不到 ${driver_version} 对应的 fabricmanager .deb。"
+    return 1
 }
 
 # 函数：RHEL 系上安装 fabricmanager。
@@ -1917,10 +2063,85 @@ install_matching_fabricmanager() {
         if run_privileged systemctl start "$fm_service"; then
             log_success "${fm_service} 已启动。"
         else
-            log_warn "启动 ${fm_service} 失败。请检查: systemctl status ${fm_service}"
-            print_hint "若驱动刚安装完，可能需要重启后再启动该服务。"
+            log_warn "启动 ${fm_service} 失败。"
+            diagnose_fabricmanager_failure "$fm_service"
         fi
     fi
+}
+
+# 函数：fabricmanager 启动失败时，从日志里提取根因给出可执行建议。
+# 最常见的失败是驱动接口版本不匹配，且只能通过重启解决。
+diagnose_fabricmanager_failure() {
+    local fm_service=$1
+    local log_tail=""
+
+    command -v journalctl &> /dev/null || {
+        print_hint "请检查: systemctl status ${fm_service}"
+        return 0
+    }
+
+    log_tail=$(journalctl -u "$fm_service" -n 20 --no-pager 2>/dev/null || true)
+    [[ -z "$log_tail" ]] && { print_hint "请检查: systemctl status ${fm_service}"; return 0; }
+
+    if grep -q "don't match with driver version" <<< "$log_tail"; then
+        log_error "fabricmanager 与内存中的驱动接口版本不匹配。"
+        print_command_output "$(grep -m1 "don't match with driver version" <<< "$log_tail")"
+        print_hint "这是因为新驱动已装到磁盘，但旧驱动模块仍驻留内存。"
+        print_hint "重启系统后 fabricmanager 会自动启动成功: reboot"
+        DRIVER_NEEDS_REBOOT=1
+        return 0
+    fi
+
+    if grep -qiE "no such file|not found.*topology|failed to open" <<< "$log_tail"; then
+        log_error "fabricmanager 缺少拓扑文件，通常是包与驱动版本不配套。"
+        print_hint "请确认 fabricmanager 与驱动为同一版本。"
+        return 0
+    fi
+
+    print_hint "服务日志尾部："
+    print_command_output "$(tail -6 <<< "$log_tail")"
+    print_hint "完整日志: journalctl -u ${fm_service} -n 50"
+}
+
+# 函数：NVLink 机型安装完成后，校验 NVLink 是否真正可用。
+# 版本号一致、服务 active 都不等于 NVLink 通了，必须看实际链路状态。
+verify_nvlink_operational() {
+    local fm_service
+    local nvlink_output=""
+    local inactive_count=0
+
+    nvswitch_present || return 0
+    command -v nvidia-smi &> /dev/null || return 0
+
+    print_section "校验 NVLink 工作状态"
+
+    fm_service=$(detect_fabricmanager_service || true)
+    if [[ -n "$fm_service" ]] && command -v systemctl &> /dev/null; then
+        if systemctl is-active --quiet "$fm_service" 2>/dev/null; then
+            log_success "${fm_service} 运行中。"
+        else
+            log_warn "${fm_service} 未运行，多卡 NVLink 通信不可用。"
+            diagnose_fabricmanager_failure "$fm_service"
+            return 1
+        fi
+    fi
+
+    nvlink_output=$(nvidia-smi nvlink --status 2>&1 || true)
+
+    if grep -qi "inactive\|error" <<< "$nvlink_output"; then
+        inactive_count=$(grep -ci "inactive" <<< "$nvlink_output" || true)
+        log_warn "检测到 ${inactive_count} 条 NVLink 链路未激活。"
+        print_hint "完整状态: nvidia-smi nvlink --status"
+        return 1
+    fi
+
+    if grep -qE 'Link [0-9]+: [0-9]' <<< "$nvlink_output"; then
+        log_success "NVLink 链路已激活（$(grep -cE 'Link [0-9]+: [0-9]' <<< "$nvlink_output") 条）。"
+        return 0
+    fi
+
+    log_warn "未能读取到 NVLink 链路状态，请手动确认: nvidia-smi nvlink --status"
+    return 1
 }
 
 # 函数：检查 fabricmanager 与驱动版本是否一致，必要时自动修复。
@@ -1929,12 +2150,27 @@ verify_and_fix_fabricmanager() {
     local driver_version=$1
     local fm_version=""
     local driver_major
+    local loaded_driver=""
+    local fm_service_name=""
 
     nvswitch_present || return 0
     [[ -z "$driver_version" || ! "$driver_version" =~ ^[0-9] ]] && return 0
 
     fm_version=$(detect_installed_fabricmanager_version || true)
     driver_major="${driver_version%%.*}"
+    fm_service_name=$(detect_fabricmanager_service || echo "nvidia-fabricmanager")
+
+    # fabricmanager 校验的是"内存中驱动的接口版本"，不是 apt 包版本。
+    # 包版本对上但旧模块仍驻留内存时，服务会以下面这句失败：
+    #   fabric manager NVIDIA GPU driver interface version X don't match with driver version Y
+    # 这种情况只能靠重启解决，先在这里明确指出，避免误判为包版本问题。
+    loaded_driver=$(detect_loaded_driver_version || true)
+    if [[ -n "$loaded_driver" && "$loaded_driver" != "$driver_version" ]]; then
+        log_warn "内存中的驱动为 ${loaded_driver}，与本次安装的 ${driver_version} 不一致。"
+        print_hint "fabricmanager 按内存中的驱动接口版本校验，重启前它无法启动成功。"
+        print_hint "请先重启系统，再确认 fabricmanager 状态: systemctl status ${fm_service_name:-nvidia-fabricmanager}"
+        DRIVER_NEEDS_REBOOT=1
+    fi
 
     if [[ -z "$fm_version" ]]; then
         log_warn "检测到 NVSwitch 但未安装 fabricmanager，多卡 NVLink 通信将不可用。"
@@ -1980,23 +2216,59 @@ verify_and_fix_fabricmanager() {
     esac
 
     install_matching_fabricmanager "$driver_version" "$driver_major" || true
+
+    # 装完包不代表 NVLink 通了，实际校验一次
+    if [[ "$DRIVER_NEEDS_REBOOT" != "1" ]]; then
+        verify_nvlink_operational || true
+    fi
 }
 
 STOPPED_NVIDIA_SERVICES=()
+MASKED_NVIDIA_SERVICES=()
+DISABLED_NVIDIA_SERVICES=()
+
+# 函数：解除此前为防止服务自启而设置的 mask/disable。
+unmask_nvidia_services() {
+    local service
+
+    command -v systemctl &> /dev/null || return 0
+
+    for service in "${MASKED_NVIDIA_SERVICES[@]}"; do
+        log_info "解除屏蔽: ${service}"
+        run_privileged systemctl unmask "$service" || \
+            log_warn "解除 ${service} 屏蔽失败，请手动执行: systemctl unmask ${service}"
+    done
+    MASKED_NVIDIA_SERVICES=()
+
+    for service in "${DISABLED_NVIDIA_SERVICES[@]}"; do
+        log_info "恢复自启: ${service}"
+        run_privileged systemctl enable "$service" || \
+            log_warn "恢复 ${service} 自启失败，请手动执行: systemctl enable ${service}"
+    done
+    DISABLED_NVIDIA_SERVICES=()
+}
 
 # 函数：恢复此前为卸载模块而停掉的服务。
 # NVSwitch 机型上 fabricmanager 不运行会导致 CUDA 初始化失败，安装失败时必须还原。
 restore_stopped_nvidia_services() {
     local service
 
-    [[ ${#STOPPED_NVIDIA_SERVICES[@]} -eq 0 ]] && return 0
+    if [[ ${#STOPPED_NVIDIA_SERVICES[@]} -eq 0 && ${#MASKED_NVIDIA_SERVICES[@]} -eq 0 && \
+          ${#DISABLED_NVIDIA_SERVICES[@]} -eq 0 ]]; then
+        return 0
+    fi
     command -v systemctl &> /dev/null || return 0
 
     print_section "恢复此前停止的 NVIDIA 服务"
+
+    # 必须先 unmask，masked 状态下 start 会直接失败
+    unmask_nvidia_services
+
     for service in "${STOPPED_NVIDIA_SERVICES[@]}"; do
         log_info "启动服务: ${service}"
         if ! run_privileged systemctl start "$service"; then
             log_warn "启动 ${service} 失败，请手动执行: systemctl start ${service}"
+            print_hint "若刚更换驱动版本，该服务可能需要重启系统后才能启动。"
         fi
     done
     STOPPED_NVIDIA_SERVICES=()
@@ -2027,6 +2299,22 @@ unload_nvidia_modules() {
                     STOPPED_NVIDIA_SERVICES+=("$service")
                 else
                     log_warn "停止 ${service} 失败，继续尝试卸载模块。"
+                fi
+
+                # 仅 stop 不够：安装器会执行 systemctl daemon-reload，
+                # enabled 的服务可能被重新拉起并 modprobe 旧模块，
+                # 造成 nvidia.ko(旧) 与 nvidia-modeset.ko(新) 版本冲突。
+                # mask 在 /etc/systemd/system 建符号链接，若该目录已有同名
+                # 单元文件会失败，此时退回 disable。
+                if run_privileged systemctl mask "$service" 2>/dev/null; then
+                    MASKED_NVIDIA_SERVICES+=("$service")
+                    log_info "已临时屏蔽 ${service}，防止安装期间自动重启。"
+                elif run_privileged systemctl disable "$service" 2>/dev/null; then
+                    DISABLED_NVIDIA_SERVICES+=("$service")
+                    log_info "mask 不可用，已临时禁用 ${service} 自启。"
+                else
+                    log_warn "无法阻止 ${service} 自启，安装期间它可能重新加载旧模块。"
+                    print_hint "如安装后出现 Driver/library version mismatch，重启即可恢复。"
                 fi
             fi
         done
@@ -2481,6 +2769,7 @@ EOF
 
 # 变量初始化
 INSTALL_MODE="cuda"
+DRIVER_NEEDS_REBOOT=0
 CUDA_VERSION=""
 FILENAME=""
 CONFIRM_DRIVER=""
@@ -2913,6 +3202,7 @@ log_success "CUDA Toolkit 安装成功。"
 restore_stopped_nvidia_services
 
 if [[ "$CONFIRM_DRIVER" == "yes" ]]; then
+    check_driver_version_consistency || DRIVER_NEEDS_REBOOT=1
     verify_and_fix_fabricmanager "$SELECTED_DRIVER_VERSION"
 fi
 
@@ -2931,4 +3221,12 @@ fi
 echo -e "${BOLD}${BLUE}=====================================================${NC}"
 echo -e "${BOLD}${GREEN}                所有操作已成功完成                 ${NC}"
 echo -e "${BOLD}${BLUE}=====================================================${NC}"
+
+if [[ "${DRIVER_NEEDS_REBOOT:-0}" == "1" ]]; then
+    echo -e "${BOLD}${YELLOW}注意: 驱动已更换但旧模块仍在内存中，需要重启后才能生效。${NC}"
+    echo -e "${YELLOW}重启前 nvidia-smi 会报 Driver/library version mismatch，属预期现象。${NC}"
+    echo -e "执行: ${GREEN}reboot${NC}"
+    echo
+fi
+
 echo -e "手动复验: ${GREEN}source /etc/profile.d/cuda.sh && nvcc -V && nvidia-smi${NC}"
