@@ -1394,10 +1394,15 @@ verify_cuda_installation() {
     fi
 
     if [[ -n "$nvcc_cuda_version" && -n "$smi_cuda_version" ]]; then
+        # nvidia-smi 的 "CUDA Version" 是驱动支持的最高 CUDA 版本上限，
+        # 而 nvcc -V 是实际安装的 Toolkit 版本，两者不同是正常现象（Toolkit 版本 <= 驱动上限）。
+        # 只有在同次安装了驱动+Toolkit 后 Toolkit 版本应相同时，才需要重启重验证。
+        # 因此这里只做提示性对比，不再误报 WARN。
         if [[ "$nvcc_cuda_version" == "$smi_cuda_version" ]]; then
-            log_success "nvcc -V 与 nvidia-smi 显示的 CUDA 版本一致。"
+            log_success "nvcc -V 与 nvidia-smi 显示的 CUDA 版本一致 (${nvcc_cuda_version})。"
         else
-            log_warn "nvcc -V 显示 CUDA ${nvcc_cuda_version}，nvidia-smi 显示 CUDA ${smi_cuda_version}。如刚安装或更新驱动，请重启后再验证。"
+            # nvcc 版本低于驱动支持上限属于正常情况，仅作信息展示
+            log_info "nvcc CUDA Toolkit: ${nvcc_cuda_version}，nvidia-smi 驱动支持上限: ${smi_cuda_version}（Toolkit 版本低于驱动上限属正常）。"
         fi
     fi
 }
